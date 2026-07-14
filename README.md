@@ -1,31 +1,56 @@
 # AMECO Spot Planner
 
-Versión: **v1.1.0-refactor**
+Versión: **v1.2.0-firebase**
 
-## Objetivo de esta versión
+## Incluye
 
-Reorganizar el sistema original sin alterar su funcionamiento:
+- Aplicación completa original.
+- Trabajadores.
+- Documentos y exámenes.
+- Acreditaciones.
+- Certificaciones.
+- Turnos 14×14.
+- Calendario y edición masiva.
+- Firebase Authentication anónima.
+- Firebase Realtime Database.
+- Sincronización entre usuarios y computadores.
+- Configuración para Firebase Hosting.
 
-- `index.html`: estructura principal.
-- `css/styles.css`: estilos visuales.
-- `js/app.js`: lógica completa de la aplicación.
+## Estructura
 
-## Importante
+```text
+index.html
+css/styles.css
+js/app.js
+js/firebase-config.js
+js/storage-adapter.js
+firebase.json
+database.rules.json
+```
 
-Esta versión todavía utiliza `window.storage`, igual que el archivo original.  
-La conexión definitiva con Firebase se realizará en la versión `v1.2.0`.
+## Cómo funciona
 
-## Probar localmente
+`storage-adapter.js` implementa la API `window.storage` que esperaba el
+sistema original, pero guarda los datos en Firebase. De esta forma se conserva
+la aplicación completa sin reescribir todos sus módulos de una vez.
 
-No abras `index.html` directamente si el entorno donde lo pruebes no proporciona `window.storage`.
+## Publicación
 
-Para revisar la estructura puedes usar un servidor local, aunque las funciones de guardado seguirán dependiendo del almacenamiento original hasta la migración a Firebase.
+Desde la carpeta del proyecto:
 
-## Siguiente versión
+```powershell
+npm install -g firebase-tools
+firebase login
+firebase use --add
+firebase deploy
+```
 
-**v1.2.0 — Integración Firebase**
+Selecciona el proyecto:
 
-- Realtime Database.
-- Authentication.
-- Sincronización entre usuarios.
-- Migración de la capa de almacenamiento.
+`ameco-spot-planificacion`
+
+## Seguridad
+
+Esta fase usa autenticación anónima. Toda persona que tenga el enlace podrá
+autenticarse y modificar datos. La siguiente fase incorporará usuarios,
+contraseñas y permisos.

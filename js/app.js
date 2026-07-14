@@ -109,13 +109,44 @@ function persist(){
     saveTimeout = setTimeout(async ()=>{
       state.saving = true; renderSavePill();
       try{
-        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos}), true);
+        const payload = JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos});
+        lastRemotePayload = payload;
+        await window.storage.set(STORAGE_KEY, payload, true);
       }catch(e){ console.error('Error al guardar', e); }
       state.saving = false; renderSavePill();
       resolve();
     }, 350);
   });
 }
+
+
+/* ============================= FIREBASE REALTIME SYNC ============================= */
+let lastRemotePayload = null;
+
+window.addEventListener('ameco-storage-changed', (event)=>{
+  if(!event.detail || event.detail.key !== STORAGE_KEY) return;
+  if(state.saving) return;
+  if(event.detail.value === lastRemotePayload) return;
+
+  try{
+    const parsed = JSON.parse(event.detail.value);
+    lastRemotePayload = event.detail.value;
+    state.workers = parsed.workers || [];
+    state.faenas = parsed.faenas && parsed.faenas.length ? parsed.faenas : [...DEFAULT_FAENAS];
+    state.cargos = parsed.cargos && parsed.cargos.length ? parsed.cargos : [...DEFAULT_CARGOS];
+    state.equipos = parsed.equipos && parsed.equipos.length ? parsed.equipos : [...DEFAULT_EQUIPOS];
+
+    state.workers.forEach(w=>{
+      if(!w.certificaciones) w.certificaciones = [];
+      if(!w.examenesExtra) w.examenesExtra = [];
+      if(!w.overrides) w.overrides = {};
+    });
+
+    render();
+  }catch(error){
+    console.error('No se pudieron sincronizar los cambios remotos.', error);
+  }
+});
 
 /* ============================= DATE HELPERS ============================= */
 function fmt(d){ return d.toISOString().slice(0,10); }
