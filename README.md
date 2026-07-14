@@ -1,25 +1,13 @@
 # AMECO Spot Planner
 
-Versión: **v1.5.0-trabajadores**
+Versión: **v1.6.0-modelo-operativo**
 
-## Módulo funcional agregado
+Incluye:
 
-- Listado de trabajadores.
-- Búsqueda por nombre, RUT, cargo, empresa, faena o ciudad.
-- Alta de trabajadores.
-- Edición de fichas.
-- Eliminación.
-- Estado activo, pendiente o inactivo.
-- Configuración inicial del turno 14×14.
-- Guardado directo en Firebase Realtime Database.
-- Sincronización entre usuarios conectados.
+- Modelo de datos.
+- Flujo operativo.
+- Diseño del Centro de Operaciones.
+- Roadmap técnico.
+- Esquema base para Firebase.
 
-## Ruta de datos
-
-```text
-amecoSpotPlanner/workers/{workerId}
-```
-
-## Acceso
-
-Solo usuarios autenticados pueden leer o modificar trabajadores.
+MyPass, WebControl y otras plataformas se modelan como sistemas externos configurables por faena.
