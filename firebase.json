@@ -1,18 +1,1 @@
-{
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      "database.rules.json",
-      "README.md",
-      "CHANGELOG.md",
-      ".gitignore",
-      "control_personal (12).html",
-      "**/.*",
-      "**/node_modules/**"
-    ]
-  },
-  "database": {
-    "rules": "database.rules.json"
-  }
-}
+/* Módulo reservado: certifications.js. La lógica actual sigue en js/app.js. */

@@ -1,13 +1,1 @@
-{
-  "rules": {
-    "amecoSpotPlanner": {
-      ".read": "auth != null",
-      ".write": "auth != null",
-      "workers": {
-        "$workerId": {
-          ".validate": "newData.hasChildren(['id','nombre','estado'])"
-        }
-      }
-    }
-  }
-}
+/* Módulo reservado: documents.js. La lógica actual sigue en js/app.js. */
