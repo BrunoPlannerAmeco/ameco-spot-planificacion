@@ -2,7 +2,12 @@
   "rules": {
     "amecoSpotPlanner": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      "workers": {
+        "$workerId": {
+          ".validate": "newData.hasChildren(['id','nombre','estadoLaboral'])"
+        }
+      }
     }
   }
 }

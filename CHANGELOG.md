@@ -1,21 +1,9 @@
 # CHANGELOG
 
-## v2.0.0-dashboard
+## v2.1.1-flat-fix
 
-### Agregado
-
-- Nueva arquitectura limpia.
-- Login con correo y contraseña.
-- Shell principal.
-- Navegación única.
-- Dashboard operativo.
-- Indicadores conectados a Firebase.
-- Acciones rápidas.
-- Módulos futuros reservados.
-
-### Eliminado
-
-- Dependencia del HTML original.
-- Navegaciones duplicadas.
-- Múltiples fuentes de trabajadores.
-- Adaptadores heredados incompatibles.
+- Se corrigió el despliegue roto de GitHub Pages.
+- Se movieron los archivos web a la raíz.
+- Se ajustaron todas las rutas de importación.
+- Se restauró el diseño del login.
+- Se mantuvo el Dashboard y el módulo Personal.

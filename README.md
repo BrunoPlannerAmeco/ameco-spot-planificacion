@@ -1,41 +1,21 @@
-# AMECO Spot Planner v2.0.0 Dashboard
+# AMECO Spot Planner v2.1.1 Flat Fix
 
-Primera base limpia de la versión 2.
+Versión corregida para GitHub Pages.
 
-## Incluye
+Todos los archivos web están en la raíz para evitar que GitHub los mezcle o
+aplane durante la carga desde el navegador.
 
-- Login con Firebase Authentication.
-- Arquitectura modular única.
-- Navegación centralizada.
-- Centro de Operaciones.
-- Indicadores conectados a Firebase.
-- Acciones rápidas.
-- Rutas reservadas para todos los módulos futuros.
-- Compatible con GitHub Pages.
+Archivos mínimos:
 
-## Estructura
-
-```text
-index.html
-css/styles.css
-js/config/firebase-config.js
-js/core/bootstrap.js
-js/core/router.js
-js/core/state.js
-js/services/firebase-service.js
-js/modules/login.js
-js/modules/shell.js
-js/modules/dashboard.js
-```
-
-## Principio técnico
-
-Todos los módulos comparten:
-
-- una sola sesión;
-- una sola navegación;
-- un solo estado;
-- un solo servicio de Firebase;
-- una sola estructura de datos.
-
-No se reutiliza el código heredado de la versión 1 para evitar duplicaciones y conflictos.
+- index.html
+- styles.css
+- bootstrap.js
+- login.js
+- shell.js
+- dashboard.js
+- workers.js
+- firebase-service.js
+- workers-service.js
+- firebase-config.js
+- state.js
+- router.js
