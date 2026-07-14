@@ -1,29 +1,37 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-import { firebaseConfig } from "../config/firebase-config.js";
+  getDatabase,
+  ref,
+  onValue,
+  set,
+  remove,
+  update
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { firebaseApp } from "./auth-service.js";
 
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
+const db = getDatabase(firebaseApp);
+const workersRef = ref(db, "amecoSpotPlanner/workers");
 
-export function observeAuth(callback) {
-  return onAuthStateChanged(auth, callback);
+export function observeWorkers(callback) {
+  return onValue(workersRef, snapshot => {
+    const data = snapshot.val() || {};
+    const workers = Object.values(data).sort((a, b) =>
+      (a.nombre || "").localeCompare(b.nombre || "", "es")
+    );
+    callback(workers);
+  });
 }
 
-export async function loginWithEmail(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+export async function saveWorker(worker) {
+  const workerRef = ref(db, `amecoSpotPlanner/workers/${worker.id}`);
+  await set(workerRef, worker);
 }
 
-export async function logout() {
-  return signOut(auth);
+export async function updateWorker(id, changes) {
+  const workerRef = ref(db, `amecoSpotPlanner/workers/${id}`);
+  await update(workerRef, changes);
 }
 
-export function currentUser() {
-  return auth.currentUser;
+export async function deleteWorker(id) {
+  const workerRef = ref(db, `amecoSpotPlanner/workers/${id}`);
+  await remove(workerRef);
 }
-
-export { firebaseApp, auth };

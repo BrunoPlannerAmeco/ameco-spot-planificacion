@@ -1,1 +1,12 @@
-/* Módulo reservado: dashboard.js. La lógica actual sigue en js/app.js. */
+/**
+ * Módulo deshabilitado temporalmente en v1.7.1.
+ *
+ * Se conserva en el repositorio como referencia, pero la aplicación utiliza
+ * nuevamente el módulo completo de trabajadores incluido en js/app.js.
+ *
+ * Motivo: trabajadores, turnos, documentos, acreditaciones y certificaciones
+ * deben compartir una sola fuente de datos.
+ */
+export function initializeWorkersModule() {
+  console.info("Módulo workers independiente deshabilitado: se usa el módulo unificado.");
+}

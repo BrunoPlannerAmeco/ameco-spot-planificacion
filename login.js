@@ -3,35 +3,27 @@ import {
   ref,
   onValue,
   set,
-  remove,
-  update
+  remove
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 import { firebaseApp } from "./auth-service.js";
 
 const db = getDatabase(firebaseApp);
-const workersRef = ref(db, "amecoSpotPlanner/workers");
+const sitesRef = ref(db, "amecoSpotPlanner/sites");
 
-export function observeWorkers(callback) {
-  return onValue(workersRef, snapshot => {
-    const data = snapshot.val() || {};
-    const workers = Object.values(data).sort((a, b) =>
+export function observeSites(callback) {
+  return onValue(sitesRef, snapshot => {
+    const values = snapshot.val() || {};
+    const sites = Object.values(values).sort((a, b) =>
       (a.nombre || "").localeCompare(b.nombre || "", "es")
     );
-    callback(workers);
+    callback(sites);
   });
 }
 
-export async function saveWorker(worker) {
-  const workerRef = ref(db, `amecoSpotPlanner/workers/${worker.id}`);
-  await set(workerRef, worker);
+export async function saveSite(site) {
+  await set(ref(db, `amecoSpotPlanner/sites/${site.id}`), site);
 }
 
-export async function updateWorker(id, changes) {
-  const workerRef = ref(db, `amecoSpotPlanner/workers/${id}`);
-  await update(workerRef, changes);
-}
-
-export async function deleteWorker(id) {
-  const workerRef = ref(db, `amecoSpotPlanner/workers/${id}`);
-  await remove(workerRef);
+export async function deleteSite(id) {
+  await remove(ref(db, `amecoSpotPlanner/sites/${id}`));
 }

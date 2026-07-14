@@ -1,22 +1,28 @@
-# Centro de Operaciones
+# Roadmap
 
-El inicio mostrará trabajo pendiente y decisiones.
+## v1.6.0
+Modelo de datos y flujo operativo.
 
-## Tarjetas principales
+## v1.7.0
+Faenas, plataformas externas y requisitos configurables.
 
-- Prioridades críticas
-- Acreditaciones por faena
-- Servicios próximos
-- Llamados y confirmaciones
-- Pasajes pendientes
-- Vencimientos
-- Checklist de cierre diario
+## v1.8.0
+Acreditaciones y avance documental.
 
-## Prioridad sugerida
+## v1.9.0
+Servicios y requerimientos de personal.
 
-1. Documento o examen vencido.
-2. Servicio que inicia en menos de 24 horas.
-3. Personal sin confirmar.
-4. Pasaje pendiente.
-5. Acreditación observada.
-6. Vencimientos próximos.
+## v1.10.0
+Asignaciones y buscador de candidatos.
+
+## v1.11.0
+Llamados y confirmaciones.
+
+## v1.12.0
+Pasajes y generación de correos.
+
+## v1.13.0
+Centro de Operaciones.
+
+## v2.0.0
+Primera versión operativa integral.
