@@ -1,19 +1,25 @@
 # AMECO Spot Planner
 
-Versión: **v1.3.0-arquitectura**
+Versión: **v1.4.0-login**
 
-Esta versión reorganiza Firebase y el arranque de la aplicación sin modificar
-sus funciones.
+## Funciones agregadas
 
-```text
-js/
-  app.js
-  config/firebase-config.js
-  core/bootstrap.js
-  services/storage-adapter.js
-  modules/
-  utils/
-```
+- Pantalla de inicio de sesión.
+- Acceso con correo y contraseña.
+- Sesión persistente mediante Firebase Authentication.
+- Botón para cerrar sesión.
+- Aplicación protegida: el sistema solo se carga con una sesión válida.
 
-La lógica completa continúa en `js/app.js`. Los módulos serán migrados
-gradualmente en próximas versiones.
+## Configuración necesaria
+
+En Firebase Console:
+
+1. Seguridad → Authentication.
+2. Método de acceso.
+3. Habilitar **Correo electrónico/contraseña**.
+4. Crear los usuarios autorizados en la pestaña **Usuarios**.
+
+## Importante
+
+El acceso anónimo puede deshabilitarse después de crear y probar el primer
+usuario con correo y contraseña.

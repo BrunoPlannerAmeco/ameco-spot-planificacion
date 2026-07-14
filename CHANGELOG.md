@@ -1,11 +1,23 @@
 # CHANGELOG
 
-## v1.3.0-arquitectura
+## v1.4.0-login
 
-- Se agregó una estructura modular.
-- Se movió Firebase config a `js/config/`.
-- Se movió el adaptador a `js/services/`.
-- Se agregó `js/core/bootstrap.js`.
-- Se reservaron módulos para dashboard, trabajadores, documentos,
-  certificaciones y turnos.
-- No se cambiaron las funciones existentes.
+### Agregado
+- Pantalla corporativa de inicio de sesión.
+- Autenticación con correo y contraseña.
+- Control del estado de sesión.
+- Cierre de sesión.
+- Protección del contenido principal.
+
+### Modificado
+- El arranque ahora pasa por `js/modules/login.js`.
+- El adaptador de almacenamiento utiliza la sesión autenticada.
+
+### Conservado
+- Dashboard.
+- Trabajadores.
+- Documentos.
+- Acreditaciones.
+- Certificaciones.
+- Turnos 14×14.
+- Sincronización con Realtime Database.
