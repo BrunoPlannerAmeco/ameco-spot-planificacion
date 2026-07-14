@@ -1,21 +1,15 @@
-# AMECO Spot Planner v2.1.1 Flat Fix
+# AMECO Spot Planner v2.2.0 Faenas
 
-Versión corregida para GitHub Pages.
+## Funciones
 
-Todos los archivos web están en la raíz para evitar que GitHub los mezcle o
-aplane durante la carga desde el navegador.
+- Crear, editar y eliminar faenas.
+- Cliente y ubicación.
+- Estado activa/inactiva.
+- Plataforma externa de acreditación.
+- Enlace directo a MyPass, WebControl u otro portal.
+- Contacto de faena.
+- Requisitos configurables.
+- Sincronización con Firebase.
 
-Archivos mínimos:
-
-- index.html
-- styles.css
-- bootstrap.js
-- login.js
-- shell.js
-- dashboard.js
-- workers.js
-- firebase-service.js
-- workers-service.js
-- firebase-config.js
-- state.js
-- router.js
+Todos los archivos permanecen en la raíz para mantener la compatibilidad con
+la carga directa mediante GitHub.

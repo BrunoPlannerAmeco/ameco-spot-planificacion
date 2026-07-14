@@ -3,6 +3,7 @@ import { state } from "./state.js";
 import { logout } from "./firebase-service.js";
 import { renderDashboard } from "./dashboard.js";
 import { initWorkersModule, renderWorkers, bindWorkersEvents } from "./workers.js";
+import { initSitesModule, renderSites, bindSitesEvents } from "./sites.js";
 
 const titles = Object.fromEntries(routes.map(route => [route.id, route.label]));
 
@@ -16,12 +17,20 @@ function placeholder(route){
 }
 
 let workersInitialized = false;
+let sitesInitialized = false;
 
 export function renderApp(){
   if(!workersInitialized){
     workersInitialized = true;
     initWorkersModule(() => {
       if(state.route === "workers") renderApp();
+    });
+  }
+
+  if(!sitesInitialized){
+    sitesInitialized = true;
+    initSitesModule(() => {
+      if(state.route === "sites") renderApp();
     });
   }
   const app = document.getElementById("app");
@@ -65,6 +74,9 @@ export function renderApp(){
   }else if(state.route === "workers"){
     content.innerHTML = renderWorkers();
     bindWorkersEvents();
+  }else if(state.route === "sites"){
+    content.innerHTML = renderSites();
+    bindSitesEvents();
   }else{
     content.innerHTML = placeholder(state.route);
   }

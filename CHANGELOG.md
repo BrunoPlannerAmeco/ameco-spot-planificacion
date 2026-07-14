@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## v2.1.1-flat-fix
+## v2.2.0-faenas-flat
 
-- Se corrigió el despliegue roto de GitHub Pages.
-- Se movieron los archivos web a la raíz.
-- Se ajustaron todas las rutas de importación.
-- Se restauró el diseño del login.
-- Se mantuvo el Dashboard y el módulo Personal.
+- Se implementó el módulo Faenas.
+- Se agregó gestión de plataformas externas.
+- Se agregaron requisitos configurables.
+- Se conectó Faenas con Firebase.
+- Se mantuvo la estructura plana compatible con GitHub Pages.
