@@ -1,0 +1,11 @@
+# CHANGELOG
+
+## v2.1.0-personal
+
+- Se implementó el módulo Personal.
+- Se agregó CRUD de trabajadores.
+- Se agregó búsqueda.
+- Se agregó estado laboral.
+- Se agregó régimen de turno.
+- Se conectó Personal con Firebase.
+- Se mantuvo una sola fuente de datos.
