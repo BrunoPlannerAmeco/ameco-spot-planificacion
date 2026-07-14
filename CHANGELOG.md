@@ -1,23 +1,20 @@
 # CHANGELOG
 
-## v1.4.0-login
+## v1.5.0-trabajadores
 
 ### Agregado
-- Pantalla corporativa de inicio de sesión.
-- Autenticación con correo y contraseña.
-- Control del estado de sesión.
-- Cierre de sesión.
-- Protección del contenido principal.
-
-### Modificado
-- El arranque ahora pasa por `js/modules/login.js`.
-- El adaptador de almacenamiento utiliza la sesión autenticada.
+- Servicio `workers-service.js`.
+- Módulo funcional `workers.js`.
+- CRUD completo de trabajadores.
+- Búsqueda.
+- Indicadores de trabajadores registrados, activos y pendientes.
+- Sincronización en tiempo real.
+- Validación básica en reglas de Firebase.
 
 ### Conservado
-- Dashboard.
-- Trabajadores.
+- Login por correo y contraseña.
+- Dashboard y módulos originales.
 - Documentos.
 - Acreditaciones.
 - Certificaciones.
 - Turnos 14×14.
-- Sincronización con Realtime Database.

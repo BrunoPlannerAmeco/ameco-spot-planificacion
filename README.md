@@ -1,25 +1,25 @@
 # AMECO Spot Planner
 
-Versión: **v1.4.0-login**
+Versión: **v1.5.0-trabajadores**
 
-## Funciones agregadas
+## Módulo funcional agregado
 
-- Pantalla de inicio de sesión.
-- Acceso con correo y contraseña.
-- Sesión persistente mediante Firebase Authentication.
-- Botón para cerrar sesión.
-- Aplicación protegida: el sistema solo se carga con una sesión válida.
+- Listado de trabajadores.
+- Búsqueda por nombre, RUT, cargo, empresa, faena o ciudad.
+- Alta de trabajadores.
+- Edición de fichas.
+- Eliminación.
+- Estado activo, pendiente o inactivo.
+- Configuración inicial del turno 14×14.
+- Guardado directo en Firebase Realtime Database.
+- Sincronización entre usuarios conectados.
 
-## Configuración necesaria
+## Ruta de datos
 
-En Firebase Console:
+```text
+amecoSpotPlanner/workers/{workerId}
+```
 
-1. Seguridad → Authentication.
-2. Método de acceso.
-3. Habilitar **Correo electrónico/contraseña**.
-4. Crear los usuarios autorizados en la pestaña **Usuarios**.
+## Acceso
 
-## Importante
-
-El acceso anónimo puede deshabilitarse después de crear y probar el primer
-usuario con correo y contraseña.
+Solo usuarios autenticados pueden leer o modificar trabajadores.

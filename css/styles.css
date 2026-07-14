@@ -283,3 +283,43 @@
   color:var(--sub);
   font-size:11px;
 }
+
+
+/* ============================= WORKERS MODULE ============================= */
+.workers-module-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.worker-module-card{
+  cursor:default;
+}
+
+.worker-module-meta{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+  color:var(--sub);
+  font-size:11px;
+}
+
+.worker-module-meta span{
+  background:var(--grey-bg);
+  padding:3px 7px;
+  border-radius:999px;
+}
+
+.worker-module-actions{
+  display:flex;
+  gap:8px;
+  margin-top:14px;
+}
+
+@media(max-width:760px){
+  .workers-module-summary{
+    grid-template-columns:1fr;
+  }
+}

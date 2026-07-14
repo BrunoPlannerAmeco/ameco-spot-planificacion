@@ -4,6 +4,7 @@ import {
   logout
 } from "../services/auth-service.js";
 import { loadLegacyApp } from "../services/storage-adapter.js";
+import { initializeWorkersModule } from "./workers.js";
 
 const shell = document.getElementById("shell");
 const modalRoot = document.getElementById("modalRoot");
@@ -108,6 +109,7 @@ function showApplication(user) {
   loginRoot.innerHTML = "";
   shell.hidden = false;
   addSessionControls(user);
+  initializeWorkersModule();
   loadLegacyApp();
 
   const observer = new MutationObserver(() => {

@@ -148,6 +148,17 @@ window.addEventListener('ameco-storage-changed', (event)=>{
   }
 });
 
+
+/* ============================= MODULE BRIDGE ============================= */
+document.addEventListener('click', (event)=>{
+  const nav = event.target.closest('[data-nav="trabajadores"]');
+  if(!nav || typeof window.amecoOpenWorkers !== 'function') return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.amecoOpenWorkers();
+}, true);
+
 /* ============================= DATE HELPERS ============================= */
 function fmt(d){ return d.toISOString().slice(0,10); }
 function addDays(d,n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
