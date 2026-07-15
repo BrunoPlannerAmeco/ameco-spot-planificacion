@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.7.1 — línea de tiempo de candidatos -->
+<!-- AMECO Spot Planner v3.7.2 — corrección de cargos en importación -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1217,6 +1217,68 @@
     }
   }
 
+
+  /* ============================= IMPORTACIÓN DE HOJAS Y CARGOS ============================= */
+  .import-sheet-selector{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(220px,280px);
+    gap:14px;
+    align-items:center;
+    padding:12px;
+    margin-bottom:12px;
+    background:#f7f8f5;
+    border:1px solid var(--line);
+    border-radius:9px;
+  }
+  .import-sheet-selector label{
+    display:block;
+    color:var(--steel);
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:2px;
+  }
+  .import-sheet-selector select{
+    width:100%;
+    background:var(--panel);
+  }
+  .import-selected-sheet{
+    padding:9px 11px;
+    margin-bottom:12px;
+    background:#f7f8f5;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--sub);
+    font-size:11px;
+  }
+  .import-cargo-detection{
+    padding:9px 11px;
+    margin:10px 0 13px;
+    background:#fff4ee;
+    border-left:3px solid var(--accent);
+    border-radius:7px;
+    color:var(--accent-ink);
+    font-size:11px;
+  }
+  .import-cargo-detection span{
+    color:var(--sub);
+  }
+  .import-cell-inherited{
+    margin-top:3px;
+    color:#3a5c91;
+    font-size:8.5px;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .text-bad{
+    color:var(--bad) !important;
+    font-weight:700;
+  }
+  @media(max-width:700px){
+    .import-sheet-selector{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1554,22 +1616,296 @@ function getWorkerLastName(worker){
   return parts.slice(1).join(' ');
 }
 
-function guessImportMapping(headers){
-  const lc = headers.map(h=>(h||'').toString().toLowerCase());
-  const find = (keywords)=>{
-    for(let i=0;i<lc.length;i++){ if(keywords.some(k=>lc[i].includes(k))) return i; }
+function normalizeImportText(value){
+  return String(value||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim()
+    .toLowerCase();
+}
+
+const IMPORT_HEADER_ALIASES = {
+  nombre: [
+    'nombres',
+    'nombre',
+    'nombre trabajador',
+    'nombre completo',
+    'nombres trabajador'
+  ],
+  apellido: [
+    'apellido paterno',
+    'apellidos',
+    'apellido',
+    'apellidos trabajador'
+  ],
+  rut: [
+    'rut',
+    'run',
+    'rut trabajador',
+    'run trabajador'
+  ],
+  telefono: [
+    'telefono',
+    'fono',
+    'celular',
+    'numero telefono',
+    'telefono celular'
+  ],
+  correo: [
+    'correo',
+    'email',
+    'mail',
+    'correo electronico'
+  ],
+  ciudad: [
+    'ciudad',
+    'comuna',
+    'residencia'
+  ],
+  cargo: [
+    'nombre cargo',
+    'nombre del cargo',
+    'cargo',
+    'puesto',
+    'funcion',
+    'rol'
+  ],
+  empresa: [
+    'empresa',
+    'contratista',
+    'razon social',
+    'empleador'
+  ]
+};
+
+function importHeaderScore(header,key){
+  const normalized = normalizeImportText(header);
+  if(!normalized) return -1;
+
+  // Evita que "NOMBRE CARGO" sea confundido con la columna Nombre.
+  if(key==='nombre' && /\b(cargo|puesto|funcion|rol)\b/.test(normalized)){
     return -1;
-  };
+  }
+
+  const aliases = IMPORT_HEADER_ALIASES[key] || [];
+  let best = -1;
+
+  aliases.forEach((alias,index)=>{
+    const normalizedAlias = normalizeImportText(alias);
+
+    if(normalized===normalizedAlias){
+      best = Math.max(best,1000-index);
+      return;
+    }
+
+    const headerWords = normalized.split(' ');
+    const aliasWords = normalizedAlias.split(' ');
+    const containsAllWords = aliasWords.every(word=>headerWords.includes(word));
+
+    if(containsAllWords){
+      best = Math.max(best,700-index);
+    }else if(normalized.includes(normalizedAlias)){
+      best = Math.max(best,500-index);
+    }
+  });
+
+  return best;
+}
+
+function findImportColumn(headers,key){
+  let bestIndex = -1;
+  let bestScore = -1;
+
+  headers.forEach((header,index)=>{
+    const score = importHeaderScore(header,key);
+    if(score>bestScore){
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  return bestScore>=0 ? bestIndex : -1;
+}
+
+function guessImportMapping(headers){
   return {
-    nombre: find(['nombres','nombre','trabajador']),
-    apellido: find(['apellidos','apellido']),
-    rut: find(['rut']),
-    telefono: find(['tel','fono','celular']),
-    correo: find(['correo','email','mail']),
-    ciudad: find(['ciudad']),
-    cargo: find(['cargo','puesto','funcion','función']),
-    empresa: find(['empresa','contratista','razon'])
+    nombre: findImportColumn(headers,'nombre'),
+    apellido: findImportColumn(headers,'apellido'),
+    rut: findImportColumn(headers,'rut'),
+    telefono: findImportColumn(headers,'telefono'),
+    correo: findImportColumn(headers,'correo'),
+    ciudad: findImportColumn(headers,'ciudad'),
+    cargo: findImportColumn(headers,'cargo'),
+    empresa: findImportColumn(headers,'empresa')
   };
+}
+
+function importHeaderRowScore(row){
+  const headers = (row||[]).map(value=>String(value||'').trim());
+  const mapping = guessImportMapping(headers);
+
+  let score = 0;
+  if(mapping.nombre>=0) score += 40;
+  if(mapping.apellido>=0) score += 40;
+  if(mapping.rut>=0) score += 60;
+  if(mapping.cargo>=0) score += 35;
+  if(mapping.telefono>=0) score += 12;
+  if(mapping.correo>=0) score += 12;
+  if(mapping.ciudad>=0) score += 12;
+  if(mapping.empresa>=0) score += 8;
+
+  return score;
+}
+
+function detectImportHeaderRow(raw){
+  let bestIndex = 0;
+  let bestScore = -1;
+  const maxRows = Math.min(raw.length,15);
+
+  for(let index=0; index<maxRows; index++){
+    const score = importHeaderRowScore(raw[index]);
+    if(score>bestScore){
+      bestScore = score;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
+function getImportRawValue(row,key,mapping){
+  const column = mapping?.[key];
+  return (column!=null && column>=0)
+    ? String(row?.[column]??'').trim()
+    : '';
+}
+
+function isImportSubtotalValue(value){
+  return /^total(?:\s|$)/i.test(String(value||'').trim());
+}
+
+function getImportValue(row,key,rowIndex){
+  if(!importState) return '';
+
+  const mapping = importState.mapping || {};
+  const directValue = getImportRawValue(row,key,mapping);
+
+  if(key!=='cargo' || directValue){
+    return directValue;
+  }
+
+  // En reportes agrupados, Excel deja el cargo solo en la primera fila.
+  // Se busca hacia arriba hasta encontrar el último cargo válido.
+  for(let index=rowIndex-1; index>=0; index--){
+    const previousValue = getImportRawValue(
+      importState.rows[index],
+      'cargo',
+      mapping
+    );
+
+    if(previousValue && !isImportSubtotalValue(previousValue)){
+      return previousValue;
+    }
+  }
+
+  return '';
+}
+
+function canonicalCargoName(rawCargo){
+  const cleaned = String(rawCargo||'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  if(!cleaned || isImportSubtotalValue(cleaned)) return '';
+
+  const normalized = normalizeImportText(cleaned);
+  const existing = state.cargos.find(cargo=>
+    normalizeImportText(cargo)===normalized
+  );
+
+  if(existing) return existing;
+
+  state.cargos.push(cleaned);
+  return cleaned;
+}
+
+function buildImportSheetData(sheetName,raw,sheetIndex){
+  const headerRowIndex = detectImportHeaderRow(raw);
+  const headers = (raw[headerRowIndex]||[]).map(value=>
+    String(value||'').trim()
+  );
+  const rows = raw
+    .slice(headerRowIndex+1)
+    .filter(row=>row.some(cell=>String(cell||'').trim()!==''));
+  const mapping = guessImportMapping(headers);
+
+  const previousImportState = importState;
+  importState = {
+    headers,
+    rows,
+    mapping
+  };
+
+  let validRows = 0;
+  let rowsWithCargo = 0;
+
+  rows.forEach((row,rowIndex)=>{
+    const nombre = getImportValue(row,'nombre',rowIndex);
+    const apellido = getImportValue(row,'apellido',rowIndex);
+    const rut = getImportValue(row,'rut',rowIndex);
+    const cargo = getImportValue(row,'cargo',rowIndex);
+
+    if(nombre && apellido && rut){
+      validRows++;
+      if(cargo) rowsWithCargo++;
+    }
+  });
+
+  importState = previousImportState;
+
+  const mappedColumns = Object.values(mapping).filter(index=>index>=0).length;
+  const requiredColumns = ['nombre','apellido','rut']
+    .filter(key=>mapping[key]>=0)
+    .length;
+  const validRatio = rows.length ? validRows/rows.length : 0;
+  const cargoRatio = validRows ? rowsWithCargo/validRows : 0;
+
+  const score =
+    requiredColumns*1000 +
+    mappedColumns*100 +
+    validRows*5 +
+    validRatio*250 +
+    cargoRatio*120 -
+    Math.max(0,rows.length-validRows)*0.15;
+
+  return {
+    sheetName,
+    sheetIndex,
+    headerRowIndex,
+    headers,
+    rows,
+    mapping,
+    validRows,
+    rowsWithCargo,
+    score
+  };
+}
+
+function applyImportSheet(sheetIndex){
+  if(!importState?.sheets?.length) return;
+
+  const selected = importState.sheets.find(sheet=>
+    sheet.sheetIndex===Number(sheetIndex)
+  ) || importState.sheets[0];
+
+  importState.sheetIndex = selected.sheetIndex;
+  importState.sheetName = selected.sheetName;
+  importState.headerRowIndex = selected.headerRowIndex;
+  importState.headers = selected.headers;
+  importState.rows = selected.rows;
+  importState.mapping = {...selected.mapping};
 }
 
 function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -4302,12 +4638,7 @@ function analyzeImportRows(){
   };
 
   importState.rows.forEach((row,index)=>{
-    const get = (key)=>{
-      const column = mapping[key];
-      return (column!=null && column>=0)
-        ? String(row[column]??'').trim()
-        : '';
-    };
+    const get = (key)=>getImportValue(row,key,index);
 
     const nombre = get('nombre');
     const apellido = get('apellido');
@@ -4357,6 +4688,24 @@ function importModalHtml(){
 
   const headers = importState.headers;
   const importAnalysis = analyzeImportRows();
+  const selectedSheet = (importState.sheets||[]).find(sheet=>
+    sheet.sheetIndex===importState.sheetIndex
+  );
+  const sheetSelector = (importState.sheets||[]).length>1
+    ? '<div class="import-sheet-selector">'+
+        '<div>'+
+          '<label>Hoja del archivo</label>'+
+          '<div class="helptext">Seleccionamos automáticamente la tabla más completa. Puedes cambiarla manualmente.</div>'+
+        '</div>'+
+        '<select id="importSheetSelect">'+
+          importState.sheets.map(sheet=>
+            '<option value="'+sheet.sheetIndex+'" '+(sheet.sheetIndex===importState.sheetIndex?'selected':'')+'>'+
+              escHtml(sheet.sheetName)+' · '+sheet.validRows+' trabajadores detectados'+
+            '</option>'
+          ).join('')+
+        '</select>'+
+      '</div>'
+    : '<div class="import-selected-sheet">Hoja detectada: <b>'+escHtml(importState.sheetName||'Hoja 1')+'</b></div>';
   const optionsBase = ['<option value="-1">No importar</option>'].concat(
     headers.map((h,i)=>'<option value="'+i+'">'+escHtml(h || ('Columna '+(i+1)))+'</option>')
   );
@@ -4378,11 +4727,14 @@ function importModalHtml(){
     return '<tr class="'+(analyzed && !analyzed.valid ? 'import-row-invalid' : '')+'">'+
       IMPORT_FIELDS.map(f=>{
         const idx = importState.mapping[f.key];
-        const val = (idx!=null && idx>=0) ? (row[idx]||'') : '';
+        const rawVal = (idx!=null && idx>=0) ? String(row[idx]??'').trim() : '';
+        const val = getImportValue(row,f.key,rowIndex);
+        const inheritedCargo = f.key==='cargo' && !rawVal && !!val;
         const requiredMissing = f.required && !String(val??'').trim();
         return '<td class="'+(requiredMissing?'import-required-missing':'')+'" style="font-size:12px;">'+
           escHtml(String(val))+
           (requiredMissing ? '<div class="import-cell-error">Obligatorio</div>' : '')+
+          (inheritedCargo ? '<div class="import-cell-inherited">Cargo heredado</div>' : '')+
         '</td>';
       }).join('')+
       '<td style="font-size:12px;">'+
@@ -4396,7 +4748,17 @@ function importModalHtml(){
   return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="width:720px;">'+
     '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
     '<div class="modal-body">'+
-      '<div class="helptext">Detectamos '+importState.rows.length+' filas. Selecciona las columnas correspondientes. <b>Nombre, Apellido y RUT son obligatorios</b>; las filas que no tengan los tres datos serán omitidas.</div>'+
+      sheetSelector+
+      '<div class="helptext">Detectamos '+importAnalysis.valid+' trabajadores válidos en <b>'+escHtml(importState.sheetName||'la hoja seleccionada')+'</b>. Selecciona las columnas correspondientes. <b>Nombre, Apellido y RUT son obligatorios</b>.</div>'+
+      '<div class="import-cargo-detection">'+
+        '<strong>Cargo detectado:</strong> '+
+        (importState.mapping.cargo>=0
+          ? escHtml(importState.headers[importState.mapping.cargo]||'Columna de cargo')
+          : '<span class="text-bad">No detectado; selecciónalo manualmente</span>')+
+        (selectedSheet && selectedSheet.headerRowIndex>0
+          ? '<span> · Encabezados encontrados en la fila '+(selectedSheet.headerRowIndex+1)+'</span>'
+          : '')+
+      '</div>'+
       fieldRows+
       '<div class="import-validation-summary">'+
         '<div class="import-stat valid"><strong>'+importAnalysis.valid+'</strong><span>Filas válidas</span></div>'+
@@ -4407,7 +4769,7 @@ function importModalHtml(){
       '</div>'+
       '<div class="section-title">Vista previa (primeras 5 filas)</div>'+
       '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+(f.required?' *':'')+'</th>').join('')+'<th>Resultado</th></tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
-      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre, Apellido y RUT</b>. La coincidencia y actualización de trabajadores existentes se realizará únicamente mediante el RUT, nunca solamente por el nombre.</div>'+
+      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre, Apellido y RUT</b>. La coincidencia se realiza únicamente mediante el RUT. Cuando el Excel trae un cargo distinto, la ficha del trabajador se actualiza automáticamente.</div>'+
     '</div>'+
     '<div class="modal-foot"><button class="btn btn-ghost" data-action="import-back">← Elegir otro archivo</button>'+
       '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm" '+(importAnalysis.valid===0?'disabled':'')+'>Importar '+importAnalysis.valid+' trabajador'+(importAnalysis.valid===1?'':'es')+'</button></div>'+
@@ -4695,17 +5057,46 @@ document.addEventListener('change', async (e)=>{
     try{
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array'});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
-      const headers = (raw[0]||[]).map(h=>String(h||'').trim());
-      const rows = raw.slice(1).filter(r=>r.some(cell=>String(cell||'').trim()!==''));
-      if(!rows.length){ alert('No se encontraron filas de datos en el archivo.'); return; }
-      importState = { headers, rows, mapping: guessImportMapping(headers) };
+      const sheets = wb.SheetNames.map((sheetName,sheetIndex)=>{
+        const sheet = wb.Sheets[sheetName];
+        const raw = XLSX.utils.sheet_to_json(sheet, {
+          header:1,
+          defval:'',
+          raw:false
+        });
+
+        return buildImportSheetData(sheetName,raw,sheetIndex);
+      }).filter(sheet=>sheet.rows.length);
+
+      if(!sheets.length){
+        alert('No se encontraron filas de datos en el archivo.');
+        return;
+      }
+
+      sheets.sort((a,b)=>b.score-a.score);
+      const bestSheet = sheets[0];
+
+      importState = {
+        fileName:file.name,
+        sheets,
+        sheetIndex:bestSheet.sheetIndex,
+        sheetName:bestSheet.sheetName,
+        headerRowIndex:bestSheet.headerRowIndex,
+        headers:bestSheet.headers,
+        rows:bestSheet.rows,
+        mapping:{...bestSheet.mapping}
+      };
+
       renderModal();
     }catch(err){
       console.error(err);
       alert('No se pudo leer el archivo. Verifica que sea un Excel (.xlsx) o CSV válido.');
     }
+    return;
+  }
+  if(input.id === 'importSheetSelect'){
+    applyImportSheet(parseInt(input.value));
+    renderModal();
     return;
   }
   if(input.classList && input.classList.contains('import-map-select')){
@@ -5322,6 +5713,7 @@ document.addEventListener('click', async (e)=>{
 
     let created = 0;
     let updated = 0;
+    let cargoUpdated = 0;
     let skippedRows = 0;
     let skippedMissingName = 0;
     let skippedMissingLastName = 0;
@@ -5330,13 +5722,8 @@ document.addEventListener('click', async (e)=>{
 
     const processedRuts = new Set();
 
-    importState.rows.forEach(row=>{
-      const get = (key)=>{
-        const idx = mapping[key];
-        return (idx!=null && idx>=0)
-          ? String(row[idx]??'').trim()
-          : '';
-      };
+    importState.rows.forEach((row,rowIndex)=>{
+      const get = (key)=>getImportValue(row,key,rowIndex);
 
       const nombres = get('nombre');
       const apellidos = get('apellido');
@@ -5375,10 +5762,7 @@ document.addEventListener('click', async (e)=>{
         worker=>normalizeRut(worker.rut)===rutNorm
       );
 
-      const cargo = get('cargo');
-      if(cargo && !state.cargos.some(item=>item.toLowerCase()===cargo.toLowerCase())){
-        state.cargos.push(cargo);
-      }
+      const cargo = canonicalCargoName(get('cargo'));
 
       const fullName = composeWorkerName(nombres, apellidos);
 
@@ -5396,7 +5780,10 @@ document.addEventListener('click', async (e)=>{
         if(telefono) existing.telefono = telefono;
         if(correo) existing.correo = correo;
         if(ciudad) existing.ciudad = ciudad;
-        if(cargo) existing.cargo = cargo;
+        if(cargo && normalizeImportText(existing.cargo)!==normalizeImportText(cargo)){
+          existing.cargo = cargo;
+          cargoUpdated++;
+        }
         if(empresa) existing.empresa = empresa;
 
         updated++;
@@ -5442,7 +5829,8 @@ document.addEventListener('click', async (e)=>{
     let message =
       'Importación completa:\n\n'+
       '• '+created+' trabajador(es) nuevo(s)\n'+
-      '• '+updated+' trabajador(es) actualizado(s)';
+      '• '+updated+' trabajador(es) actualizado(s)\n'+
+      '• '+cargoUpdated+' cargo(s) modificado(s)';
 
     if(skippedRows){
       message += '\n• '+skippedRows+' fila(s) omitida(s)';

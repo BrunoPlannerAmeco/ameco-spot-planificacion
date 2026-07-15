@@ -171,3 +171,17 @@ sin cambiar el diseño ni perder funciones.
 - Al dejar el cursor sobre un día se muestra la fecha, estado, faena, nota y servicio en conflicto.
 - Se agregó un resumen con la cantidad de días de trabajo, descanso, hora extra y permiso.
 - La vista se desplaza horizontalmente cuando el servicio abarca muchos días.
+
+
+## v3.7.2 — Corrección de cargos en importación
+
+- Se revisó la estructura del archivo Book 7.
+- El importador ahora revisa todas las hojas del Excel.
+- Selecciona automáticamente la hoja con la tabla más completa.
+- Se agregó un selector para cambiar manualmente de hoja.
+- Se detectan encabezados aunque no estén en la primera fila.
+- “NOMBRES” se asigna a Nombre.
+- “NOMBRE CARGO” se asigna a Cargo y ya no se confunde con Nombre.
+- Cuando un reporte agrupado deja celdas de cargo vacías, se hereda el último cargo válido.
+- Los cargos se comparan ignorando mayúsculas, acentos y espacios duplicados.
+- El resumen final muestra cuántos cargos fueron modificados.

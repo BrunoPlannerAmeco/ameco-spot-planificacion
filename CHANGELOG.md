@@ -1,9 +1,10 @@
 # CHANGELOG
 
-## v3.7.1
+## v3.7.2
 
-- Se agregó una línea de tiempo diaria para los candidatos.
-- Se limita la visualización al rango exacto del servicio.
-- Se muestran trabajo, descanso, hora extra, permiso y faena.
-- Se identifican cruces diarios con otros servicios.
-- Se agregó leyenda y resumen de días.
+- Se corrigió la actualización de cargos al importar Excel.
+- Se agregó selección automática y manual de hojas.
+- Se agregó detección de la fila real de encabezados.
+- Se corrigió la confusión entre NOMBRES y NOMBRE CARGO.
+- Se agregó propagación de cargos en reportes agrupados.
+- Se agregó contador de cargos actualizados.
