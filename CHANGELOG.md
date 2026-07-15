@@ -1,9 +1,10 @@
 # CHANGELOG
 
-## v3.7.7
+## v3.7.8
 
-- Se agregó vista de dos meses en Turnos 14x14.
-- Se agregó selector 1 mes / 2 meses.
-- Se agregaron encabezados agrupados por mes.
-- Se adaptaron filtros y navegación al período visible.
-- Se agregó separación visual entre meses.
+- Se implementó menú lateral plegable.
+- Se agregó vista compacta con íconos.
+- Se agregó persistencia local de preferencias visuales.
+- Se implementó columna de nombres redimensionable en Turnos.
+- Se agregaron controles de reducir, ampliar y restablecer.
+- Se agregó arrastre tipo Excel.

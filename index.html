@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.7.2 — corrección de cargos en importación -->
+<!-- AMECO Spot Planner v3.7.8 — menú plegable y columna ajustable -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -30,6 +30,8 @@
     --grey-bg:#eceeea;
     --radius:10px;
     --shadow:0 1px 2px rgba(20,20,15,.06), 0 6px 20px rgba(20,20,15,.05);
+    --sidebar-width:220px;
+    --turno-name-width:190px;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;}
@@ -1473,6 +1475,206 @@
     }
   }
 
+
+  /* ============================= MENÚ LATERAL PLEGABLE ============================= */
+  #sidebar{
+    width:var(--sidebar-width);
+    flex:0 0 var(--sidebar-width);
+    position:relative;
+    overflow:hidden;
+    transition:width .2s ease,flex-basis .2s ease;
+  }
+  .brand{
+    position:relative;
+    min-height:59px;
+    padding-right:48px;
+  }
+  .brand-copy{
+    white-space:nowrap;
+  }
+  .brand-mini{
+    display:none;
+    color:#fff;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:.03em;
+  }
+  .sidebar-toggle{
+    position:absolute;
+    right:10px;
+    top:3px;
+    width:30px;
+    height:30px;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:8px;
+    background:rgba(255,255,255,.07);
+    color:#fff;
+    font-size:23px;
+    line-height:1;
+    display:grid;
+    place-items:center;
+    padding:0;
+    z-index:5;
+  }
+  .sidebar-toggle:hover{
+    background:rgba(255,255,255,.14);
+  }
+  .nav-label{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #shell.sidebar-collapsed{
+    --sidebar-width:64px;
+  }
+  #shell.sidebar-collapsed .brand{
+    min-height:69px;
+    padding:5px 8px 12px;
+    text-align:center;
+  }
+  #shell.sidebar-collapsed .brand-copy{
+    display:none;
+  }
+  #shell.sidebar-collapsed .brand-mini{
+    display:block;
+    margin-top:35px;
+    font-size:15px;
+  }
+  #shell.sidebar-collapsed .sidebar-toggle{
+    top:1px;
+    right:17px;
+  }
+  #shell.sidebar-collapsed .nav-item{
+    position:relative;
+    justify-content:center;
+    gap:0;
+    padding:12px 0;
+    border-left-width:3px;
+  }
+  #shell.sidebar-collapsed .nav-item .ic{
+    width:auto;
+    font-size:17px;
+  }
+  #shell.sidebar-collapsed .nav-label{
+    display:none;
+  }
+  #shell.sidebar-collapsed .nav-count{
+    position:absolute;
+    top:4px;
+    right:5px;
+    min-width:17px;
+    height:17px;
+    padding:1px 4px;
+    display:grid;
+    place-items:center;
+    font-size:8px;
+  }
+  #shell.sidebar-collapsed .sidebar-foot{
+    display:none;
+  }
+
+  /* ============================= COLUMNA DE NOMBRES AJUSTABLE ============================= */
+  .turno-two-month-grid .namecell{
+    width:var(--turno-name-width) !important;
+    min-width:var(--turno-name-width) !important;
+    max-width:var(--turno-name-width) !important;
+  }
+  .turno-two-month-grid td.namecell{
+    overflow:hidden;
+    overflow-wrap:anywhere;
+  }
+  .turno-two-month-grid td.namecell > div,
+  .turno-two-month-grid td.namecell .worker-link-btn{
+    max-width:100%;
+  }
+  .turno-worker-header{
+    position:sticky;
+    overflow:visible !important;
+  }
+  .turno-worker-header-content{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    padding-right:7px;
+  }
+  .turno-worker-header-content small{
+    color:var(--sub);
+    font-family:'JetBrains Mono',monospace;
+    font-size:8px;
+    font-weight:500;
+    white-space:nowrap;
+  }
+  .turno-name-resizer{
+    position:absolute;
+    top:0;
+    right:-4px;
+    bottom:0;
+    width:9px;
+    cursor:col-resize;
+    z-index:12;
+    touch-action:none;
+  }
+  .turno-name-resizer::after{
+    content:'';
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:4px;
+    width:2px;
+    background:transparent;
+    transition:background .12s ease;
+  }
+  .turno-name-resizer:hover::after,
+  body.resizing-turno-name .turno-name-resizer::after{
+    background:var(--accent);
+  }
+  body.resizing-turno-name{
+    cursor:col-resize !important;
+    user-select:none !important;
+  }
+  body.resizing-turno-name *{
+    cursor:col-resize !important;
+  }
+  .turno-name-width-control{
+    display:inline-flex;
+    align-items:center;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  .turno-name-width-control > span{
+    padding:0 8px;
+    color:var(--sub);
+    font-size:9.5px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .turno-name-width-control button{
+    border:0;
+    border-left:1px solid var(--line);
+    background:transparent;
+    color:var(--steel);
+    padding:7px 9px;
+    font-size:10px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .turno-name-width-control button:hover{
+    background:var(--grey-bg);
+  }
+
+  @media(max-width:760px){
+    #shell.sidebar-collapsed{
+      --sidebar-width:54px;
+    }
+    .turno-name-width-control > span{
+      display:none;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1732,8 +1934,12 @@
 <div id="shell" style="display:none">
   <div id="sidebar">
     <div class="brand">
-      <div class="tag">AMECO Spot Planner</div>
-      <div class="sub">Centro de operaciones</div>
+      <div class="brand-copy">
+        <div class="tag">AMECO Spot Planner</div>
+        <div class="sub">Centro de operaciones</div>
+      </div>
+      <div class="brand-mini" aria-hidden="true">AP</div>
+      <button class="sidebar-toggle" id="sidebarToggle" data-action="toggle-sidebar" type="button" title="Plegar menú" aria-label="Plegar menú">‹</button>
     </div>
     <nav id="navList"></nav>
     <div class="sidebar-foot" id="sidebarFoot">Información sincronizada en Firebase para los usuarios autorizados.</div>
@@ -1748,6 +1954,7 @@
 <script>
 /* ============================= DATA LAYER ============================= */
 const STORAGE_KEY = 'faena_personal_db_v1';
+const UI_PREFS_KEY = 'ameco_spot_ui_preferences_v1';
 
 /* Persistencia cloud: Firebase Realtime Database mediante window.storage. */
 let STORAGE_MODE = 'firebase';
@@ -1769,7 +1976,7 @@ let state = {
   pasajes: [],
   servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended' },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended' },
   saving:false
 };
 let bulkSelected = new Set();
@@ -2400,6 +2607,9 @@ function addExampleWorkersToState(){
 function seedData(){ return []; }
 
 async function loadData(){
+  loadUiPreferences();
+  applyLayoutPreferences();
+
   try{
     const res = await window.storage.get(STORAGE_KEY, true);
     if(res && res.value){
@@ -3026,6 +3236,75 @@ async function viewDocument(key, fallbackName){
   }
 }
 
+
+/* ============================= PREFERENCIAS DE INTERFAZ ============================= */
+function clampTurnoNameWidth(value){
+  const number = Number(value);
+  if(!Number.isFinite(number)) return 190;
+  return Math.max(120,Math.min(380,Math.round(number)));
+}
+
+function loadUiPreferences(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(UI_PREFS_KEY)||'{}');
+    state.ui.sidebarCollapsed = saved.sidebarCollapsed === true;
+    state.ui.turnoNameWidth = clampTurnoNameWidth(
+      saved.turnoNameWidth ?? state.ui.turnoNameWidth
+    );
+  }catch(error){
+    state.ui.sidebarCollapsed = false;
+    state.ui.turnoNameWidth = 190;
+  }
+}
+
+function saveUiPreferences(){
+  try{
+    localStorage.setItem(UI_PREFS_KEY,JSON.stringify({
+      sidebarCollapsed:state.ui.sidebarCollapsed === true,
+      turnoNameWidth:clampTurnoNameWidth(state.ui.turnoNameWidth)
+    }));
+  }catch(error){}
+}
+
+function applyLayoutPreferences(){
+  const shell = document.getElementById('shell');
+  if(shell){
+    shell.classList.toggle(
+      'sidebar-collapsed',
+      state.ui.sidebarCollapsed === true
+    );
+  }
+
+  document.documentElement.style.setProperty(
+    '--turno-name-width',
+    clampTurnoNameWidth(state.ui.turnoNameWidth)+'px'
+  );
+}
+
+function setTurnoNameWidth(value,save=true){
+  state.ui.turnoNameWidth = clampTurnoNameWidth(value);
+
+  document.documentElement.style.setProperty(
+    '--turno-name-width',
+    state.ui.turnoNameWidth+'px'
+  );
+
+  const table = document.querySelector('.turno-two-month-grid');
+  if(table){
+    table.style.setProperty(
+      '--turno-name-width',
+      state.ui.turnoNameWidth+'px'
+    );
+  }
+
+  const valueLabel = document.getElementById('turnoNameWidthValue');
+  if(valueLabel){
+    valueLabel.textContent = state.ui.turnoNameWidth+' px';
+  }
+
+  if(save) saveUiPreferences();
+}
+
 /* ============================= RENDER: SHELL ============================= */
 const NAV = [
   {id:'dashboard', label:'Resumen', ic:'◆'},
@@ -3053,11 +3332,26 @@ function renderSidebar(){
     if(n.id==='documentos' && alertCount>0) count = '<span class="nav-count alert">'+alertCount+'</span>';
     if(n.id==='llamados' && pendingCalls>0) count = '<span class="nav-count alert">'+pendingCalls+'</span>';
     if(n.id==='pasajes' && pendingTickets>0) count = '<span class="nav-count alert">'+pendingTickets+'</span>';
-    return '<div class="nav-item '+(state.ui.tab===n.id?'active':'')+'" data-nav="'+n.id+'"><span class="ic">'+n.ic+'</span>'+n.label+count+'</div>';
+    return '<div class="nav-item '+(state.ui.tab===n.id?'active':'')+'" data-nav="'+n.id+'" title="'+escAttr(n.label)+'">'+
+      '<span class="ic">'+n.ic+'</span>'+
+      '<span class="nav-label">'+escHtml(n.label)+'</span>'+
+      count+
+    '</div>';
   }).join('');
   const foot = document.getElementById('sidebarFoot');
   if(foot){
     foot.textContent = 'Información sincronizada en Firebase para los usuarios autorizados.';
+  }
+
+  const toggle = document.getElementById('sidebarToggle');
+  if(toggle){
+    const collapsed = state.ui.sidebarCollapsed === true;
+    toggle.textContent = collapsed ? '›' : '‹';
+    toggle.title = collapsed ? 'Desplegar menú' : 'Plegar menú';
+    toggle.setAttribute(
+      'aria-label',
+      collapsed ? 'Desplegar menú' : 'Plegar menú'
+    );
   }
 }
 
@@ -3136,6 +3430,7 @@ function renderSavePill(){
 }
 
 function render(){
+  applyLayoutPreferences();
   renderSidebar();
   renderTopbar();
   const c = document.getElementById('content');
@@ -4908,6 +5203,7 @@ function viewTurnos(){
   const m = state.ui.calMonth;
   const monthSpan = state.ui.turnoMonthSpan===1 ? 1 : 2;
   const size = state.ui.gridSize || 'compact';
+  const nameWidth = clampTurnoNameWidth(state.ui.turnoNameWidth);
   const faenaFilter = state.ui.turnoFaenaFilter || null;
   const cargoFilter = state.ui.turnoCargoFilter || 'all';
 
@@ -5089,6 +5385,12 @@ function viewTurnos(){
         '<button type="button" class="'+(monthSpan===1?'active-size':'')+'" data-action="turno-month-span" data-span="1">1 mes</button>'+
         '<button type="button" class="'+(monthSpan===2?'active-size':'')+'" data-action="turno-month-span" data-span="2">2 meses</button>'+
       '</div>'+
+      '<div class="turno-name-width-control" title="También puedes arrastrar el borde derecho de la columna Trabajador">'+
+        '<span>Columna nombres</span>'+
+        '<button type="button" data-action="turno-name-narrower" aria-label="Reducir columna">−</button>'+
+        '<button type="button" data-action="turno-name-reset">Restablecer</button>'+
+        '<button type="button" data-action="turno-name-wider" aria-label="Ampliar columna">+</button>'+
+      '</div>'+
       '<div class="size-toggle">'+
         '<button type="button" class="'+(size==='compact'?'active-size':'')+'" data-action="grid-size" data-size="compact">Compacta</button>'+
         '<button type="button" class="'+(size==='comfortable'?'active-size':'')+'" data-action="grid-size" data-size="comfortable">Cómoda</button>'+
@@ -5105,12 +5407,18 @@ function viewTurnos(){
     '</div>'+
     '<div class="faena-legend">'+faenaLegend+'</div>'+
     filterNotice+
-    '<div class="helptext">La tabla muestra '+monthSpan+' mes'+(monthSpan===1?'':'es')+' consecutivo'+(monthSpan===1?'':'s')+'. Desplázate horizontalmente para revisar todos los días. Haz clic en un día para editarlo o arrastra para copiar un estado. El cambio de período avanza o retrocede '+navigationStepLabel+'.</div>'+
+    '<div class="helptext">La tabla muestra '+monthSpan+' mes'+(monthSpan===1?'':'es')+' consecutivo'+(monthSpan===1?'':'s')+'. Desplázate horizontalmente para revisar todos los días. Haz clic en un día para editarlo o arrastra para copiar un estado. Puedes reducir la columna Trabajador con los botones o arrastrando su borde derecho, igual que en Excel. El cambio de período avanza o retrocede '+navigationStepLabel+'.</div>'+
     '<div class="table-wrap turno-two-month-wrap" style="max-height:74vh;">'+
-      '<table class="grid-table turno-two-month-grid size-'+size+'">'+
+      '<table class="grid-table turno-two-month-grid size-'+size+'" style="--turno-name-width:'+nameWidth+'px;">'+
         '<thead>'+
           '<tr>'+
-            '<th class="namecell turno-worker-header" rowspan="2">Trabajador</th>'+
+            '<th class="namecell turno-worker-header" rowspan="2">'+
+              '<div class="turno-worker-header-content">'+
+                '<span>Trabajador</span>'+
+                '<small id="turnoNameWidthValue">'+nameWidth+' px</small>'+
+              '</div>'+
+              '<span class="turno-name-resizer" data-role="turno-name-resizer" title="Arrastra para cambiar el ancho"></span>'+
+            '</th>'+
             monthHeaderCells+
           '</tr>'+
           '<tr>'+dayHeaderCells+'</tr>'+
@@ -5745,6 +6053,52 @@ document.addEventListener('change', async event=>{
   }
 });
 
+
+let turnoNameResizeSession = null;
+
+document.addEventListener('pointerdown',event=>{
+  const handle = event.target.closest('[data-role="turno-name-resizer"]');
+  if(!handle) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  turnoNameResizeSession = {
+    pointerId:event.pointerId,
+    startX:event.clientX,
+    startWidth:clampTurnoNameWidth(state.ui.turnoNameWidth)
+  };
+
+  try{ handle.setPointerCapture(event.pointerId); }catch(error){}
+  document.body.classList.add('resizing-turno-name');
+});
+
+document.addEventListener('pointermove',event=>{
+  if(!turnoNameResizeSession) return;
+  if(
+    turnoNameResizeSession.pointerId!==undefined &&
+    event.pointerId!==turnoNameResizeSession.pointerId
+  ){
+    return;
+  }
+
+  const delta = event.clientX-turnoNameResizeSession.startX;
+  setTurnoNameWidth(
+    turnoNameResizeSession.startWidth+delta,
+    false
+  );
+});
+
+function finishTurnoNameResize(){
+  if(!turnoNameResizeSession) return;
+  turnoNameResizeSession = null;
+  document.body.classList.remove('resizing-turno-name');
+  saveUiPreferences();
+}
+
+document.addEventListener('pointerup',finishTurnoNameResize);
+document.addEventListener('pointercancel',finishTurnoNameResize);
+
 document.addEventListener('click', async (e)=>{
   const el = e.target.closest('[data-action]');
   if(!el){
@@ -5762,6 +6116,27 @@ document.addEventListener('click', async (e)=>{
   const action = el.dataset.action;
 
   if(action==='logout'){ await window.amecoLogout(); return; }
+
+  if(action==='toggle-sidebar'){
+    state.ui.sidebarCollapsed = !state.ui.sidebarCollapsed;
+    saveUiPreferences();
+    applyLayoutPreferences();
+    renderSidebar();
+    return;
+  }
+
+  if(action==='turno-name-narrower'){
+    setTurnoNameWidth(state.ui.turnoNameWidth-20);
+    return;
+  }
+  if(action==='turno-name-wider'){
+    setTurnoNameWidth(state.ui.turnoNameWidth+20);
+    return;
+  }
+  if(action==='turno-name-reset'){
+    setTurnoNameWidth(190);
+    return;
+  }
 
   if(action==='new-service'){
     if(!state.faenas.length || !state.cargos.length){

@@ -238,3 +238,18 @@ El menú lateral quedó ordenado así:
 - Los filtros por cargo y faena consideran todo el período visible.
 - Se mantiene la edición individual, edición masiva, arrastre y función Deshacer.
 - La tabla utiliza desplazamiento horizontal para mantener legibles los días.
+
+
+## v3.7.8 — Menú plegable y columna ajustable
+
+- Se agregó un botón para plegar y desplegar el menú lateral.
+- Al plegarlo se muestran únicamente los íconos y los contadores.
+- El área principal gana espacio horizontal automáticamente.
+- La preferencia del menú queda guardada en el navegador.
+- En Turnos 14x14, la columna Trabajador puede ajustarse entre 120 y 380 px.
+- Se puede ajustar mediante:
+  - Botón reducir.
+  - Botón ampliar.
+  - Botón restablecer.
+  - Arrastre del borde derecho, como una columna de Excel.
+- El ancho elegido queda guardado en el navegador.
