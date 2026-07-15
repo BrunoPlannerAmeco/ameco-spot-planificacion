@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## v3.6.0
+## v3.7.0
 
-- Se implementó el módulo Servicios y requisiciones.
-- Se agregó CRUD de servicios.
-- Se agregaron cargos y cantidades requeridas.
-- Se agregaron estados del ciclo operativo.
-- Se agregaron filtros por estado, faena y búsqueda.
-- Se integraron los próximos servicios al Dashboard.
-- Se agregó la hoja Servicios a la exportación Excel.
-- Se protegieron cargos y faenas utilizados por servicios.
+- Se implementó la asignación de trabajadores a servicios.
+- Se agregó cálculo de cobertura por cargo y por servicio.
+- Se agregó buscador y ranking de candidatos.
+- Se agregaron alertas de turno, conflictos, acreditación y documentos.
+- Se agregaron estados de asignación.
+- Se integró la cobertura al Dashboard y a la exportación Excel.
+- Se agregó limpieza de asignaciones al eliminar trabajadores.

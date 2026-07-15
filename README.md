@@ -128,3 +128,30 @@ sin cambiar el diseño ni perder funciones.
 - El Dashboard muestra los próximos servicios.
 - La exportación Excel incluye una hoja Servicios.
 - No se pueden eliminar faenas o cargos utilizados por servicios.
+
+
+## v3.7.0 — Asignación de personal
+
+- Cada servicio muestra cobertura confirmada y cupos pendientes.
+- Se agregó Gestión de personal por servicio.
+- Cada cargo requerido admite trabajadores asignados.
+- El buscador de candidatos evalúa:
+  - Coincidencia de cargo.
+  - Turno durante las fechas del servicio.
+  - Cruces con otros servicios.
+  - Acreditación para la faena.
+  - Estado de exámenes y documentos.
+- Los candidatos se ordenan mediante una recomendación operativa.
+- Las advertencias permiten continuar con confirmación, para soportar horas extra y excepciones.
+- Estados disponibles:
+  - Propuesto.
+  - Por contactar.
+  - Sin respuesta.
+  - Confirmado.
+  - Rechazó.
+  - Reemplazado.
+  - Acreditación pendiente.
+  - Listo.
+- Solo Confirmado y Listo cubren el cupo requerido.
+- La exportación Excel incluye asignados, confirmados, pendientes y detalle de personal.
+- Al eliminar trabajadores se limpian también sus asignaciones.
