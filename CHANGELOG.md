@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## v3.7.3
+## v3.7.5
 
-- Se agregó importación de acreditaciones por faena.
-- Se agregó faena predeterminada para archivos sin columna de acreditación.
-- Se agregaron columnas opcionales de estado y vencimiento.
-- Se agregó actualización de acreditaciones existentes mediante RUT y faena.
-- Se agregaron colores automáticos y configurables por cargo.
+- Se agregó importación de hasta cinco faenas por trabajador.
+- Se agregaron estados y vencimientos independientes por faena.
+- Se agregó actualización segura de acreditaciones existentes.
+- Se mantuvo compatibilidad con la plantilla anterior.
+- Se agregaron colores configurables por cargo.

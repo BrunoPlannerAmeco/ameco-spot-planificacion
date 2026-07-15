@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.7.3 — acreditaciones por Excel y colores por cargo -->
+<!-- AMECO Spot Planner v3.7.2 — corrección de cargos en importación -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1280,45 +1280,19 @@
   }
 
 
-  /* ============================= ACREDITACIÓN EN IMPORTACIÓN ============================= */
-  .import-modal-wide{
-    width:min(1120px,96vw);
+  /* ============================= MÚLTIPLES ACREDITACIONES ============================= */
+  .import-multiple-modal{
+    width:min(1180px,96vw);
   }
-  .import-acred-panel{
-    margin:16px 0;
-    padding:14px;
-    border:1px solid #cdd9e8;
+  .import-multiple-acred-help{
+    margin:11px 0 14px;
+    padding:10px 12px;
     border-left:4px solid #2f6f9e;
-    border-radius:10px;
-    background:#f7faff;
-  }
-  .import-acred-panel .section-title{
-    margin-top:0;
-  }
-  .import-acred-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    align-items:end;
-    margin-top:11px;
-  }
-  .import-acred-detected{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-top:8px;
-  }
-  .import-acred-detected span{
-    padding:4px 8px;
-    border-radius:999px;
-    background:#e9f0f8;
+    border-radius:8px;
+    background:#f2f7fc;
     color:#496275;
-    font-size:9.5px;
-  }
-  .import-cell-default{
-    margin-top:3px;
-    color:#2f6f9e;
-    font-size:8.5px;
-    font-weight:700;
-    text-transform:uppercase;
+    font-size:11px;
+    line-height:1.45;
   }
 
   /* ============================= COLORES POR CARGO ============================= */
@@ -1347,14 +1321,6 @@
     border-radius:7px;
     background:#fff;
     cursor:pointer;
-  }
-  .wcard{
-    transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
-  }
-  @media(max-width:800px){
-    .import-acred-grid{
-      grid-template-columns:1fr;
-    }
   }
 
 </style>
@@ -1661,6 +1627,8 @@ let workerDeleteSelected = new Set();
 let workerDeleteMode = false;
 let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColumna}}
 
+const IMPORT_ACCREDITATION_SLOTS = 5;
+
 const IMPORT_FIELDS = [
   {key:'nombre', label:'Nombre', required:true},
   {key:'apellido', label:'Apellido', required:true},
@@ -1669,11 +1637,16 @@ const IMPORT_FIELDS = [
   {key:'correo', label:'Correo'},
   {key:'ciudad', label:'Ciudad'},
   {key:'cargo', label:'Cargo'},
-  {key:'empresa', label:'Empresa / contratista'},
-  {key:'faenaAcreditada', label:'Faena acreditada'},
-  {key:'estadoAcreditacion', label:'Estado acreditación'},
-  {key:'vencimientoAcreditacion', label:'Vencimiento acreditación'}
+  {key:'empresa', label:'Empresa / contratista'}
 ];
+
+for(let slot=1; slot<=IMPORT_ACCREDITATION_SLOTS; slot++){
+  IMPORT_FIELDS.push(
+    {key:'faena'+slot, label:'Faena '+slot},
+    {key:'estadoAcreditacion'+slot, label:'Estado acreditación '+slot},
+    {key:'vencimientoAcreditacion'+slot, label:'Vencimiento acreditación '+slot}
+  );
+}
 
 function normalizeRut(rut){
   return (rut||'').toString().replace(/\./g,'').replace(/\s/g,'').toUpperCase();
@@ -1760,26 +1733,28 @@ const IMPORT_HEADER_ALIASES = {
     'contratista',
     'razon social',
     'empleador'
-  ],
-  faenaAcreditada: [
-    'faena acreditada',
-    'faena de acreditacion',
-    'faena acreditacion',
-    'faena',
-    'mandante'
-  ],
-  estadoAcreditacion: [
-    'estado acreditacion',
-    'estado de acreditacion',
-    'acreditacion estado'
-  ],
-  vencimientoAcreditacion: [
-    'vencimiento acreditacion',
-    'fecha vencimiento acreditacion',
-    'vigencia acreditacion',
-    'vence acreditacion'
   ]
 };
+
+for(let slot=1; slot<=IMPORT_ACCREDITATION_SLOTS; slot++){
+  IMPORT_HEADER_ALIASES['faena'+slot] = [
+    'faena '+slot,
+    'faena acreditada '+slot,
+    'faena de acreditacion '+slot,
+    ...(slot===1 ? ['faena acreditada','faena de acreditacion','faena acreditacion','faena'] : [])
+  ];
+  IMPORT_HEADER_ALIASES['estadoAcreditacion'+slot] = [
+    'estado acreditacion '+slot,
+    'estado de acreditacion '+slot,
+    ...(slot===1 ? ['estado acreditacion','estado de acreditacion'] : [])
+  ];
+  IMPORT_HEADER_ALIASES['vencimientoAcreditacion'+slot] = [
+    'vencimiento acreditacion '+slot,
+    'fecha vencimiento acreditacion '+slot,
+    'vigencia acreditacion '+slot,
+    ...(slot===1 ? ['vencimiento acreditacion','fecha vencimiento acreditacion','vigencia acreditacion'] : [])
+  ];
+}
 
 function importHeaderScore(header,key){
   const normalized = normalizeImportText(header);
@@ -1831,7 +1806,7 @@ function findImportColumn(headers,key){
 }
 
 function guessImportMapping(headers){
-  return {
+  const mapping = {
     nombre: findImportColumn(headers,'nombre'),
     apellido: findImportColumn(headers,'apellido'),
     rut: findImportColumn(headers,'rut'),
@@ -1839,11 +1814,16 @@ function guessImportMapping(headers){
     correo: findImportColumn(headers,'correo'),
     ciudad: findImportColumn(headers,'ciudad'),
     cargo: findImportColumn(headers,'cargo'),
-    empresa: findImportColumn(headers,'empresa'),
-    faenaAcreditada: findImportColumn(headers,'faenaAcreditada'),
-    estadoAcreditacion: findImportColumn(headers,'estadoAcreditacion'),
-    vencimientoAcreditacion: findImportColumn(headers,'vencimientoAcreditacion')
+    empresa: findImportColumn(headers,'empresa')
   };
+
+  for(let slot=1; slot<=IMPORT_ACCREDITATION_SLOTS; slot++){
+    mapping['faena'+slot] = findImportColumn(headers,'faena'+slot);
+    mapping['estadoAcreditacion'+slot] = findImportColumn(headers,'estadoAcreditacion'+slot);
+    mapping['vencimientoAcreditacion'+slot] = findImportColumn(headers,'vencimientoAcreditacion'+slot);
+  }
+
+  return mapping;
 }
 
 function importHeaderRowScore(row){
@@ -1859,9 +1839,12 @@ function importHeaderRowScore(row){
   if(mapping.correo>=0) score += 12;
   if(mapping.ciudad>=0) score += 12;
   if(mapping.empresa>=0) score += 8;
-  if(mapping.faenaAcreditada>=0) score += 28;
-  if(mapping.estadoAcreditacion>=0) score += 10;
-  if(mapping.vencimientoAcreditacion>=0) score += 10;
+
+  for(let slot=1; slot<=IMPORT_ACCREDITATION_SLOTS; slot++){
+    if(mapping['faena'+slot]>=0) score += 20;
+    if(mapping['estadoAcreditacion'+slot]>=0) score += 5;
+    if(mapping['vencimientoAcreditacion'+slot]>=0) score += 5;
+  }
 
   return score;
 }
@@ -1899,12 +1882,12 @@ function getImportValue(row,key,rowIndex){
   const mapping = importState.mapping || {};
   const directValue = getImportRawValue(row,key,mapping);
 
-  if(!['cargo','faenaAcreditada'].includes(key) || directValue){
+  if(key!=='cargo' || directValue){
     return directValue;
   }
 
-  // En reportes agrupados, Excel puede dejar el cargo o la faena
-  // solamente en la primera fila. Se hereda el último valor válido.
+  // En reportes agrupados, Excel deja el cargo solo en la primera fila.
+  // Se busca hacia arriba hasta encontrar el último cargo válido.
   for(let index=rowIndex-1; index>=0; index--){
     const previousValue = getImportRawValue(
       importState.rows[index],
@@ -1963,7 +1946,9 @@ function canonicalAccreditationStatus(rawStatus){
   const normalized = normalizeImportText(rawStatus);
 
   if(!normalized) return 'Acreditado';
-  if(normalized.includes('tramite') || normalized.includes('proceso')) return 'En trámite';
+  if(normalized.includes('tramite') || normalized.includes('proceso')){
+    return 'En trámite';
+  }
   if(
     normalized.includes('no acreditado') ||
     normalized.includes('rechazado') ||
@@ -1971,8 +1956,6 @@ function canonicalAccreditationStatus(rawStatus){
   ){
     return 'No acreditado';
   }
-  if(normalized.includes('acreditado') || normalized==='vigente') return 'Acreditado';
-
   return 'Acreditado';
 }
 
@@ -1982,13 +1965,13 @@ function normalizeImportDate(value){
 
   if(/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
 
-  const dateMatch = text.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
-  if(dateMatch){
-    let year = Number(dateMatch[3]);
+  const match = text.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+  if(match){
+    let year = Number(match[3]);
     if(year<100) year += year>=70 ? 1900 : 2000;
 
-    const month = Number(dateMatch[2]);
-    const day = Number(dateMatch[1]);
+    const month = Number(match[2]);
+    const day = Number(match[1]);
 
     if(month>=1 && month<=12 && day>=1 && day<=31){
       return [
@@ -1999,46 +1982,62 @@ function normalizeImportDate(value){
     }
   }
 
-  if(/^\d+(?:\.\d+)?$/.test(text)){
-    const serial = Number(text);
-    if(serial>1 && serial<100000){
-      const excelEpoch = new Date(Date.UTC(1899,11,30));
-      const date = new Date(excelEpoch.getTime()+Math.floor(serial)*86400000);
-      return [
-        date.getUTCFullYear(),
-        String(date.getUTCMonth()+1).padStart(2,'0'),
-        String(date.getUTCDate()).padStart(2,'0')
-      ].join('-');
-    }
-  }
-
   return '';
 }
 
-function upsertWorkerAccreditation(worker,faena,estado,vencimiento){
-  if(!worker || !faena) return 'none';
+function collectImportedAccreditations(row,rowIndex){
+  const accreditations = [];
+  const seen = new Set();
 
-  if(!Array.isArray(worker.acreditaciones)){
-    worker.acreditaciones = [];
+  for(let slot=1; slot<=IMPORT_ACCREDITATION_SLOTS; slot++){
+    const faena = canonicalFaenaName(
+      getImportValue(row,'faena'+slot,rowIndex)
+    );
+
+    if(!faena) continue;
+
+    const normalizedFaena = normalizeImportText(faena);
+    if(seen.has(normalizedFaena)) continue;
+    seen.add(normalizedFaena);
+
+    accreditations.push({
+      faena,
+      estado:canonicalAccreditationStatus(
+        getImportValue(row,'estadoAcreditacion'+slot,rowIndex)
+      ),
+      vencimiento:normalizeImportDate(
+        getImportValue(row,'vencimientoAcreditacion'+slot,rowIndex)
+      )
+    });
   }
 
+  return accreditations;
+}
+
+function upsertWorkerAccreditation(worker,accreditation){
+  if(!worker || !accreditation?.faena) return 'none';
+  if(!Array.isArray(worker.acreditaciones)) worker.acreditaciones = [];
+
   const existing = worker.acreditaciones.find(item=>
-    normalizeImportText(item.faena)===normalizeImportText(faena)
+    normalizeImportText(item.faena)===
+    normalizeImportText(accreditation.faena)
   );
 
   if(existing){
-    const previous = JSON.stringify(existing);
-    existing.faena = faena;
-    existing.estado = estado || existing.estado || 'Acreditado';
-    if(vencimiento) existing.vencimiento = vencimiento;
+    const before = JSON.stringify(existing);
+    existing.faena = accreditation.faena;
+    existing.estado = accreditation.estado || existing.estado || 'Acreditado';
+    if(accreditation.vencimiento){
+      existing.vencimiento = accreditation.vencimiento;
+    }
 
-    return previous===JSON.stringify(existing) ? 'none' : 'updated';
+    return before===JSON.stringify(existing) ? 'none' : 'updated';
   }
 
   worker.acreditaciones.push({
-    faena,
-    estado: estado || 'Acreditado',
-    vencimiento: vencimiento || ''
+    faena:accreditation.faena,
+    estado:accreditation.estado || 'Acreditado',
+    vencimiento:accreditation.vencimiento || ''
   });
 
   return 'created';
@@ -2300,8 +2299,6 @@ async function loadData(){
     state.llamados = []; state.pasajes = []; state.servicios = [];
     try{ await persist(); }catch(e2){}
   }
-
-  ensureCargoColors();
 
   if(!state.examplesSeeded){
     addExampleWorkersToState();
@@ -2883,13 +2880,13 @@ async function viewDocument(key, fallbackName){
 const NAV = [
   {id:'dashboard', label:'Resumen', ic:'◆'},
   {id:'servicios', label:'Servicios', ic:'▣'},
-  {id:'trabajadores', label:'Trabajadores', ic:'●'},
   {id:'llamados', label:'Llamados', ic:'☎'},
   {id:'pasajes', label:'Pasajes', ic:'\u2708'},
   {id:'documentos', label:'Documentos', ic:'▤'},
   {id:'acreditaciones', label:'Acreditaciones', ic:'✓'},
-  {id:'certificaciones', label:'Certificaciones equipos', ic:'⚙'},
+  {id:'certificaciones', label:'Certificaciones', ic:'⚙'},
   {id:'turnos', label:'Turnos 14x14', ic:'▦'},
+  {id:'trabajadores', label:'Trabajadores', ic:'●'},
   {id:'configuracion', label:'Configuración', ic:'☰'}
 ];
 const TAB_TITLES = {dashboard:'Resumen general', servicios:'Servicios y requisiciones', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14', configuracion:'Configuración'};
@@ -4986,66 +4983,19 @@ function importModalHtml(){
     '</div>';
   }).join('');
 
-  const accreditationControls =
-    '<div class="import-acred-panel">'+
-      '<div class="section-title">Acreditación por faena</div>'+
-      '<div class="helptext">El archivo actual puede no traer una columna de faena. En ese caso selecciona una faena predeterminada para aplicarla a todos los trabajadores importados. Si el Excel trae una columna “Faena acreditada”, esa información tendrá prioridad por cada fila.</div>'+
-      '<div class="field-row import-acred-grid">'+
-        '<div class="field">'+
-          '<label>Faena predeterminada</label>'+
-          '<select id="importDefaultFaena">'+
-            '<option value="">No agregar acreditación</option>'+
-            state.faenas.map(faena=>
-              '<option value="'+escAttr(faena)+'" '+(importState.defaultFaena===faena?'selected':'')+'>'+escHtml(faena)+'</option>'
-            ).join('')+
-          '</select>'+
-        '</div>'+
-        '<div class="field">'+
-          '<label>Estado predeterminado</label>'+
-          '<select id="importDefaultAcredStatus">'+
-            '<option value="Acreditado" '+(importState.defaultAcredStatus==='Acreditado'?'selected':'')+'>Acreditado</option>'+
-            '<option value="En trámite" '+(importState.defaultAcredStatus==='En trámite'?'selected':'')+'>En trámite</option>'+
-            '<option value="No acreditado" '+(importState.defaultAcredStatus==='No acreditado'?'selected':'')+'>No acreditado</option>'+
-          '</select>'+
-        '</div>'+
-        '<div class="field">'+
-          '<label>Vencimiento predeterminado</label>'+
-          '<input type="date" id="importDefaultAcredExpiry" value="'+escAttr(importState.defaultAcredExpiry||'')+'">'+
-        '</div>'+
-      '</div>'+
-      '<div class="import-acred-detected">'+
-        '<span>Columna de faena: <b>'+(importState.mapping.faenaAcreditada>=0 ? escHtml(importState.headers[importState.mapping.faenaAcreditada]) : 'No detectada')+'</b></span>'+
-        '<span>Estado: <b>'+(importState.mapping.estadoAcreditacion>=0 ? escHtml(importState.headers[importState.mapping.estadoAcreditacion]) : 'Usará valor predeterminado')+'</b></span>'+
-        '<span>Vencimiento: <b>'+(importState.mapping.vencimientoAcreditacion>=0 ? escHtml(importState.headers[importState.mapping.vencimientoAcreditacion]) : 'Usará valor predeterminado')+'</b></span>'+
-      '</div>'+
-    '</div>';
-
   const previewRows = importState.rows.slice(0,5).map((row,rowIndex)=>{
     const analyzed = importAnalysis.rows[rowIndex];
     return '<tr class="'+(analyzed && !analyzed.valid ? 'import-row-invalid' : '')+'">'+
       IMPORT_FIELDS.map(f=>{
         const idx = importState.mapping[f.key];
         const rawVal = (idx!=null && idx>=0) ? String(row[idx]??'').trim() : '';
-        const mappedVal = getImportValue(row,f.key,rowIndex);
-        const fallbackVal =
-          f.key==='faenaAcreditada'
-            ? importState.defaultFaena
-            : f.key==='estadoAcreditacion'
-              ? (getImportValue(row,'faenaAcreditada',rowIndex)||importState.defaultFaena ? importState.defaultAcredStatus : '')
-              : f.key==='vencimientoAcreditacion'
-                ? (getImportValue(row,'faenaAcreditada',rowIndex)||importState.defaultFaena ? importState.defaultAcredExpiry : '')
-                : '';
-        const val = mappedVal || fallbackVal;
+        const val = getImportValue(row,f.key,rowIndex);
         const inheritedCargo = f.key==='cargo' && !rawVal && !!val;
-        const inheritedFaena = f.key==='faenaAcreditada' && !rawVal && !!mappedVal;
-        const defaultAccreditation = ['faenaAcreditada','estadoAcreditacion','vencimientoAcreditacion'].includes(f.key) && !mappedVal && !!val;
         const requiredMissing = f.required && !String(val??'').trim();
         return '<td class="'+(requiredMissing?'import-required-missing':'')+'" style="font-size:12px;">'+
           escHtml(String(val))+
           (requiredMissing ? '<div class="import-cell-error">Obligatorio</div>' : '')+
           (inheritedCargo ? '<div class="import-cell-inherited">Cargo heredado</div>' : '')+
-          (inheritedFaena ? '<div class="import-cell-inherited">Faena heredada</div>' : '')+
-          (defaultAccreditation ? '<div class="import-cell-default">Predeterminado</div>' : '')+
         '</td>';
       }).join('')+
       '<td style="font-size:12px;">'+
@@ -5056,7 +5006,7 @@ function importModalHtml(){
     '</tr>';
   }).join('');
 
-  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal import-modal-wide">'+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal import-multiple-modal">'+
     '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
     '<div class="modal-body">'+
       sheetSelector+
@@ -5070,8 +5020,11 @@ function importModalHtml(){
           ? '<span> · Encabezados encontrados en la fila '+(selectedSheet.headerRowIndex+1)+'</span>'
           : '')+
       '</div>'+
+      '<div class="import-multiple-acred-help">'+
+        '<strong>Acreditaciones múltiples:</strong> puedes cargar hasta cinco faenas por trabajador. '+
+        'Cada grupo utiliza las columnas Faena, Estado y Vencimiento con el mismo número.'+
+      '</div>'+
       fieldRows+
-      accreditationControls+
       '<div class="import-validation-summary">'+
         '<div class="import-stat valid"><strong>'+importAnalysis.valid+'</strong><span>Filas válidas</span></div>'+
         '<div class="import-stat invalid"><strong>'+(importState.rows.length-importAnalysis.valid)+'</strong><span>Filas omitidas</span></div>'+
@@ -5081,7 +5034,7 @@ function importModalHtml(){
       '</div>'+
       '<div class="section-title">Vista previa (primeras 5 filas)</div>'+
       '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+(f.required?' *':'')+'</th>').join('')+'<th>Resultado</th></tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
-      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre, Apellido y RUT</b>. La coincidencia se realiza únicamente mediante el RUT. Cuando el Excel trae un cargo o una faena distintos, la ficha y la acreditación del trabajador se actualizan automáticamente.</div>'+
+      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre, Apellido y RUT</b>. La coincidencia se realiza únicamente mediante el RUT. Cuando el Excel trae un cargo o acreditaciones distintas, la ficha del trabajador se actualiza automáticamente.</div>'+
     '</div>'+
     '<div class="modal-foot"><button class="btn btn-ghost" data-action="import-back">← Elegir otro archivo</button>'+
       '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm" '+(importAnalysis.valid===0?'disabled':'')+'>Importar '+importAnalysis.valid+' trabajador'+(importAnalysis.valid===1?'':'es')+'</button></div>'+
@@ -5396,10 +5349,7 @@ document.addEventListener('change', async (e)=>{
         headerRowIndex:bestSheet.headerRowIndex,
         headers:bestSheet.headers,
         rows:bestSheet.rows,
-        mapping:{...bestSheet.mapping},
-        defaultFaena:'',
-        defaultAcredStatus:'Acreditado',
-        defaultAcredExpiry:''
+        mapping:{...bestSheet.mapping}
       };
 
       renderModal();
@@ -5414,31 +5364,17 @@ document.addEventListener('change', async (e)=>{
     renderModal();
     return;
   }
-  if(input.id === 'importDefaultFaena'){
-    importState.defaultFaena = input.value;
-    renderModal();
-    return;
-  }
-  if(input.id === 'importDefaultAcredStatus'){
-    importState.defaultAcredStatus = input.value;
-    renderModal();
-    return;
-  }
-  if(input.id === 'importDefaultAcredExpiry'){
-    importState.defaultAcredExpiry = input.value;
-    renderModal();
-    return;
-  }
-  if(input.classList && input.classList.contains('cargo-color-input')){
-    state.cargoColores[input.dataset.cargo] = input.value;
-    await persistNow();
-    render();
-    return;
-  }
   if(input.classList && input.classList.contains('import-map-select')){
     if(!importState) return;
     importState.mapping[input.dataset.field] = parseInt(input.value);
     renderModal();
+    return;
+  }
+  if(input.classList && input.classList.contains('cargo-color-input')){
+    if(!state.cargoColores) state.cargoColores = {};
+    state.cargoColores[input.dataset.cargo] = input.value;
+    await persistNow();
+    render();
     return;
   }
   if(input.classList && input.classList.contains('bulk-chk')){
@@ -5918,6 +5854,8 @@ document.addEventListener('click', async (e)=>{
     state.cargos.push(name);
     ensureCargoColor(name);
     state.cargos.sort((a,b)=>a.localeCompare(b,'es'));
+    state.faenas.sort((a,b)=>a.localeCompare(b,'es'));
+    ensureCargoColors();
     state.ui.modal = null;
     await persistNow();
     render();
@@ -6103,15 +6041,7 @@ document.addEventListener('click', async (e)=>{
       );
 
       const cargo = canonicalCargoName(get('cargo'));
-      const faenaAcreditada = canonicalFaenaName(
-        get('faenaAcreditada') || importState.defaultFaena
-      );
-      const estadoAcreditacion = canonicalAccreditationStatus(
-        get('estadoAcreditacion') || importState.defaultAcredStatus
-      );
-      const vencimientoAcreditacion = normalizeImportDate(
-        get('vencimientoAcreditacion') || importState.defaultAcredExpiry
-      );
+      const importedAccreditations = collectImportedAccreditations(row,rowIndex);
 
       const fullName = composeWorkerName(nombres, apellidos);
 
@@ -6135,16 +6065,11 @@ document.addEventListener('click', async (e)=>{
         }
         if(empresa) existing.empresa = empresa;
 
-        if(faenaAcreditada){
-          const accreditationResult = upsertWorkerAccreditation(
-            existing,
-            faenaAcreditada,
-            estadoAcreditacion,
-            vencimientoAcreditacion
-          );
-          if(accreditationResult==='created') accreditationsCreated++;
-          if(accreditationResult==='updated') accreditationsUpdated++;
-        }
+        importedAccreditations.forEach(accreditation=>{
+          const result = upsertWorkerAccreditation(existing,accreditation);
+          if(result==='created') accreditationsCreated++;
+          if(result==='updated') accreditationsUpdated++;
+        });
 
         updated++;
       }else{
@@ -6170,21 +6095,13 @@ document.addEventListener('click', async (e)=>{
             fecha: '',
             vencimiento: ''
           })),
-          acreditaciones: [],
+          acreditaciones: importedAccreditations.map(item=>({...item})),
           certificaciones: [],
           examenesExtra: []
         };
 
-        if(faenaAcreditada){
-          newWorker.acreditaciones.push({
-            faena:faenaAcreditada,
-            estado:estadoAcreditacion,
-            vencimiento:vencimientoAcreditacion
-          });
-          accreditationsCreated++;
-        }
-
         state.workers.push(newWorker);
+        accreditationsCreated += importedAccreditations.length;
         created++;
       }
     });
