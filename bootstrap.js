@@ -1,6 +1,7 @@
 import { observeAuth, observeCollection } from "./firebase-service.js";
 import { state, updateState, updateCounts, subscribe } from "./state.js";
 import { initialRoute } from "./router.js";
+import { dayShift, workerDocumentSummary } from "./worker-utils.js";
 import { renderLogin } from "./login.js";
 import { renderApp } from "./shell.js";
 
@@ -15,7 +16,10 @@ function startDataSubscriptions(){
   subscriptionsStarted = true;
 
   observeCollection("amecoSpotPlanner/workers", value => {
-    updateCounts({ workers: countValues(value) });
+    const workers = Object.values(value || {});
+    const documentAlerts = workers.reduce((total, worker) => total + workerDocumentSummary(worker).alerts.length, 0);
+    const onShiftToday = workers.filter(worker => ["trabajo","extra"].includes(dayShift(worker).tipo)).length;
+    updateCounts({ workers: workers.length, documentAlerts, onShiftToday });
   });
 
   observeCollection("amecoSpotPlanner/sites", value => {

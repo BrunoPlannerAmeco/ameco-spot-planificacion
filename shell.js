@@ -5,6 +5,8 @@ import { renderDashboard } from "./dashboard.js";
 import { initWorkersModule, renderWorkers, bindWorkersEvents } from "./workers.js";
 import { initSitesModule, renderSites, bindSitesEvents } from "./sites.js";
 import { initAccreditationsModule, renderAccreditations, bindAccreditationsEvents } from "./accreditations.js";
+import { initDocumentsModule, renderDocuments, bindDocumentsEvents } from "./documents.js";
+import { initShiftsModule, renderShifts, bindShiftsEvents } from "./shifts.js";
 
 const titles = Object.fromEntries(routes.map(route => [route.id, route.label]));
 
@@ -20,6 +22,8 @@ function placeholder(route){
 let workersInitialized = false;
 let sitesInitialized = false;
 let accreditationsInitialized = false;
+let documentsInitialized = false;
+let shiftsInitialized = false;
 
 export function renderApp(){
   if(!workersInitialized){
@@ -40,6 +44,14 @@ export function renderApp(){
     initAccreditationsModule(() => {
       if(state.route === "accreditations") renderApp();
     });
+  }
+  if(!documentsInitialized){
+    documentsInitialized = true;
+    initDocumentsModule(() => { if(state.route === "documents") renderApp(); });
+  }
+  if(!shiftsInitialized){
+    shiftsInitialized = true;
+    initShiftsModule(() => { if(state.route === "shifts") renderApp(); });
   }
   const app = document.getElementById("app");
 
@@ -88,6 +100,12 @@ export function renderApp(){
   }else if(state.route === "accreditations"){
     content.innerHTML = renderAccreditations();
     bindAccreditationsEvents();
+  }else if(state.route === "documents"){
+    content.innerHTML = renderDocuments();
+    bindDocumentsEvents();
+  }else if(state.route === "shifts"){
+    content.innerHTML = renderShifts();
+    bindShiftsEvents();
   }else{
     content.innerHTML = placeholder(state.route);
   }

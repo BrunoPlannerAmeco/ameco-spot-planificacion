@@ -7,7 +7,9 @@ export const state = {
     services: 0,
     pendingAccreditations: 0,
     pendingTickets: 0,
-    pendingCalls: 0
+    pendingCalls: 0,
+    documentAlerts: 0,
+    onShiftToday: 0
   }
 };
 

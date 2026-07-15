@@ -27,6 +27,7 @@ export function renderDashboard(){
       ${kpi(state.counts.sites, "Faenas activas", "success")}
       ${kpi(state.counts.pendingAccreditations, "Acreditaciones pendientes", "warning")}
       ${kpi(state.counts.pendingTickets, "Pasajes por gestionar", "danger")}
+      ${kpi(state.counts.documentAlerts, "Documentos por revisar", "warning")}
     </section>
 
     <section class="dashboard-grid">
@@ -53,6 +54,14 @@ export function renderDashboard(){
               <div class="task-meta">Asignaciones confirmadas que todavía requieren traslado</div>
             </div>
             <div class="task-count">${state.counts.pendingTickets}</div>
+          </div>
+          <div class="task">
+            <span class="task-priority"></span>
+            <div>
+              <div class="task-title">Documentos vencidos o por vencer</div>
+              <div class="task-meta">Exámenes, documentos adicionales y certificaciones</div>
+            </div>
+            <div class="task-count">${state.counts.documentAlerts}</div>
           </div>
           <div class="task">
             <span class="task-priority"></span>

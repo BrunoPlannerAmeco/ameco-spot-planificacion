@@ -5,7 +5,7 @@
       ".write": "auth != null",
       "workers": {
         "$workerId": {
-          ".validate": "newData.hasChildren(['id','nombre','estadoLaboral'])"
+          ".validate": "newData.hasChildren(['id','nombre','estadoLaboral','turno','examenes','overrides'])"
         }
       },
       "sites": {
@@ -17,7 +17,10 @@
         "$accreditationId": {
           ".validate": "newData.hasChildren(['id','trabajadorId','faenaId','estado'])"
         }
-      }
+      },
+      "settings": {},
+      "contacts": {},
+      "tickets": {}
     }
   }
 }
