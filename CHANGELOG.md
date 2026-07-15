@@ -1,10 +1,9 @@
 # CHANGELOG
 
-## v3.7.2
+## v3.7.3
 
-- Se corrigió la actualización de cargos al importar Excel.
-- Se agregó selección automática y manual de hojas.
-- Se agregó detección de la fila real de encabezados.
-- Se corrigió la confusión entre NOMBRES y NOMBRE CARGO.
-- Se agregó propagación de cargos en reportes agrupados.
-- Se agregó contador de cargos actualizados.
+- Se agregó importación de acreditaciones por faena.
+- Se agregó faena predeterminada para archivos sin columna de acreditación.
+- Se agregaron columnas opcionales de estado y vencimiento.
+- Se agregó actualización de acreditaciones existentes mediante RUT y faena.
+- Se agregaron colores automáticos y configurables por cargo.

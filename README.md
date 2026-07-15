@@ -185,3 +185,19 @@ sin cambiar el diseño ni perder funciones.
 - Cuando un reporte agrupado deja celdas de cargo vacías, se hereda el último cargo válido.
 - Los cargos se comparan ignorando mayúsculas, acentos y espacios duplicados.
 - El resumen final muestra cuántos cargos fueron modificados.
+
+
+## v3.7.3 — Acreditaciones por Excel y colores por cargo
+
+- El importador permite aplicar una faena acreditada a todos los trabajadores del archivo.
+- También reconoce columnas por trabajador:
+  - Faena acreditada.
+  - Estado acreditación.
+  - Vencimiento acreditación.
+- Los datos de cada fila tienen prioridad sobre los valores predeterminados.
+- Si el trabajador ya tiene la faena, se actualiza su estado y vencimiento.
+- Si no la tiene, se agrega una nueva acreditación.
+- Las nuevas faenas encontradas en el Excel se incorporan a Configuración.
+- Cada cargo recibe un color automático.
+- Los trabajadores muestran el color del cargo en la tarjeta y en su etiqueta.
+- El color de cada cargo se puede cambiar desde Configuración.
