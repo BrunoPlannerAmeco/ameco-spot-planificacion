@@ -187,17 +187,17 @@ sin cambiar el diseño ni perder funciones.
 - El resumen final muestra cuántos cargos fueron modificados.
 
 
-## v3.7.3 — Acreditaciones por Excel y colores por cargo
+## v3.7.4 — Orden del menú
 
-- El importador permite aplicar una faena acreditada a todos los trabajadores del archivo.
-- También reconoce columnas por trabajador:
-  - Faena acreditada.
-  - Estado acreditación.
-  - Vencimiento acreditación.
-- Los datos de cada fila tienen prioridad sobre los valores predeterminados.
-- Si el trabajador ya tiene la faena, se actualiza su estado y vencimiento.
-- Si no la tiene, se agrega una nueva acreditación.
-- Las nuevas faenas encontradas en el Excel se incorporan a Configuración.
-- Cada cargo recibe un color automático.
-- Los trabajadores muestran el color del cargo en la tarjeta y en su etiqueta.
-- El color de cada cargo se puede cambiar desde Configuración.
+El menú lateral quedó ordenado así:
+
+1. Resumen.
+2. Servicios.
+3. Llamados.
+4. Pasajes.
+5. Documentos.
+6. Acreditaciones.
+7. Certificaciones.
+8. Turnos 14x14.
+9. Trabajadores.
+10. Configuración.

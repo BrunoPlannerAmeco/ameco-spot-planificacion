@@ -1,9 +1,7 @@
 # CHANGELOG
 
-## v3.7.3
+## v3.7.4
 
-- Se agregó importación de acreditaciones por faena.
-- Se agregó faena predeterminada para archivos sin columna de acreditación.
-- Se agregaron columnas opcionales de estado y vencimiento.
-- Se agregó actualización de acreditaciones existentes mediante RUT y faena.
-- Se agregaron colores automáticos y configurables por cargo.
+- Se reorganizó el menú lateral.
+- Trabajadores quedó después de Turnos 14x14.
+- “Certificaciones equipos” se simplificó a “Certificaciones”.
