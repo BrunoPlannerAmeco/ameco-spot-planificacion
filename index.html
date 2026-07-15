@@ -1,19 +1,2662 @@
 <!DOCTYPE html>
+<!-- AMECO Spot Planner v3.0.0 — rebuild basado en control_personal (15) -->
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AMECO Spot Planner</title>
-  <meta name="description" content="Centro de operaciones para planificación de personal minero.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMECO Spot Planner — Gestión de Personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --bg:#f2f3ef;
+    --panel:#ffffff;
+    --steel:#232c35;
+    --steel-2:#2f3944;
+    --ink:#1b1f23;
+    --sub:#6b7178;
+    --line:#dfe1db;
+    --accent:#e2571f;
+    --accent-ink:#7a2c0d;
+    --amber:#e0951a;
+    --good:#2f8f4e;
+    --good-bg:#e6f4ea;
+    --warn:#b9790f;
+    --warn-bg:#fbf0dc;
+    --bad:#c8342f;
+    --bad-bg:#faeaea;
+    --grey-bg:#eceeea;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(20,20,15,.06), 0 6px 20px rgba(20,20,15,.05);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  h1,h2,h3,.disp{font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em;}
+  .disp{text-transform:uppercase;font-weight:700;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;font-size:13px;}
+
+  #shell{display:flex;min-height:100vh;}
+
+  #sidebar{width:220px;flex:0 0 220px;background:var(--steel);color:#e9ebe6;display:flex;flex-direction:column;padding:18px 0;}
+  .brand{padding:0 20px 18px 20px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
+  .brand .tag{font-family:'Barlow Condensed';font-weight:800;font-size:22px;letter-spacing:.03em;color:#fff;line-height:1.05;}
+  .brand .sub{font-size:11px;color:#9aa1a6;margin-top:4px;letter-spacing:.04em;text-transform:uppercase;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#c7cbc4;font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:.15s;}
+  .nav-item:hover{background:rgba(255,255,255,.04);color:#fff;}
+  .nav-item.active{background:rgba(226,87,31,.14);border-left-color:var(--accent);color:#fff;}
+  .nav-item .ic{width:16px;text-align:center;font-size:14px;}
+  .nav-count{margin-left:auto;background:rgba(255,255,255,.1);border-radius:20px;padding:1px 7px;font-size:11px;font-family:'JetBrains Mono';}
+  .nav-count.alert{background:var(--accent);color:#fff;}
+  .sidebar-foot{margin-top:auto;padding:14px 20px 0 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#8c939a;line-height:1.5;}
+
+  #main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  #topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:14px;}
+  #topbar h1{font-size:22px;margin:0;font-weight:700;color:var(--steel);}
+  .search-box{flex:1;max-width:340px;position:relative;}
+  .search-box input{width:100%;padding:8px 12px 8px 30px;border:1px solid var(--line);border-radius:8px;background:var(--bg);}
+  .search-box .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:12px;}
+  .btn{border:none;border-radius:8px;padding:9px 16px;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-accent:hover{background:#c94a17;}
+  .btn-ghost{background:var(--grey-bg);color:var(--ink);}
+  .btn-ghost:hover{background:#e2e4de;}
+  .btn-danger{background:var(--bad-bg);color:var(--bad);}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+  #content{flex:1;padding:22px 26px;overflow:auto;}
+  .save-pill{font-size:11px;color:var(--sub);margin-left:auto;display:flex;align-items:center;gap:6px;}
+  .dot-live{width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+  .kpi .num{font-family:'Barlow Condensed';font-weight:800;font-size:34px;line-height:1;color:var(--steel);}
+  .kpi .lbl{font-size:12px;color:var(--sub);margin-top:6px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .kpi.warn .num{color:var(--warn);}
+  .kpi.bad .num{color:var(--bad);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;}
+  .panel-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+  .panel-head h2{font-size:16px;margin:0;color:var(--steel);font-weight:700;}
+  .panel-body{padding:6px 0;}
+  .alert-row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #f0f1ec;font-size:13px;}
+  .alert-row:last-child{border-bottom:none;}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .chip.good{background:var(--good-bg);color:var(--good);}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);}
+  .chip.bad{background:var(--bad-bg);color:var(--bad);}
+  .chip.grey{background:var(--grey-bg);color:var(--sub);}
+  .empty{padding:30px 18px;text-align:center;color:var(--sub);font-size:13px;}
+
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+  .wcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:.12s;}
+  .wcard:hover{border-color:var(--accent);transform:translateY(-1px);}
+  .wcard-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .wcard .name{font-weight:700;font-size:15px;color:var(--steel);}
+  .wcard .cargo{font-size:12px;color:var(--sub);margin-top:1px;}
+  .wcard .rut{font-size:11.5px;color:var(--sub);margin-top:6px;}
+  .status-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-top:3px;}
+  .sticker-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+  .sticker{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);display:inline-block;}
+  .sticker-empty{font-size:11px;color:var(--sub);}
+
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--sub);padding:9px 14px;border-bottom:1px solid var(--line);background:#fafaf8;position:sticky;top:0;}
+  td{padding:9px 14px;border-bottom:1px solid #f0f1ec;font-size:13px;vertical-align:middle;}
+  tr:hover td:not(.daycell){background:#fafaf8;}
+  .table-wrap{overflow:auto;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);}
+
+  .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  select, .filter-bar input{padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,22,20,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:var(--panel);border-radius:14px;width:660px;max-width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal-sm{width:400px;}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--panel);z-index:2;}
+  .modal-head h2{margin:0;font-size:18px;color:var(--steel);}
+  .modal-close{background:none;border:none;font-size:20px;color:var(--sub);}
+  .modal-body{padding:20px 22px;}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.02em;margin-bottom:4px;}
+  .field input, .field select, .field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .section-title{font-size:13px;font-weight:700;color:var(--steel);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .section-title:first-child{border-top:none;padding-top:0;margin-top:0;}
+  .repeat-row2{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;background:var(--bg);padding:8px;border-radius:8px;}
+  .icon-btn{background:none;border:none;color:var(--bad);font-size:15px;padding:2px 6px;}
+  .link-btn{background:none;border:none;color:var(--accent);font-weight:600;font-size:12.5px;padding:0;}
+
+  .exam-card{background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:10px;}
+  .exam-card-title{font-weight:700;font-size:13px;color:var(--steel);margin-bottom:8px;}
+  .exam-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+  .exam-card-fields label{display:block;font-size:10px;color:var(--sub);text-transform:uppercase;margin-bottom:3px;}
+  .exam-card-fields input{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);}
+  .file-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:8px;}
+  .file-row input[type=file]{display:none;}
+  .file-pill-label{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+  .file-pill-label:hover{border-color:var(--accent);}
+  .file-name{font-size:12px;color:var(--sub);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-chip-list{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
+  .file-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 4px 3px 9px;font-size:11.5px;}
+  .file-chip-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  .cert-block{background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:10px;}
+  .cert-top-row{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;}
+  .cert-top-row select, .cert-top-row input{padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);}
+
+  .cal-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .cal-toolbar .month-lbl{font-family:'Barlow Condensed';font-weight:700;font-size:18px;color:var(--steel);min-width:180px;text-align:center;text-transform:capitalize;}
+  .legend{display:flex;gap:14px;margin-left:auto;font-size:12px;color:var(--sub);align-items:center;}
+  .legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
+  .grid-table{border-collapse:collapse;font-size:11.5px;user-select:none;}
+  .drag-highlight{outline:2px dashed #1b1f23;outline-offset:-3px;}
+  .grid-table th, .grid-table td{border:1px solid #eceeea;padding:0;text-align:center;}
+  .grid-table th{background:#fafaf8;padding:6px 2px;font-weight:600;color:var(--sub);position:sticky;top:0;z-index:1;}
+  .grid-table td.namecell, .grid-table th.namecell{position:sticky;left:0;background:var(--panel);z-index:2;text-align:left;padding:7px 12px;font-weight:600;min-width:170px;border-right:2px solid var(--line);}
+  .grid-table th.namecell{z-index:3;background:#fafaf8;}
+  .daycell{width:26px;height:32px;cursor:pointer;position:relative;}
+  .daycell:hover{outline:2px solid var(--accent);outline-offset:-2px;}
+  .st-trabajo{background:#2f3944;}
+  .st-descanso{background:#e7e8e3;}
+  .st-extra{background:var(--accent);}
+  .st-permiso{background:#c8342f33;}
+  .weekend-col{background-color:#f6f2ea;}
+
+  .helptext{font-size:12px;color:var(--sub);margin-bottom:14px;line-height:1.5;}
+  .doc-cell-link{font-size:11px;color:var(--accent);font-weight:600;cursor:pointer;}
+  .doc-cell-none{font-size:11px;color:#b7bab3;}
+  .tbl-worker-link{cursor:pointer;color:var(--steel);border-bottom:1px dashed var(--accent);}
+  .tbl-worker-link:hover{color:var(--accent);}
+
+  .ring-extra{box-shadow: inset 0 0 0 2px #ffffff;}
+  .ring-permiso{box-shadow: inset 0 0 0 2px var(--bad);}
+  .daycell-label{font-size:8.5px;font-weight:800;color:#fff;line-height:32px;display:block;text-align:center;letter-spacing:.01em;text-shadow:0 1px 1px rgba(0,0,0,.4);pointer-events:none;}
+
+  .size-toggle{display:flex;gap:2px;background:var(--grey-bg);border-radius:8px;padding:2px;margin-left:10px;}
+  .size-toggle button{background:none;border:none;padding:6px 11px;font-size:12px;font-weight:600;border-radius:6px;color:var(--sub);}
+  .size-toggle button.active-size{background:var(--panel);color:var(--steel);box-shadow:var(--shadow);}
+
+  .grid-table.size-comfortable .daycell{width:36px;height:42px;}
+  .grid-table.size-comfortable .daycell-label{font-size:10.5px;line-height:42px;}
+  .grid-table.size-comfortable th{font-size:12px;padding:8px 3px;}
+  .grid-table.size-comfortable .namecell{font-size:13.5px;min-width:190px;}
+  .grid-table.size-large{font-size:13px;}
+  .grid-table.size-large .daycell{width:48px;height:54px;}
+  .grid-table.size-large .daycell-label{font-size:13px;line-height:54px;font-weight:800;}
+  .grid-table.size-large th{font-size:13px;padding:10px 4px;}
+  .grid-table.size-large .namecell{font-size:15px;min-width:210px;}
+
+  .worker-link-btn{display:block;margin-top:4px;font-size:11px;}
+
+  .month-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;}
+  .month-cal-weekday{font-size:11px;font-weight:700;color:var(--sub);text-align:center;text-transform:uppercase;padding-bottom:2px;}
+  .daycell-lg{border-radius:9px;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:4px;gap:2px;}
+  .daycell-lg:hover{outline:2px solid var(--accent);outline-offset:-2px;}
+  .daycell-lg .daynum{position:absolute;top:4px;left:6px;font-size:10px;font-weight:700;color:rgba(255,255,255,.75);}
+  .daycell-lg.st-descanso .daynum{color:#9a9d94;}
+  .daycell-lg .biglabel{font-size:16px;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);}
+  .daycell-lg.st-descanso .biglabel{color:#464a41;text-shadow:none;}
+  .daycell-lg .faename{font-size:9px;color:#fff;text-align:center;line-height:1.15;text-shadow:0 1px 1px rgba(0,0,0,.35);padding:0 3px;word-break:break-word;}
+  .faena-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--sub);}
+  .fl-item{display:flex;align-items:center;gap:5px;}
+  .fl-sw{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  .fl-btn{border:1px solid transparent;background:none;cursor:pointer;padding:4px 10px;border-radius:20px;font:inherit;color:var(--sub);}
+  .fl-btn:hover{background:var(--grey-bg);}
+  .fl-btn.fl-active{background:var(--steel);color:#fff;}
+  .fl-btn.fl-active .fl-sw{box-shadow:0 0 0 2px #fff;}
+  .fl-clear{border:1px solid var(--line);background:var(--panel);cursor:pointer;padding:4px 10px;border-radius:20px;font:inherit;color:var(--bad);font-weight:600;}
+
+  .bulk-toolbar{display:flex;gap:8px;align-items:center;margin:6px 0 4px;}
+  .bulk-count{font-size:12px;color:var(--sub);margin-left:auto;}
+  .bulk-list-wrap{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:4px;background:var(--panel);}
+  .bulk-worker-row{display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid #f0f1ec;font-size:13px;cursor:pointer;}
+  .bulk-worker-row:last-child{border-bottom:none;}
+  .bulk-worker-row:hover{background:#fafaf8;}
+  .bulk-worker-row .w-cargo{margin-left:auto;color:var(--sub);font-size:11.5px;}
+
+  /* ============================= FIREBASE LOGIN ============================= */
+  [hidden]{display:none !important;}
+  .auth-gate{
+    position:fixed; inset:0; z-index:1000;
+    display:grid; place-items:center; padding:24px;
+    background:
+      radial-gradient(circle at 82% 12%, rgba(226,87,31,.22), transparent 32%),
+      linear-gradient(145deg,#1d252d,#303b45);
+  }
+  .auth-card{
+    width:min(420px,100%);
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,.45);
+    border-radius:16px;
+    padding:30px;
+    box-shadow:0 28px 80px rgba(0,0,0,.34);
+  }
+  .auth-brand{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:31px; font-weight:800; color:var(--steel);
+  }
+  .auth-sub{font-size:12px;color:var(--sub);margin:3px 0 24px;}
+  .auth-form{display:grid;gap:14px;}
+  .auth-form .field{margin:0;}
+  .auth-form input{background:#fff;padding:11px 12px;}
+  .auth-submit{width:100%;justify-content:center;margin-top:2px;}
+  .auth-error{min-height:18px;font-size:12px;font-weight:600;color:var(--bad);}
+  .auth-foot{
+    border-top:1px solid var(--line); margin-top:19px; padding-top:15px;
+    color:var(--sub); font-size:11px; text-align:center;
+  }
+  .session-email{
+    color:var(--sub); font-size:11px; max-width:190px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .cloud-pill{
+    font-size:11px; color:var(--sub); display:flex; align-items:center; gap:6px;
+  }
+
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script>
+(function(){
+  const firebaseConfig = {
+    apiKey: "AIzaSyAXGIXn5dpaoPfezHGnLR7fI_DQdcMjG6U",
+    authDomain: "ameco-spot-planificacion.firebaseapp.com",
+    databaseURL: "https://ameco-spot-planificacion-default-rtdb.firebaseio.com",
+    projectId: "ameco-spot-planificacion",
+    storageBucket: "ameco-spot-planificacion.firebasestorage.app",
+    messagingSenderId: "409635036525",
+    appId: "1:409635036525:web:0ede33638be61942940e64"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storageRoot = "amecoSpotPlanner/legacyStorage";
+
+  let resolveAuth;
+  const authReady = new Promise(resolve => { resolveAuth = resolve; });
+  let authResolved = false;
+
+  function encodeKey(key){
+    return btoa(unescape(encodeURIComponent(String(key))))
+      .replaceAll("/", "_").replaceAll("+", "-").replaceAll("=", "");
+  }
+  function decodeKey(value){
+    let encoded = value.replaceAll("_", "/").replaceAll("-", "+");
+    while(encoded.length % 4) encoded += "=";
+    return decodeURIComponent(escape(atob(encoded)));
+  }
+  function keyRef(key){
+    return db.ref(storageRoot + "/" + encodeKey(key));
+  }
+
+  function regimenToCycle(regimen){
+    if(regimen === "7x7") return {diasTrabajo:7,diasDescanso:7};
+    if(regimen === "5x2") return {diasTrabajo:5,diasDescanso:2};
+    return {diasTrabajo:14,diasDescanso:14};
+  }
+
+  async function migrateExistingCloudData(){
+    const [workersSnap, sitesSnap, accSnap, callsSnap, ticketsSnap] = await Promise.all([
+      db.ref("amecoSpotPlanner/workers").once("value"),
+      db.ref("amecoSpotPlanner/sites").once("value"),
+      db.ref("amecoSpotPlanner/accreditations").once("value"),
+      db.ref("amecoSpotPlanner/contacts").once("value"),
+      db.ref("amecoSpotPlanner/tickets").once("value")
+    ]);
+
+    const rawWorkers = Object.values(workersSnap.val() || {});
+    const rawSites = Object.values(sitesSnap.val() || {});
+    const rawAccreditations = Object.values(accSnap.val() || {});
+    const rawCalls = Object.values(callsSnap.val() || {});
+    const rawTickets = Object.values(ticketsSnap.val() || {});
+
+    if(!rawWorkers.length && !rawSites.length && !rawAccreditations.length &&
+       !rawCalls.length && !rawTickets.length){
+      return null;
+    }
+
+    const workers = rawWorkers.map(worker => {
+      const cycle = regimenToCycle(worker.turno && worker.turno.regimen);
+      const embeddedAccreditations = rawAccreditations
+        .filter(item => item.trabajadorId === worker.id)
+        .map(item => {
+          const site = rawSites.find(s => s.id === item.faenaId);
+          return {
+            faena: site ? site.nombre : (item.faena || ""),
+            estado: item.estado === "aprobada" ? "Acreditado" :
+                    ["en_revision","en_carga","recopilando_documentos"].includes(item.estado) ? "En trámite" :
+                    "No acreditado",
+            vencimiento: item.vencimiento || ""
+          };
+        });
+
+      return {
+        id: worker.id,
+        nombre: worker.nombre || "",
+        rut: worker.rut || "",
+        telefono: worker.telefono || "",
+        correo: worker.correo || "",
+        ciudad: worker.ciudad || "",
+        cargo: worker.cargo || "",
+        empresa: worker.empresa || "",
+        turno: {
+          fechaInicioCiclo: (worker.turno && worker.turno.fechaInicioCiclo) || new Date().toISOString().slice(0,10),
+          diasTrabajo: (worker.turno && worker.turno.diasTrabajo) || cycle.diasTrabajo,
+          diasDescanso: (worker.turno && worker.turno.diasDescanso) || cycle.diasDescanso
+        },
+        overrides: worker.overrides || {},
+        examenes: worker.examenes || [
+          {tipo:"Preocupacional",fecha:"",vencimiento:""},
+          {tipo:"Alcohol y Drogas",fecha:"",vencimiento:""},
+          {tipo:"Psicosensotécnico",fecha:"",vencimiento:""}
+        ],
+        examenesExtra: worker.examenesExtra || [],
+        acreditaciones: worker.acreditaciones || embeddedAccreditations,
+        certificaciones: worker.certificaciones || []
+      };
+    });
+
+    const faenas = rawSites.map(site => site.nombre).filter(Boolean);
+    const llamados = rawCalls.map(item => ({
+      id: item.id || ("l_" + Date.now()),
+      workerId: item.trabajadorId || item.workerId || "",
+      fecha: (item.fecha || "").slice(0,10),
+      hora: item.hora || "",
+      resultado: item.resultado || "pendiente",
+      nota: item.observaciones || item.nota || ""
+    }));
+    const pasajes = rawTickets.map(item => ({
+      id: item.id || ("p_" + Date.now()),
+      workerId: item.trabajadorId || item.workerId || "",
+      faena: item.faena || "",
+      fechaViaje: item.fechaViaje || "",
+      origen: item.origen || "",
+      destino: item.destino || "",
+      estado: item.estado || "pendiente",
+      nota: item.observaciones || item.nota || ""
+    }));
+
+    return {
+      workers,
+      faenas: faenas.length ? faenas : ["Spence","Centinela","Sierra Gorda","Gabriela Mistral","Antucoya"],
+      cargos: ["Supervisor","Operador AT","Operador AC","Rigger","Alzahombre","Operador Grúa Horquilla","Otro"],
+      equipos: ["Grúa Horquilla","Grúa Pluma","Camión Pluma","Manlift / Alzahombre","Minicargador","Grúa Telescópica","Camión Grúa","Otro"],
+      llamados,
+      pasajes
+    };
+  }
+
+  window.storage = {
+    async get(key, shared){
+      await authReady;
+      const snapshot = await keyRef(key).once("value");
+      if(snapshot.exists()) return {key, value:snapshot.val(), shared:true};
+
+      if(key === "faena_personal_db_v1"){
+        const migrated = await migrateExistingCloudData();
+        if(migrated){
+          const value = JSON.stringify(migrated);
+          await keyRef(key).set(value);
+          return {key, value, shared:true};
+        }
+      }
+      throw new Error("not found");
+    },
+    async set(key, value, shared){
+      await authReady;
+      await keyRef(key).set(value);
+      return {key, value, shared:true};
+    },
+    async delete(key, shared){
+      await authReady;
+      await keyRef(key).remove();
+      return {key, deleted:true, shared:true};
+    },
+    async list(prefix, shared){
+      await authReady;
+      const snapshot = await db.ref(storageRoot).once("value");
+      const values = snapshot.val() || {};
+      const keys = Object.keys(values).map(decodeKey)
+        .filter(key => !prefix || key.startsWith(prefix));
+      return {keys, prefix, shared:true};
+    }
+  };
+
+  function setAuthScreen(user){
+    const gate = document.getElementById("authGate");
+    const shell = document.getElementById("shell");
+    const email = document.getElementById("sessionEmail");
+
+    if(!gate || !shell) return;
+    if(user){
+      gate.hidden = true;
+      shell.style.display = "flex";
+      if(email) email.textContent = user.email || "Usuario";
+    }else{
+      gate.hidden = false;
+      shell.style.display = "none";
+    }
+  }
+
+  auth.onAuthStateChanged(user => {
+    window.amecoCurrentUser = user || null;
+    if(user && !authResolved){
+      authResolved = true;
+      resolveAuth(user);
+    }
+    if(document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", () => setAuthScreen(user), {once:true});
+    }else{
+      setAuthScreen(user);
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("authForm");
+    if(!form) return;
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const error = document.getElementById("authError");
+      const button = document.getElementById("authSubmit");
+      error.textContent = "";
+      button.disabled = true;
+      button.textContent = "Ingresando...";
+
+      try{
+        await auth.signInWithEmailAndPassword(
+          document.getElementById("authEmail").value.trim(),
+          document.getElementById("authPassword").value
+        );
+      }catch(err){
+        error.textContent =
+          err.code === "auth/invalid-credential"
+            ? "Correo o contraseña incorrectos."
+            : "No fue posible iniciar sesión.";
+        button.disabled = false;
+        button.textContent = "Iniciar sesión";
+      }
+    });
+  });
+
+  window.amecoLogout = () => auth.signOut().then(() => location.reload());
+})();
+</script>
+
 </head>
 <body>
-  <div id="app"></div>
-  <div id="modalRoot"></div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script type="module" src="bootstrap.js"></script>
+
+<div id="authGate" class="auth-gate">
+  <section class="auth-card">
+    <div class="auth-brand">AMECO Spot Planner</div>
+    <div class="auth-sub">Gestión de personal y operaciones mineras</div>
+    <form id="authForm" class="auth-form">
+      <div class="field">
+        <label for="authEmail">Correo electrónico</label>
+        <input id="authEmail" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="authPassword">Contraseña</label>
+        <input id="authPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="authError" class="auth-error"></div>
+      <button id="authSubmit" class="btn btn-accent auth-submit" type="submit">Iniciar sesión</button>
+    </form>
+    <div class="auth-foot">Acceso exclusivo para usuarios autorizados.</div>
+  </section>
+</div>
+
+<div id="shell" style="display:none">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="tag">AMECO Spot Planner</div>
+      <div class="sub">Centro de operaciones</div>
+    </div>
+    <nav id="navList"></nav>
+    <div class="sidebar-foot" id="sidebarFoot">Información sincronizada en Firebase para los usuarios autorizados.</div>
+  </div>
+  <div id="main">
+    <div id="topbar"></div>
+    <div id="content"></div>
+  </div>
+</div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============================= DATA LAYER ============================= */
+const STORAGE_KEY = 'faena_personal_db_v1';
+
+/* Persistencia cloud: Firebase Realtime Database mediante window.storage. */
+let STORAGE_MODE = 'firebase';
+const EXAM_TYPES = ['Preocupacional','Alcohol y Drogas','Psicosensotécnico'];
+const DEFAULT_FAENAS = ['Spence','Centinela','Sierra Gorda','Gabriela Mistral','Antucoya'];
+const DEFAULT_CARGOS = ['Supervisor','Operador AT','Operador AC','Rigger','Alzahombre','Operador Grúa Horquilla','Otro'];
+const DEFAULT_EQUIPOS = ['Grúa Horquilla','Grúa Pluma','Camión Pluma','Manlift / Alzahombre','Minicargador','Grúa Telescópica','Camión Grúa','Otro'];
+const FAENA_COLORS = ['#e2571f','#2f6f9e','#2f8f4e','#8a5fc2','#c8342f','#b9790f','#1b8fa0','#7a4a2e'];
+const MAX_FILE_BYTES = 3.5 * 1024 * 1024; // 3.5MB por archivo (el sistema de almacenamiento tiene un tope de 5MB por valor; al codificar en base64 el archivo pesa ~35% más, así que 3.5MB es prácticamente el máximo seguro)
+
+let state = {
+  workers: [],
+  faenas: [...DEFAULT_FAENAS],
+  cargos: [...DEFAULT_CARGOS],
+  equipos: [...DEFAULT_EQUIPOS],
+  llamados: [],
+  pasajes: [],
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'' },
+  saving:false
+};
+let bulkSelected = new Set();
+let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColumna}}
+
+const IMPORT_FIELDS = [
+  {key:'nombre', label:'Nombre completo', required:true},
+  {key:'rut', label:'RUT'},
+  {key:'telefono', label:'Teléfono'},
+  {key:'correo', label:'Correo'},
+  {key:'ciudad', label:'Ciudad'},
+  {key:'cargo', label:'Cargo'},
+  {key:'empresa', label:'Empresa / contratista'}
+];
+
+function normalizeRut(rut){
+  return (rut||'').toString().replace(/\./g,'').replace(/\s/g,'').toUpperCase();
+}
+
+function guessImportMapping(headers){
+  const lc = headers.map(h=>(h||'').toString().toLowerCase());
+  const find = (keywords)=>{
+    for(let i=0;i<lc.length;i++){ if(keywords.some(k=>lc[i].includes(k))) return i; }
+    return -1;
+  };
+  return {
+    nombre: find(['nombre','trabajador']),
+    rut: find(['rut']),
+    telefono: find(['tel','fono','celular']),
+    correo: find(['correo','email','mail']),
+    ciudad: find(['ciudad']),
+    cargo: find(['cargo','puesto','funcion','función']),
+    empresa: find(['empresa','contratista','razon'])
+  };
+}
+
+function uid(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function slugify(s){ return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase(); }
+function examDocKey(workerId, tipo){ return 'doc__'+workerId+'__exam__'+slugify(tipo); }
+function certDocKey(workerId, certId, fileId){ return fileId ? ('doc__'+workerId+'__cert__'+certId+'__'+fileId) : ('doc__'+workerId+'__cert__'+certId); }
+function examExtraDocKey(workerId, extraId){ return 'doc__'+workerId+'__examextra__'+extraId; }
+
+function seedData(){ return []; }
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.workers = parsed.workers || [];
+      state.faenas = parsed.faenas && parsed.faenas.length ? parsed.faenas : [...DEFAULT_FAENAS];
+      state.cargos = parsed.cargos && parsed.cargos.length ? parsed.cargos : [...DEFAULT_CARGOS];
+      state.equipos = parsed.equipos && parsed.equipos.length ? parsed.equipos : [...DEFAULT_EQUIPOS];
+      state.llamados = parsed.llamados || [];
+      state.pasajes = parsed.pasajes || [];
+      state.workers.forEach(w=>{
+        if(!w.certificaciones) w.certificaciones = [];
+        w.certificaciones.forEach(c=>{
+          if(!c.archivos){
+            c.archivos = c.archivoNombre ? [{id:'', nombre:c.archivoNombre, mime:c.archivoTipo||''}] : [];
+            delete c.archivoNombre; delete c.archivoTipo;
+          }
+        });
+        if(!w.examenesExtra) w.examenesExtra = [];
+      });
+    } else {
+      state.workers = seedData();
+      state.llamados = []; state.pasajes = [];
+      await persist();
+    }
+  }catch(e){
+    state.workers = seedData();
+    state.llamados = []; state.pasajes = [];
+    try{ await persist(); }catch(e2){}
+  }
+  render();
+}
+
+let saveTimeout=null;
+function persist(){
+  return new Promise((resolve)=>{
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async ()=>{
+      state.saving = true; renderSavePill();
+      try{
+        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes}), true);
+      }catch(e){ console.error('Error al guardar', e); }
+      state.saving = false; renderSavePill();
+      resolve();
+    }, 350);
+  });
+}
+
+// Guardado inmediato (botón Guardar): salta el debounce y confirma o avisa el error
+async function persistNow(){
+  clearTimeout(saveTimeout);
+  state.saving = true; renderSavePill();
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes}), true);
+    state.saving = false; renderSavePill();
+    return true;
+  }catch(e){
+    console.error('Error al guardar', e);
+    state.saving = false; renderSavePill();
+    alert('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.');
+    return false;
+  }
+}
+
+/* ============================= EXPORTACIÓN A EXCEL (formato profesional, ExcelJS) ============================= */
+async function exportToExcel(){
+  if(typeof ExcelJS === 'undefined'){
+    alert('La librería de Excel no cargó (revisa tu conexión a internet) — recarga la página e inténtalo de nuevo.');
+    return;
+  }
+  const hoy = todayStr();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'AMECO Spot Planner';
+  wb.created = new Date();
+
+  // Paleta corporativa (misma del dashboard)
+  const C = {
+    steel:'FF232C35', accent:'FFE2571F', white:'FFFFFFFF', light:'FFF7F7F4',
+    good:'FFE6F4EA', goodTx:'FF2F8F4E', warn:'FFFBF0DC', warnTx:'FF9A6608',
+    bad:'FFFAEAEA', badTx:'FFC8342F', grey:'FFECEEEA', greyTx:'FF6B7178',
+    line:'FFDFE1DB', darkCell:'FF2F3944', restCell:'FFE7E8E3'
+  };
+  const thinB = { style:'thin', color:{argb:C.line} };
+  const allBorders = { top:thinB, bottom:thinB, left:thinB, right:thinB };
+  const baseFont = { name:'Arial', size:10 };
+
+  function fillCell(cell, argb){ cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb}}; }
+  function styleHeaderRow(row){
+    row.eachCell(c=>{
+      fillCell(c, C.steel);
+      c.font = Object.assign({}, baseFont, {color:{argb:C.white}, bold:true});
+      c.border = allBorders;
+      c.alignment = {vertical:'middle', horizontal:'left'};
+    });
+    row.height = 20;
+  }
+  function styleDataRow(row){
+    row.eachCell(c=>{
+      c.font = Object.assign({}, baseFont);
+      c.border = allBorders;
+      c.alignment = {vertical:'middle'};
+    });
+  }
+  function statusStyle(cell, label){
+    const map = {
+      'Vigente':[C.good, C.goodTx], 'Acreditado':[C.good, C.goodTx], 'Confirmado':[C.good, C.goodTx], 'Emitido':[C.good, C.goodTx],
+      'Por vencer':[C.warn, C.warnTx], 'En trámite':[C.warn, C.warnTx], 'No contesta':[C.warn, C.warnTx], 'Solicitado':[C.warn, C.warnTx],
+      'Vencido':[C.bad, C.badTx], 'Rechazó':[C.bad, C.badTx], 'Cancelado':[C.bad, C.badTx],
+      'Sin dato':[C.grey, C.greyTx], 'Pendiente':[C.grey, C.greyTx], 'No acreditado':[C.grey, C.greyTx]
+    };
+    const s = map[label];
+    if(s){ fillCell(cell, s[0]); cell.font = Object.assign({}, baseFont, {color:{argb:s[1]}, bold:true}); }
+  }
+  function sheetTitle(ws, title, subtitle, lastCol){
+    ws.mergeCells(1,1,1,lastCol);
+    const t = ws.getCell(1,1);
+    t.value = title;
+    t.font = {name:'Arial', size:15, bold:true, color:{argb:C.white}};
+    fillCell(t, C.steel);
+    t.alignment = {vertical:'middle', horizontal:'left', indent:1};
+    ws.getRow(1).height = 30;
+    ws.mergeCells(2,1,2,lastCol);
+    const s = ws.getCell(2,1);
+    s.value = subtitle;
+    s.font = {name:'Arial', size:9, color:{argb:C.white}, italic:true};
+    fillCell(s, C.accent);
+    s.alignment = {vertical:'middle', horizontal:'left', indent:1};
+    ws.getRow(2).height = 16;
+    ws.addRow([]);
+  }
+
+  /* ---------- Cálculo de indicadores (mismos del dashboard) ---------- */
+  const totalW = state.workers.length;
+  const vencidos = state.workers.filter(w=>workerWorstExam(w)==='bad').length;
+  const porVencer = state.workers.filter(w=>workerWorstExam(w)==='warn').length;
+  const enFaenaHoy = state.workers.filter(w=>{const t=dayStatus(w, hoy).tipo; return t==='trabajo'||t==='extra';}).length;
+  let acredProblema = 0;
+  state.workers.forEach(w=>(w.acreditaciones||[]).forEach(a=>{
+    if(a.estado==='Acreditado' && a.vencimiento){
+      const st = examStatus(a.vencimiento).status;
+      if(st==='vencido'||st==='por-vencer') acredProblema++;
+    }
+  }));
+  const now = new Date();
+  const monthPrefix = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  let heMes = 0, permisosMes = 0;
+  state.workers.forEach(w=>{
+    Object.entries(w.overrides||{}).forEach(([fecha, ov])=>{
+      if(fecha.startsWith(monthPrefix)){
+        if(ov.tipo==='extra') heMes++;
+        else if(ov.tipo==='permiso') permisosMes++;
+      }
+    });
+  });
+  const en7 = fmt(addDays(new Date(), 7));
+  const pasajesUrgentes = (state.pasajes||[]).filter(p=>(p.estado==='pendiente'||p.estado==='solicitado') && p.fechaViaje >= hoy && p.fechaViaje <= en7).length;
+  const llamadosTotal = (state.llamados||[]).length;
+  const llamadosConfirmados = (state.llamados||[]).filter(l=>l.resultado==='confirmado').length;
+  const pendCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta').length;
+  const pendTickets = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado').length;
+  const sinExamenes = state.workers.filter(w=>(w.examenes||[]).every(e=>!e.vencimiento)).length;
+
+  /* ---------- Hoja 1: Resumen ejecutivo ---------- */
+  const wsR = wb.addWorksheet('Resumen', {views:[{showGridLines:false}]});
+  wsR.columns = [{width:3},{width:46},{width:16},{width:3},{width:34},{width:14}];
+  sheetTitle(wsR, 'AMECO SPOT PLANNER — INFORME DE GESTIÓN DE PERSONAL', 'Generado el '+hoy+' · Documento de uso interno', 6);
+
+  const secRow = wsR.addRow(['', 'INDICADORES OPERACIONALES', '', '', 'ACREDITADOS POR FAENA', '']);
+  [2,5].forEach(ci=>{
+    const c = secRow.getCell(ci);
+    c.font = {name:'Arial', size:10, bold:true, color:{argb:C.accent}};
+  });
+
+  const kpis = [
+    ['Trabajadores registrados', totalW, null],
+    ['En faena hoy', enFaenaHoy, null],
+    ['Trabajadores con exámenes por vencer (≤30 días)', porVencer, porVencer>0?'warn':null],
+    ['Trabajadores con examen vencido', vencidos, vencidos>0?'bad':null],
+    ['Trabajadores sin exámenes registrados', sinExamenes, sinExamenes>0?'warn':null],
+    ['Acreditaciones por vencer o vencidas', acredProblema, acredProblema>0?'warn':null],
+    ['Días de hora extra este mes', heMes, null],
+    ['Días de permiso este mes', permisosMes, null],
+    ['Llamados pendientes / sin respuesta', pendCalls, pendCalls>0?'warn':null],
+    ['Tasa de confirmación de llamados', llamadosTotal ? Math.round(llamadosConfirmados/llamadosTotal*100)+'%' : '—', null],
+    ['Pasajes pendientes de emitir', pendTickets, pendTickets>0?'warn':null],
+    ['Pasajes urgentes (viaje ≤7 días, sin emitir)', pasajesUrgentes, pasajesUrgentes>0?'bad':null]
+  ];
+  const faenaCounts = state.faenas.map(f=>[f, state.workers.filter(w=>(w.acreditaciones||[]).some(a=>a.faena===f && a.estado==='Acreditado')).length]);
+  const nRows = Math.max(kpis.length, faenaCounts.length);
+  for(let i=0;i<nRows;i++){
+    const k = kpis[i] || ['','',null];
+    const f = faenaCounts[i] || ['',''];
+    const row = wsR.addRow(['', k[0], k[1], '', f[0], f[1]]);
+    [2,3].forEach(ci=>{ if(k[0]!==''){ const c = row.getCell(ci); c.font = Object.assign({}, baseFont); c.border = allBorders; fillCell(c, i%2 ? C.light : C.white); }});
+    if(k[0]!==''){
+      const vc = row.getCell(3);
+      vc.alignment = {horizontal:'center', vertical:'middle'};
+      vc.font = Object.assign({}, baseFont, {bold:true, size:11});
+      if(k[2]==='warn'){ fillCell(vc, C.warn); vc.font.color = {argb:C.warnTx}; }
+      if(k[2]==='bad'){ fillCell(vc, C.bad); vc.font.color = {argb:C.badTx}; }
+    }
+    [5,6].forEach(ci=>{ if(f[0]!==''){ const c = row.getCell(ci); c.font = Object.assign({}, baseFont); c.border = allBorders; fillCell(c, i%2 ? C.light : C.white); }});
+    if(f[0]!==''){ const fc = row.getCell(6); fc.alignment={horizontal:'center'}; fc.font = Object.assign({}, baseFont, {bold:true}); }
+  }
+
+  /* ---------- Helper para hojas de datos ---------- */
+  function dataSheet(name, subtitle, headers, rows, widths, statusColIdx){
+    const ws = wb.addWorksheet(name, {views:[{showGridLines:false, state:'frozen', ySplit:4}]});
+    ws.columns = widths.map(w=>({width:w}));
+    sheetTitle(ws, name.toUpperCase(), subtitle+' · Generado el '+hoy, headers.length);
+    const hr = ws.addRow(headers);
+    styleHeaderRow(hr);
+    rows.forEach((r, i)=>{
+      const row = ws.addRow(r);
+      styleDataRow(row);
+      row.eachCell(c=>{ if(i%2) fillCell(c, C.light); });
+      if(statusColIdx){ statusStyle(row.getCell(statusColIdx), r[statusColIdx-1]); }
+    });
+    ws.autoFilter = { from: {row:4, column:1}, to: {row:4+rows.length, column:headers.length} };
+    return ws;
+  }
+
+  /* ---------- Hoja 2: Trabajadores ---------- */
+  dataSheet('Trabajadores', 'Nómina de personal registrado',
+    ['Nombre','RUT','Cargo','Teléfono','Correo','Ciudad','Empresa','Inicio ciclo','Días trabajo','Días descanso'],
+    state.workers.map(w=>[w.nombre, w.rut, w.cargo, w.telefono, w.correo, w.ciudad, w.empresa||'', (w.turno&&w.turno.fechaInicioCiclo)||'', (w.turno&&w.turno.diasTrabajo)||14, (w.turno&&w.turno.diasDescanso)||14]),
+    [28,14,22,16,26,14,18,12,11,12]);
+
+  /* ---------- Hoja 3: Exámenes ---------- */
+  const examRows = [];
+  state.workers.forEach(w=>{
+    (w.examenes||[]).forEach(e=>examRows.push([w.nombre, w.cargo, e.tipo, e.fecha||'', e.vencimiento||'', examStatus(e.vencimiento).label, e.archivoNombre||'']));
+    (w.examenesExtra||[]).forEach(e=>examRows.push([w.nombre, w.cargo, e.nombre+' (adicional)', e.fecha||'', e.vencimiento||'', examStatus(e.vencimiento).label, e.archivoNombre||'']));
+  });
+  dataSheet('Examenes', 'Exámenes ocupacionales y documentos adicionales',
+    ['Trabajador','Cargo','Examen','Fecha realizado','Vence','Estado','Archivo adjunto'],
+    examRows, [28,22,30,14,12,12,28], 6);
+
+  /* ---------- Hoja 4: Acreditaciones ---------- */
+  const acredRows = [];
+  state.workers.forEach(w=>(w.acreditaciones||[]).forEach(a=>acredRows.push([w.nombre, w.cargo, a.faena, a.vencimiento||'', acredStatus(a).label])));
+  dataSheet('Acreditaciones', 'Acreditación de personal por faena',
+    ['Trabajador','Cargo','Faena','Vencimiento','Estado'],
+    acredRows, [28,22,18,12,14], 5);
+
+  /* ---------- Hoja 5: Certificaciones ---------- */
+  const certRows = [];
+  state.workers.forEach(w=>(w.certificaciones||[]).forEach(c=>certRows.push([w.nombre, w.cargo, c.equipo, c.fecha||'', c.vencimiento||'', examStatus(c.vencimiento).label, (c.archivos||[]).map(f=>f.nombre).join('; ')])));
+  dataSheet('Certificaciones', 'Certificaciones de operación de equipos',
+    ['Trabajador','Cargo','Equipo','Obtenido','Vence','Estado','Archivos adjuntos'],
+    certRows, [28,22,22,12,12,12,40], 6);
+
+  /* ---------- Hoja 6: Turnos (matriz coloreada, refleja el calendario) ---------- */
+  const y = state.ui.calYear, m = state.ui.calMonth;
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const wsT = wb.addWorksheet('Turnos', {views:[{showGridLines:false, state:'frozen', xSplit:2, ySplit:4}]});
+  wsT.columns = [{width:26},{width:18}, ...Array(daysInMonth).fill({width:5})];
+  sheetTitle(wsT, 'TURNOS — '+MESES[m].toUpperCase()+' '+y, 'T=Trabajo · D=Descanso · HE=Hora extra · P=Permiso · Celdas de color = faena asignada', daysInMonth+2);
+  const hdr = ['Trabajador','Cargo'];
+  for(let d=1; d<=daysInMonth; d++) hdr.push(String(d));
+  const hRow = wsT.addRow(hdr);
+  styleHeaderRow(hRow);
+  hRow.eachCell((c, ci)=>{ if(ci>2) c.alignment = {horizontal:'center', vertical:'middle'}; });
+
+  function hexToArgb(hex){ return 'FF'+hex.replace('#','').toUpperCase(); }
+  state.workers.forEach(w=>{
+    const rowVals = [w.nombre, w.cargo];
+    const infos = [];
+    for(let d=1; d<=daysInMonth; d++){
+      const info = dayStatus(w, fmt(new Date(y,m,d)));
+      infos.push(info);
+      let code = info.tipo==='trabajo'?'T':info.tipo==='descanso'?'D':info.tipo==='extra'?'HE':'P';
+      if(info.faena) code = faenaAbbrev(info.faena);
+      rowVals.push(code);
+    }
+    const row = wsT.addRow(rowVals);
+    row.getCell(1).font = Object.assign({}, baseFont, {bold:true});
+    row.getCell(1).border = allBorders;
+    row.getCell(2).font = Object.assign({}, baseFont, {size:9, color:{argb:C.greyTx}});
+    row.getCell(2).border = allBorders;
+    infos.forEach((info, i)=>{
+      const c = row.getCell(i+3);
+      c.border = allBorders;
+      c.alignment = {horizontal:'center', vertical:'middle'};
+      c.font = {name:'Arial', size:8, bold:true};
+      if(info.faena){
+        fillCell(c, hexToArgb(faenaColor(info.faena)));
+        c.font.color = {argb:C.white};
+      } else if(info.tipo==='trabajo'){
+        fillCell(c, C.darkCell); c.font.color = {argb:C.white};
+      } else if(info.tipo==='extra'){
+        fillCell(c, C.accent); c.font.color = {argb:C.white};
+      } else if(info.tipo==='permiso'){
+        fillCell(c, C.bad); c.font.color = {argb:C.badTx};
+      } else {
+        fillCell(c, C.restCell); c.font.color = {argb:C.greyTx};
+      }
+    });
+  });
+
+  /* ---------- Hoja 7: Llamados ---------- */
+  const llamRows = (state.llamados||[]).map(l=>{
+    const w = state.workers.find(x=>x.id===l.workerId);
+    return [l.fecha||'', l.hora||'', w?w.nombre:'(eliminado)', (LLAMADA_STATUS[l.resultado]||{}).label||l.resultado, l.nota||''];
+  });
+  dataSheet('Llamados', 'Registro de llamados de coordinación',
+    ['Fecha','Hora','Trabajador','Resultado','Nota'], llamRows, [12,8,28,14,44], 4);
+
+  /* ---------- Hoja 8: Pasajes ---------- */
+  const pasRows = (state.pasajes||[]).map(p=>{
+    const w = state.workers.find(x=>x.id===p.workerId);
+    return [p.fechaViaje||'', w?w.nombre:'(eliminado)', p.faena||'', p.origen||'', p.destino||'', (PASAJE_STATUS[p.estado]||{}).label||p.estado, p.nota||''];
+  });
+  dataSheet('Pasajes', 'Gestión de traslados de personal',
+    ['Fecha viaje','Trabajador','Faena','Origen','Destino','Estado','Nota'], pasRows, [12,28,16,16,16,12,36], 6);
+
+  /* ---------- Descargar ---------- */
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'AMECO_Spot_Planner_'+hoy+'.xlsx';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 10000);
+}
+
+/* ============================= DATE HELPERS ============================= */
+function fmt(d){ return d.toISOString().slice(0,10); }
+function addDays(d,n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function daysBetween(a,b){ return Math.round((b-a)/(1000*60*60*24)); }
+function todayStr(){ return fmt(new Date()); }
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS_CORTO = ['D','L','M','M','J','V','S'];
+
+function examStatus(vencStr){
+  if(!vencStr) return {status:'sin-dato', label:'Sin dato', cls:'grey'};
+  const venc = parseDate(vencStr);
+  const diff = daysBetween(new Date(new Date().toDateString()), venc);
+  if(diff < 0) return {status:'vencido', label:'Vencido', cls:'bad', diff};
+  if(diff <= 30) return {status:'por-vencer', label:'Por vencer', cls:'warn', diff};
+  return {status:'vigente', label:'Vigente', cls:'good', diff};
+}
+function acredStatus(a){
+  if(a.estado === 'Acreditado' && a.vencimiento){
+    const es = examStatus(a.vencimiento);
+    if(es.status==='vencido') return {label:'Vencido', cls:'bad'};
+    if(es.status==='por-vencer') return {label:'Por vencer', cls:'warn'};
+    return {label:'Acreditado', cls:'good'};
+  }
+  if(a.estado === 'Acreditado') return {label:'Acreditado', cls:'good'};
+  if(a.estado === 'En trámite') return {label:'En trámite', cls:'warn'};
+  return {label:'No acreditado', cls:'grey'};
+}
+function workerWorstExam(w){
+  let worst = 'good'; let order = {bad:3,warn:2,'sin-dato':1,good:0};
+  (w.examenes||[]).forEach(e=>{
+    const s = examStatus(e.vencimiento).status;
+    const key = s==='vencido'?'bad':s==='por-vencer'?'warn':s==='sin-dato'?'sin-dato':'good';
+    if(order[key] > order[worst]) worst = key;
+  });
+  return worst;
+}
+function faenaColor(faena){
+  const idx = state.faenas.indexOf(faena);
+  return FAENA_COLORS[idx>=0 ? idx % FAENA_COLORS.length : 0];
+}
+function faenaAbbrev(faena){
+  return (faena||'').replace(/\s+/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').slice(0,3).toUpperCase();
+}
+
+/* ============================= SHIFT (14x14) LOGIC ============================= */
+function shiftBaseStatus(worker, dateStr){
+  const t = worker.turno || {fechaInicioCiclo: todayStr(), diasTrabajo:14, diasDescanso:14};
+  if(!t.fechaInicioCiclo) return 'descanso';
+  const start = parseDate(t.fechaInicioCiclo);
+  const d = parseDate(dateStr);
+  const cycle = (t.diasTrabajo||14) + (t.diasDescanso||14);
+  let diff = daysBetween(start, d) % cycle;
+  if(diff < 0) diff += cycle;
+  return diff < (t.diasTrabajo||14) ? 'trabajo' : 'descanso';
+}
+function dayStatus(worker, dateStr){
+  const ov = (worker.overrides||{})[dateStr];
+  const base = shiftBaseStatus(worker, dateStr);
+  if(ov && ov.tipo) return {tipo: ov.tipo, base, faena: ov.faena||'', nota: ov.nota||''};
+  return {tipo: base, base, faena:'', nota:''};
+}
+
+/* ============================= DRAG-FILL (copiar celda como en Excel) ============================= */
+let dragState = null; // {workerId, sourceDate, sourceInfo, lastDate, moved}
+let justDragged = false;
+let lastAction = null; // {workers:[{id, overrides}]} snapshot para "Deshacer"
+
+function snapshotOverrides(workerIds){
+  return workerIds.map(id=>{
+    const w = state.workers.find(x=>x.id===id);
+    return {id, overrides: JSON.parse(JSON.stringify((w && w.overrides) || {}))};
+  });
+}
+
+async function performUndo(){
+  if(!lastAction){ alert('No hay cambios recientes para deshacer.'); return; }
+  lastAction.forEach(item=>{
+    const w = state.workers.find(x=>x.id===item.id);
+    if(w) w.overrides = item.overrides;
+  });
+  lastAction = null;
+  render();
+  await persist();
+}
+
+document.addEventListener('keydown', (e)=>{
+  const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key==='z' || e.key==='Z');
+  if(!isUndo) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT') return; // deja el undo nativo del campo de texto
+  e.preventDefault();
+  performUndo();
+});
+
+document.addEventListener('mousedown', (e)=>{
+  if(e.button !== 0) return;
+  const cell = e.target.closest('.daycell');
+  if(!cell) return;
+  const workerId = cell.dataset.id;
+  const date = cell.dataset.date;
+  const w = state.workers.find(x=>x.id===workerId);
+  if(!w) return;
+  const info = dayStatus(w, date);
+  dragState = { workerId, sourceDate: date, sourceInfo: {tipo: info.tipo, faena: info.faena, nota: info.nota}, lastDate: date, moved: false };
+});
+
+document.addEventListener('mouseover', (e)=>{
+  if(!dragState) return;
+  const cell = e.target.closest('.daycell');
+  if(!cell || cell.dataset.id !== dragState.workerId) return;
+  dragState.lastDate = cell.dataset.date;
+  dragState.moved = true;
+  highlightDragRange(dragState.workerId, dragState.sourceDate, dragState.lastDate);
+});
+
+document.addEventListener('mouseup', async ()=>{
+  if(!dragState) return;
+  if(dragState.moved){
+    lastAction = snapshotOverrides([dragState.workerId]);
+    applyDragFill(dragState);
+    justDragged = true;
+    clearDragHighlight();
+    render();
+    await persist();
+  } else {
+    clearDragHighlight();
+  }
+  dragState = null;
+});
+
+function highlightDragRange(workerId, d1, d2){
+  clearDragHighlight();
+  const lo = d1 < d2 ? d1 : d2;
+  const hi = d1 < d2 ? d2 : d1;
+  document.querySelectorAll('.daycell[data-id="'+workerId+'"]').forEach(td=>{
+    const d = td.dataset.date;
+    if(d >= lo && d <= hi) td.classList.add('drag-highlight');
+  });
+}
+function clearDragHighlight(){
+  document.querySelectorAll('.drag-highlight').forEach(td=>td.classList.remove('drag-highlight'));
+}
+function applyDragFill(ds){
+  const w = state.workers.find(x=>x.id===ds.workerId);
+  if(!w) return;
+  const lo = ds.sourceDate < ds.lastDate ? ds.sourceDate : ds.lastDate;
+  const hi = ds.sourceDate < ds.lastDate ? ds.lastDate : ds.sourceDate;
+  w.overrides = w.overrides || {};
+  let cur = parseDate(lo);
+  const end = parseDate(hi);
+  while(cur <= end){
+    const dateStr = fmt(cur);
+    const base = shiftBaseStatus(w, dateStr);
+    const tipo = ds.sourceInfo.tipo, faena = ds.sourceInfo.faena||'', nota = ds.sourceInfo.nota||'';
+    if(tipo===base && !faena && !nota) delete w.overrides[dateStr];
+    else w.overrides[dateStr] = {tipo, faena, nota};
+    cur = addDays(cur, 1);
+  }
+}
+
+/* ============================= FILE / DOCUMENT HELPERS ============================= */
+function readFileAsBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function viewDocument(key, fallbackName){
+  try{
+    const res = await window.storage.get(key, true);
+    if(!res || !res.value){ alert('No se encontró el archivo guardado. Vuelve a subirlo desde la ficha del trabajador.'); return; }
+    const parsed = JSON.parse(res.value);
+    const byteChars = atob(parsed.data);
+    const bytes = new Uint8Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++) bytes[i]=byteChars.charCodeAt(i);
+    const blob = new Blob([bytes], {type: parsed.mime || 'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  }catch(e){
+    console.error(e);
+    alert('No se encontró el archivo guardado (puede que la subida haya fallado en su momento). Vuelve a subirlo desde la ficha del trabajador.');
+  }
+}
+
+/* ============================= RENDER: SHELL ============================= */
+const NAV = [
+  {id:'dashboard', label:'Resumen', ic:'◆'},
+  {id:'trabajadores', label:'Trabajadores', ic:'●'},
+  {id:'llamados', label:'Llamados', ic:'☎'},
+  {id:'pasajes', label:'Pasajes', ic:'\u2708'},
+  {id:'documentos', label:'Documentos', ic:'▤'},
+  {id:'acreditaciones', label:'Acreditaciones', ic:'✓'},
+  {id:'certificaciones', label:'Certificaciones equipos', ic:'⚙'},
+  {id:'turnos', label:'Turnos 14x14', ic:'▦'}
+];
+const TAB_TITLES = {dashboard:'Resumen general', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14'};
+
+function renderSidebar(){
+  const alertCount = state.workers.filter(w=>{const s=workerWorstExam(w); return s==='bad'||s==='warn';}).length;
+  const pendingCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta').length;
+  const pendingTickets = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado').length;
+  document.getElementById('navList').innerHTML = NAV.map(n=>{
+    let count = '';
+    if(n.id==='trabajadores') count = '<span class="nav-count">'+state.workers.length+'</span>';
+    if(n.id==='documentos' && alertCount>0) count = '<span class="nav-count alert">'+alertCount+'</span>';
+    if(n.id==='llamados' && pendingCalls>0) count = '<span class="nav-count alert">'+pendingCalls+'</span>';
+    if(n.id==='pasajes' && pendingTickets>0) count = '<span class="nav-count alert">'+pendingTickets+'</span>';
+    return '<div class="nav-item '+(state.ui.tab===n.id?'active':'')+'" data-nav="'+n.id+'"><span class="ic">'+n.ic+'</span>'+n.label+count+'</div>';
+  }).join('');
+  const foot = document.getElementById('sidebarFoot');
+  if(foot){
+    foot.textContent = 'Información sincronizada en Firebase para los usuarios autorizados.';
+  }
+}
+
+function renderTopbar(){
+  const tb = document.getElementById('topbar');
+  let searchHtml = '';
+  if(state.ui.tab==='trabajadores'){
+    searchHtml = '<div class="search-box"><span class="ic">\uD83D\uDD0E</span><input id="searchInput" placeholder="Buscar por nombre, RUT o cargo..." value="'+escAttr(state.ui.search)+'"></div>'+
+      '<select id="cargoFilter" style="max-width:190px;">'+
+        '<option value="all" '+(state.ui.cargoFilter==='all'?'selected':'')+'>Todos los cargos</option>'+
+        state.cargos.map(c=>'<option value="'+c+'" '+(state.ui.cargoFilter===c?'selected':'')+'>'+c+'</option>').join('')+
+      '</select>';
+  }
+  let addBtn = '';
+  if(state.ui.tab==='trabajadores') addBtn = '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button><button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>';
+  else if(state.ui.tab==='llamados') addBtn = '<button class="btn btn-accent" data-action="new-llamada">+ Registrar llamado</button>';
+  else if(state.ui.tab==='pasajes') addBtn = '<button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button>';
+  const globalBtns = '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'+
+    '<button class="btn btn-ghost" data-action="save-now" id="saveNowBtn" title="Guarda todos los cambios inmediatamente">\uD83D\uDCBE Guardar</button>'+
+    '<span class="cloud-pill"><span class="dot-live"></span> Firebase</span>'+
+    '<span class="session-email" id="sessionEmail">'+escHtml((window.amecoCurrentUser&&window.amecoCurrentUser.email)||'Usuario')+'</span>'+
+    '<button class="btn btn-ghost" data-action="logout">Cerrar sesión</button>';
+  tb.innerHTML = '<h1>'+TAB_TITLES[state.ui.tab]+'</h1>'+searchHtml+addBtn+globalBtns+'<span class="save-pill" id="savePill"></span>';
+  renderSavePill();
+}
+function renderSavePill(){
+  const el = document.getElementById('savePill');
+  if(!el) return;
+  el.innerHTML = state.saving ? '<span class="dot-live" style="background:var(--amber)"></span> Guardando...' : '<span class="dot-live"></span> Guardado';
+}
+
+function render(){
+  renderSidebar();
+  renderTopbar();
+  const c = document.getElementById('content');
+  if(state.ui.tab==='dashboard') c.innerHTML = viewDashboard();
+  else if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
+  else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
+  else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
+  else if(state.ui.tab==='documentos') c.innerHTML = viewDocumentos();
+  else if(state.ui.tab==='acreditaciones') c.innerHTML = viewAcreditaciones();
+  else if(state.ui.tab==='certificaciones') c.innerHTML = viewCertificaciones();
+  else if(state.ui.tab==='turnos') c.innerHTML = viewTurnos();
+  renderModal();
+  attachDynamicListeners();
+}
+
+function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ============================= VIEW: DASHBOARD ============================= */
+function viewDashboard(){
+  const total = state.workers.length;
+  const vencidos = state.workers.filter(w=>workerWorstExam(w)==='bad').length;
+  const porVencer = state.workers.filter(w=>workerWorstExam(w)==='warn').length;
+  const enFaenaHoy = state.workers.filter(w=>{const t=dayStatus(w, todayStr()).tipo; return t==='trabajo'||t==='extra';}).length;
+
+  // ---- Indicadores nuevos (V1.1) ----
+  let acredProblema = 0;
+  state.workers.forEach(w=>(w.acreditaciones||[]).forEach(a=>{
+    if(a.estado==='Acreditado' && a.vencimiento){
+      const st = examStatus(a.vencimiento).status;
+      if(st==='vencido'||st==='por-vencer') acredProblema++;
+    }
+  }));
+  const now = new Date();
+  const monthPrefix = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  let heMes = 0, permisosMes = 0;
+  state.workers.forEach(w=>{
+    Object.entries(w.overrides||{}).forEach(([fecha, ov])=>{
+      if(fecha.startsWith(monthPrefix)){
+        if(ov.tipo==='extra') heMes++;
+        else if(ov.tipo==='permiso') permisosMes++;
+      }
+    });
+  });
+  const hoy = todayStr();
+  const en7 = fmt(addDays(new Date(), 7));
+  const pasajesUrgentes = (state.pasajes||[]).filter(p=>
+    (p.estado==='pendiente'||p.estado==='solicitado') && p.fechaViaje >= hoy && p.fechaViaje <= en7
+  ).length;
+  const llamadosTotal = (state.llamados||[]).length;
+  const llamadosConfirmados = (state.llamados||[]).filter(l=>l.resultado==='confirmado').length;
+  const tasaConfirmacion = llamadosTotal ? Math.round(llamadosConfirmados/llamadosTotal*100) : null;
+  const sinExamenes = state.workers.filter(w=>(w.examenes||[]).every(e=>!e.vencimiento)).length;
+
+  const alerts = [];
+  state.workers.forEach(w=>{
+    (w.examenes||[]).forEach(e=>{
+      const st = examStatus(e.vencimiento);
+      if(st.status==='vencido' || st.status==='por-vencer'){
+        alerts.push({worker:w, label:e.tipo, venc:e.vencimiento, st});
+      }
+    });
+    (w.certificaciones||[]).forEach(c=>{
+      const st = examStatus(c.vencimiento);
+      if(c.vencimiento && (st.status==='vencido' || st.status==='por-vencer')){
+        alerts.push({worker:w, label:'Certificación '+c.equipo, venc:c.vencimiento, st});
+      }
+    });
+    (w.acreditaciones||[]).forEach(a=>{
+      if(a.estado==='Acreditado' && a.vencimiento){
+        const st = examStatus(a.vencimiento);
+        if(st.status==='vencido' || st.status==='por-vencer'){
+          alerts.push({worker:w, label:'Acreditación '+a.faena, venc:a.vencimiento, st});
+        }
+      }
+    });
+  });
+  alerts.sort((a,b)=> (a.st.diff??-9999) - (b.st.diff??-9999));
+
+  const alertsHtml = alerts.length ? alerts.slice(0,12).map(a=>
+    '<div class="alert-row"><span class="chip '+a.st.cls+'">'+a.st.label+'</span>'+
+    '<div style="flex:1"><b>'+escHtml(a.worker.nombre)+'</b> <span style="color:var(--sub)">— '+escHtml(a.label)+'</span></div>'+
+    '<div class="mono" style="color:var(--sub)">'+(a.venc ? 'vence '+a.venc : '')+'</div>'+
+    '<button class="link-btn" data-action="open-worker" data-id="'+a.worker.id+'">Ver ficha →</button></div>'
+  ).join('') : '<div class="empty">No hay exámenes ni certificaciones vencidas o por vencer. Todo al día ✓</div>';
+
+  const faenaCounts = state.faenas.map(f=>{
+    const n = state.workers.filter(w=>(w.acreditaciones||[]).some(a=>a.faena===f && a.estado==='Acreditado')).length;
+    return {faena:f, n};
+  });
+
+  const pendingCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta')
+    .map(l=>Object.assign({}, l, {w: state.workers.find(x=>x.id===l.workerId)}))
+    .filter(l=>l.w)
+    .sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+
+  const pendingCallsHtml = pendingCalls.length ? pendingCalls.slice(0,8).map(l=>{
+    const st = LLAMADA_STATUS[l.resultado] || LLAMADA_STATUS.pendiente;
+    return '<div class="alert-row"><span class="chip '+st.cls+'">'+st.label+'</span>'+
+      '<div style="flex:1"><b>'+escHtml(l.w.nombre)+'</b> <span style="color:var(--sub)">'+(l.nota?'— '+escHtml(l.nota):'')+'</span></div>'+
+      '<div class="mono" style="color:var(--sub)">'+(l.fecha||'')+'</div>'+
+      '<button class="link-btn" data-action="open-llamada" data-id="'+l.id+'">Ver →</button></div>';
+  }).join('') : '<div class="empty">No hay llamados pendientes. Todo al día ✓</div>';
+
+  const pendingTicketsList = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado')
+    .map(p=>Object.assign({}, p, {w: state.workers.find(x=>x.id===p.workerId)}))
+    .filter(p=>p.w)
+    .sort((a,b)=> (a.fechaViaje||'').localeCompare(b.fechaViaje||''));
+
+  const pendingTicketsHtml = pendingTicketsList.length ? pendingTicketsList.slice(0,8).map(p=>{
+    const st = PASAJE_STATUS[p.estado] || PASAJE_STATUS.pendiente;
+    const tramo = (p.origen||'—')+' → '+(p.destino||'—');
+    return '<div class="alert-row"><span class="chip '+st.cls+'">'+st.label+'</span>'+
+      '<div style="flex:1"><b>'+escHtml(p.w.nombre)+'</b> <span style="color:var(--sub)">— '+escHtml(tramo)+'</span></div>'+
+      '<div class="mono" style="color:var(--sub)">'+(p.fechaViaje||'')+'</div>'+
+      '<button class="link-btn" data-action="open-pasaje" data-id="'+p.id+'">Ver →</button></div>';
+  }).join('') : '<div class="empty">No hay pasajes pendientes. Todo al día ✓</div>';
+
+  return '<div class="kpi-row">'+
+      '<div class="kpi"><div class="num">'+total+'</div><div class="lbl">Trabajadores</div></div>'+
+      '<div class="kpi"><div class="num">'+enFaenaHoy+'</div><div class="lbl">En faena hoy</div></div>'+
+      '<div class="kpi warn"><div class="num">'+porVencer+'</div><div class="lbl">Exámenes por vencer</div></div>'+
+      '<div class="kpi bad"><div class="num">'+vencidos+'</div><div class="lbl">Trabajadores con examen vencido</div></div>'+
+    '</div>'+
+    '<div class="kpi-row">'+
+      '<div class="kpi '+(acredProblema?'warn':'')+'"><div class="num">'+acredProblema+'</div><div class="lbl">Acreditaciones por vencer/vencidas</div></div>'+
+      '<div class="kpi"><div class="num">'+heMes+'</div><div class="lbl">Días de hora extra este mes</div></div>'+
+      '<div class="kpi '+(pasajesUrgentes?'bad':'')+'"><div class="num">'+pasajesUrgentes+'</div><div class="lbl">Pasajes sin emitir (próx. 7 días)</div></div>'+
+      '<div class="kpi '+(sinExamenes?'warn':'')+'"><div class="num">'+(tasaConfirmacion!==null ? tasaConfirmacion+'%' : '—')+'</div><div class="lbl">Tasa confirmación llamados'+(sinExamenes?(' · '+sinExamenes+' sin exámenes'):'')+'</div></div>'+
+    '</div>'+
+    '<div class="panel"><div class="panel-head"><h2>Alertas de documentación</h2></div><div class="panel-body">'+alertsHtml+'</div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Llamados pendientes</h2><button class="link-btn" data-action="new-llamada">+ Registrar llamado</button></div><div class="panel-body">'+pendingCallsHtml+'</div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Pasajes pendientes</h2><button class="link-btn" data-action="new-pasaje">+ Registrar pasaje</button></div><div class="panel-body">'+pendingTicketsHtml+'</div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Acreditados por faena</h2></div>'+
+      '<div class="panel-body" style="padding:16px 18px;display:flex;gap:24px;flex-wrap:wrap;">'+
+        faenaCounts.map(f=>
+          '<div style="min-width:120px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'+
+          '<span class="sticker" style="background:'+faenaColor(f.faena)+'"></span>'+
+          '<span style="font-weight:600;font-size:13px;">'+escHtml(f.faena)+'</span></div>'+
+          '<div class="disp" style="font-size:24px;color:var(--steel);">'+f.n+'</div></div>'
+        ).join('')+
+      '</div></div>';
+}
+
+/* ============================= VIEW: TRABAJADORES ============================= */
+function workerCardHtml(w){
+  const worst = workerWorstExam(w);
+  const dotColor = worst==='bad'?'var(--bad)':worst==='warn'?'var(--amber)':worst==='sin-dato'?'#c7cac2':'var(--good)';
+  const stickers = (w.acreditaciones||[]).filter(a=>a.estado==='Acreditado').map(a=>'<span class="sticker" style="background:'+faenaColor(a.faena)+'" title="'+escAttr(a.faena)+'"></span>').join('');
+  return '<div class="wcard" data-action="open-worker" data-id="'+w.id+'">'+
+    '<div class="wcard-top"><div><div class="name">'+escHtml(w.nombre)+'</div><div class="cargo">'+escHtml(w.cargo||'—')+'</div></div>'+
+    '<span class="status-dot" style="background:'+dotColor+'" title="Estado de documentos"></span></div>'+
+    '<div class="rut mono">'+escHtml(w.rut||'Sin RUT')+'</div>'+
+    '<div class="sticker-row">'+(stickers || '<span class="sticker-empty">Sin acreditaciones</span>')+'</div></div>';
+}
+
+function viewTrabajadores(){
+  const q = (state.ui.search||'').toLowerCase();
+  const cargoFilter = state.ui.cargoFilter || 'all';
+  let list = state.workers.filter(w=> !q || w.nombre.toLowerCase().includes(q) || (w.rut||'').toLowerCase().includes(q) || (w.cargo||'').toLowerCase().includes(q));
+  if(cargoFilter!=='all') list = list.filter(w=>w.cargo===cargoFilter);
+  if(!list.length) return '<div class="empty panel" style="padding:40px;">No hay trabajadores que coincidan. <button class="btn btn-accent" style="margin-top:10px" data-action="new-worker">+ Agregar trabajador</button></div>';
+
+  // Si hay un cargo específico filtrado, se muestra como una sola grilla (ya viene agrupado de por sí)
+  if(cargoFilter!=='all'){
+    return '<div class="card-grid">'+list.map(workerCardHtml).join('')+'</div>';
+  }
+
+  // Sin filtro: se agrupa por cargo (en el orden definido en Cargos) para facilitar la búsqueda visual
+  const groupOrder = [...state.cargos];
+  const grouped = {};
+  list.forEach(w=>{
+    const key = w.cargo && groupOrder.includes(w.cargo) ? w.cargo : (w.cargo || 'Sin cargo asignado');
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(w);
+  });
+  const orderedKeys = [...groupOrder.filter(c=>grouped[c]), ...Object.keys(grouped).filter(k=>!groupOrder.includes(k))];
+
+  return orderedKeys.map(key=>
+    '<div style="margin-bottom:22px;">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+        '<h2 style="font-size:15px;color:var(--steel);margin:0;font-weight:700;">'+escHtml(key)+'</h2>'+
+        '<span class="nav-count" style="background:var(--grey-bg);color:var(--sub);">'+grouped[key].length+'</span>'+
+      '</div>'+
+      '<div class="card-grid">'+grouped[key].map(workerCardHtml).join('')+'</div>'+
+    '</div>'
+  ).join('');
+}
+
+/* ============================= VIEW: DOCUMENTOS ============================= */
+function viewDocumentos(){
+  let rows = state.workers.map(w=>({w, exams: EXAM_TYPES.map(t=> (w.examenes||[]).find(e=>e.tipo===t) || {tipo:t, fecha:'', vencimiento:''}) }));
+
+  if(state.ui.docTypeFilter!=='all' || state.ui.docFilter!=='all'){
+    rows = rows.filter(r=> r.exams.some(e=>{
+        if(state.ui.docTypeFilter!=='all' && e.tipo!==state.ui.docTypeFilter) return false;
+        const st = examStatus(e.vencimiento).status;
+        const stKey = st==='vencido'?'vencido':st==='por-vencer'?'por-vencer':st==='sin-dato'?'sin-dato':'vigente';
+        if(state.ui.docFilter!=='all' && stKey!==state.ui.docFilter) return false;
+        return true;
+      })
+    );
+  }
+
+  const filterBar = '<div class="filter-bar">'+
+      '<select id="docTypeFilter"><option value="all" '+(state.ui.docTypeFilter==='all'?'selected':'')+'>Todos los exámenes</option>'+
+        EXAM_TYPES.map(t=>'<option value="'+t+'" '+(state.ui.docTypeFilter===t?'selected':'')+'>'+t+'</option>').join('')+
+      '</select>'+
+      '<select id="docStatusFilter"><option value="all" '+(state.ui.docFilter==='all'?'selected':'')+'>Todos los estados</option>'+
+        '<option value="vigente" '+(state.ui.docFilter==='vigente'?'selected':'')+'>Vigente</option>'+
+        '<option value="por-vencer" '+(state.ui.docFilter==='por-vencer'?'selected':'')+'>Por vencer (≤30 días)</option>'+
+        '<option value="vencido" '+(state.ui.docFilter==='vencido'?'selected':'')+'>Vencido</option>'+
+        '<option value="sin-dato" '+(state.ui.docFilter==='sin-dato'?'selected':'')+'>Sin dato</option>'+
+      '</select>'+
+    '</div>';
+
+  if(!rows.length) return filterBar+'<div class="empty panel" style="padding:40px;">No hay resultados para este filtro.</div>';
+
+  const tableHtml = '<div class="table-wrap"><table>'+
+    '<thead><tr><th>Trabajador</th><th>Cargo</th>'+EXAM_TYPES.map(t=>'<th>'+t+'</th>').join('')+'</tr></thead>'+
+    '<tbody>'+rows.map(r=>
+        '<tr><td><b class="tbl-worker-link" data-action="open-worker" data-id="'+r.w.id+'" title="Abrir ficha para cargar o revisar documentos">'+escHtml(r.w.nombre)+'</b></td><td>'+escHtml(r.w.cargo||'—')+'</td>'+
+        r.exams.map(e=>{
+            const st = examStatus(e.vencimiento);
+            const docLink = e.archivoNombre ? '<span class="doc-cell-link" data-action="view-doc-table" data-key="'+examDocKey(r.w.id, e.tipo)+'">\uD83D\uDCCE Ver archivo</span>' : '<span class="doc-cell-none">Sin archivo</span>';
+            return '<td><span class="chip '+st.cls+'">'+st.label+'</span>'+
+              '<div class="mono" style="font-size:11px;color:var(--sub);margin-top:3px;">'+(e.vencimiento ? 'vence '+e.vencimiento : 'sin registro')+'</div>'+
+              '<div style="margin-top:4px;">'+docLink+'</div></td>';
+          }).join('')+
+        '</tr>'
+    ).join('')+
+    '</tbody></table></div>'+
+    '<div style="margin-top:10px;"><button class="link-btn" data-action="goto-worker-from-doc">Subir o reemplazar un documento desde la ficha del trabajador →</button></div>';
+
+  // Otros documentos / exámenes adicionales (agregados libremente por cada trabajador)
+  const extraRows = state.workers.flatMap(w=>(w.examenesExtra||[]).map(item=>({w, item})));
+  let extraHtml = '';
+  if(extraRows.length){
+    extraHtml = '<div class="panel" style="margin-top:20px;">'+
+      '<div class="panel-head"><h2>Otros documentos y exámenes adicionales</h2></div>'+
+      '<div class="table-wrap" style="border:none;box-shadow:none;border-radius:0;"><table>'+
+        '<thead><tr><th>Trabajador</th><th>Cargo</th><th>Documento</th><th>Fecha</th><th>Vence</th><th>Estado</th><th>Archivo</th></tr></thead>'+
+        '<tbody>'+extraRows.map(({w,item})=>{
+          const st = examStatus(item.vencimiento);
+          const docLink = item.archivoNombre ? '<span class="doc-cell-link" data-action="view-doc-table" data-key="'+examExtraDocKey(w.id, item.id)+'">\uD83D\uDCCE Ver</span>' : '<span class="doc-cell-none">Sin archivo</span>';
+          return '<tr><td><b class="tbl-worker-link" data-action="open-worker" data-id="'+w.id+'" title="Abrir ficha para cargar o revisar documentos">'+escHtml(w.nombre)+'</b></td><td>'+escHtml(w.cargo||'—')+'</td><td>'+escHtml(item.nombre)+'</td>'+
+            '<td class="mono">'+(item.fecha||'—')+'</td><td class="mono">'+(item.vencimiento||'—')+'</td>'+
+            '<td><span class="chip '+st.cls+'">'+st.label+'</span></td><td>'+docLink+'</td></tr>';
+        }).join('')+
+        '</tbody></table></div></div>';
+  }
+
+  return filterBar + tableHtml + extraHtml;
+}
+
+/* ============================= VIEW: ACREDITACIONES ============================= */
+function viewAcreditaciones(){
+  const filterBar = '<div class="filter-bar">'+
+      '<select id="acredFaenaFilter"><option value="all" '+(state.ui.acredFaenaFilter==='all'?'selected':'')+'>Todas las faenas</option>'+
+        state.faenas.map(f=>'<option value="'+f+'" '+(state.ui.acredFaenaFilter===f?'selected':'')+'>'+f+'</option>').join('')+
+      '</select>'+
+      '<button class="btn btn-ghost btn-sm" data-action="add-faena">+ Agregar faena</button>'+
+    '</div>';
+
+  const faenasToShow = state.ui.acredFaenaFilter==='all' ? state.faenas : [state.ui.acredFaenaFilter];
+  let rows = state.workers;
+  if(state.ui.acredFaenaFilter!=='all'){
+    rows = rows.filter(w=>(w.acreditaciones||[]).some(a=>a.faena===state.ui.acredFaenaFilter));
+  }
+  if(!rows.length) return filterBar+'<div class="empty panel" style="padding:40px;">No hay trabajadores acreditados o en trámite para esta faena.</div>';
+
+  return filterBar+'<div class="table-wrap"><table>'+
+    '<thead><tr><th>Trabajador</th><th>Cargo</th>'+faenasToShow.map(f=>'<th><span class="sticker" style="background:'+faenaColor(f)+';display:inline-block;margin-right:5px;"></span>'+f+'</th>').join('')+'</tr></thead>'+
+    '<tbody>'+rows.map(w=>
+      '<tr><td><b class="tbl-worker-link" data-action="open-worker" data-id="'+w.id+'" title="Abrir ficha para cargar o revisar documentos">'+escHtml(w.nombre)+'</b></td><td>'+escHtml(w.cargo||'—')+'</td>'+
+      faenasToShow.map(f=>{
+        const a = (w.acreditaciones||[]).find(a=>a.faena===f);
+        if(!a) return '<td><span class="chip grey">—</span></td>';
+        const st = acredStatus(a);
+        return '<td><span class="chip '+st.cls+'">'+st.label+'</span>'+(a.vencimiento?'<div class="mono" style="font-size:11px;color:var(--sub);margin-top:3px;">vence '+a.vencimiento+'</div>':'')+'</td>';
+      }).join('')+
+      '</tr>'
+    ).join('')+
+    '</tbody></table></div>';
+}
+
+/* ============================= VIEW: CERTIFICACIONES ============================= */
+function viewCertificaciones(){
+  const filterBar = '<div class="filter-bar">'+
+      '<select id="certEquipoFilter"><option value="all" '+(state.ui.certEquipoFilter==='all'?'selected':'')+'>Todos los equipos</option>'+
+        state.equipos.map(eq=>'<option value="'+eq+'" '+(state.ui.certEquipoFilter===eq?'selected':'')+'>'+eq+'</option>').join('')+
+      '</select>'+
+      '<button class="btn btn-ghost btn-sm" data-action="add-equipo">+ Agregar equipo</button>'+
+    '</div>';
+
+  let rows = state.workers.filter(w=>(w.certificaciones||[]).length>0);
+  if(state.ui.certEquipoFilter!=='all'){
+    rows = rows.filter(w=>(w.certificaciones||[]).some(c=>c.equipo===state.ui.certEquipoFilter));
+  }
+  if(!rows.length) return filterBar+'<div class="empty panel" style="padding:40px;">Aún no hay certificaciones de equipos registradas. Agrégalas desde la ficha de cada trabajador.</div>';
+
+  return filterBar+'<div class="table-wrap"><table>'+
+    '<thead><tr><th>Trabajador</th><th>Cargo</th><th>Equipo</th><th>Obtenido</th><th>Vence</th><th>Estado</th><th>Documento</th></tr></thead>'+
+    '<tbody>'+rows.flatMap(w=>{
+      let certs = w.certificaciones||[];
+      if(state.ui.certEquipoFilter!=='all') certs = certs.filter(c=>c.equipo===state.ui.certEquipoFilter);
+      return certs.map(c=>{
+        const st = examStatus(c.vencimiento);
+        const files = c.archivos || [];
+        const docLink = files.length ? files.map(f=>'<span class="doc-cell-link" data-action="view-doc-table" data-key="'+certDocKey(w.id, c.id, f.id)+'">\uD83D\uDCCE '+escHtml(f.nombre)+'</span>').join('<br>') : '<span class="doc-cell-none">Sin archivos</span>';
+        return '<tr><td><b class="tbl-worker-link" data-action="open-worker" data-id="'+w.id+'" title="Abrir ficha para cargar o revisar documentos">'+escHtml(w.nombre)+'</b></td><td>'+escHtml(w.cargo||'—')+'</td>'+
+          '<td><span class="sticker" style="background:'+faenaColor(c.equipo)+';display:inline-block;margin-right:5px;"></span>'+escHtml(c.equipo)+'</td>'+
+          '<td class="mono">'+(c.fecha||'—')+'</td><td class="mono">'+(c.vencimiento||'—')+'</td>'+
+          '<td><span class="chip '+st.cls+'">'+st.label+'</span></td><td>'+docLink+'</td></tr>';
+      });
+    }).join('')+
+    '</tbody></table></div>'+
+    '<div style="margin-top:10px;"><button class="link-btn" data-action="goto-worker-from-doc">Agregar o editar certificaciones desde la ficha del trabajador →</button></div>';
+}
+
+/* ============================= VIEW: LLAMADOS ============================= */
+const LLAMADA_STATUS = {
+  pendiente: {label:'Pendiente', cls:'grey'},
+  confirmado: {label:'Confirmado', cls:'good'},
+  no_contesta: {label:'No contesta', cls:'warn'},
+  rechazado: {label:'Rechazó', cls:'bad'}
+};
+
+function viewLlamados(){
+  const q = (state.ui.llamadaSearch||'').toLowerCase();
+  const filter = state.ui.llamadaFilter || 'all';
+
+  let list = (state.llamados||[]).map(l=>{
+    const w = state.workers.find(x=>x.id===l.workerId);
+    return Object.assign({}, l, {workerNombre: w ? w.nombre : '(trabajador eliminado)', workerCargo: w ? w.cargo : ''});
+  });
+  if(q) list = list.filter(l=>l.workerNombre.toLowerCase().includes(q));
+  if(filter!=='all') list = list.filter(l=>l.resultado===filter);
+  list.sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'') || (b.hora||'').localeCompare(a.hora||''));
+
+  const filterBar = '<div class="filter-bar">'+
+      '<input type="text" id="llamadaSearchInput" placeholder="Buscar trabajador..." value="'+escAttr(state.ui.llamadaSearch)+'" style="max-width:220px;">'+
+      '<select id="llamadaFilterSelect">'+
+        '<option value="all" '+(filter==='all'?'selected':'')+'>Todos los resultados</option>'+
+        Object.keys(LLAMADA_STATUS).map(k=>'<option value="'+k+'" '+(filter===k?'selected':'')+'>'+LLAMADA_STATUS[k].label+'</option>').join('')+
+      '</select>'+
+    '</div>';
+
+  if(!list.length) return filterBar + '<div class="empty panel" style="padding:40px;">No hay llamados que coincidan. <button class="btn btn-accent" style="margin-top:10px" data-action="new-llamada">+ Registrar llamado</button></div>';
+
+  return filterBar + '<div class="table-wrap"><table>'+
+    '<thead><tr><th>Fecha</th><th>Trabajador</th><th>Cargo</th><th>Resultado</th><th>Nota</th><th></th></tr></thead>'+
+    '<tbody>'+list.map(l=>{
+      const st = LLAMADA_STATUS[l.resultado] || LLAMADA_STATUS.pendiente;
+      return '<tr>'+
+        '<td class="mono">'+(l.fecha||'—')+(l.hora?(' '+l.hora):'')+'</td>'+
+        '<td><b>'+escHtml(l.workerNombre)+'</b></td>'+
+        '<td>'+escHtml(l.workerCargo||'—')+'</td>'+
+        '<td><span class="chip '+st.cls+'">'+st.label+'</span></td>'+
+        '<td style="max-width:280px;">'+escHtml(l.nota||'')+'</td>'+
+        '<td style="white-space:nowrap;"><button class="link-btn" data-action="open-llamada" data-id="'+l.id+'">Editar</button> '+
+        '<button class="icon-btn" data-action="delete-llamada" data-id="'+l.id+'" title="Eliminar">✕</button></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+function llamadaModalHtml(llamadaId){
+  const isNew = !llamadaId;
+  const l = isNew
+    ? {id: uid('l'), workerId: (state.workers[0] && state.workers[0].id) || '', fecha: todayStr(), hora:'', resultado:'pendiente', nota:''}
+    : state.llamados.find(x=>x.id===llamadaId);
+
+  const workerOptions = state.workers.length
+    ? state.workers.map(w=>'<option value="'+w.id+'" '+(l.workerId===w.id?'selected':'')+'>'+escHtml(w.nombre)+'</option>').join('')
+    : '<option value="">No hay trabajadores cargados</option>';
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
+    '<div class="modal-head"><h2>'+(isNew?'Registrar llamado':'Editar llamado')+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="field"><label>Trabajador</label><select id="ll-worker">'+workerOptions+'</select></div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Fecha</label><input type="date" id="ll-fecha" value="'+(l.fecha||todayStr())+'"></div>'+
+        '<div class="field"><label>Hora (opcional)</label><input type="time" id="ll-hora" value="'+(l.hora||'')+'"></div>'+
+      '</div>'+
+      '<div class="field"><label>Resultado</label><select id="ll-resultado">'+
+        Object.keys(LLAMADA_STATUS).map(k=>'<option value="'+k+'" '+(l.resultado===k?'selected':'')+'>'+LLAMADA_STATUS[k].label+'</option>').join('')+
+      '</select></div>'+
+      '<div class="field"><label>Nota</label><input id="ll-nota" value="'+escAttr(l.nota||'')+'" placeholder="Ej: pidió confirmar mañana"></div>'+
+    '</div>'+
+    '<div class="modal-foot">'+
+      '<div>'+(isNew?'':'<button class="btn btn-danger" data-action="delete-llamada" data-id="'+l.id+'">Eliminar</button>')+'</div>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="save-llamada" data-is-new="'+isNew+'" data-id="'+l.id+'">Guardar</button></div>'+
+    '</div></div></div>';
+}
+
+/* ============================= VIEW: PASAJES ============================= */
+const PASAJE_STATUS = {
+  pendiente: {label:'Pendiente', cls:'grey'},
+  solicitado: {label:'Solicitado', cls:'warn'},
+  emitido: {label:'Emitido', cls:'good'},
+  cancelado: {label:'Cancelado', cls:'bad'}
+};
+
+function viewPasajes(){
+  const q = (state.ui.pasajeSearch||'').toLowerCase();
+  const filter = state.ui.pasajeFilter || 'all';
+
+  let list = (state.pasajes||[]).map(p=>{
+    const w = state.workers.find(x=>x.id===p.workerId);
+    return Object.assign({}, p, {workerNombre: w ? w.nombre : '(trabajador eliminado)', workerCargo: w ? w.cargo : ''});
+  });
+  if(q) list = list.filter(p=>p.workerNombre.toLowerCase().includes(q));
+  if(filter!=='all') list = list.filter(p=>p.estado===filter);
+  list.sort((a,b)=> (a.fechaViaje||'').localeCompare(b.fechaViaje||''));
+
+  const filterBar = '<div class="filter-bar">'+
+      '<input type="text" id="pasajeSearchInput" placeholder="Buscar trabajador..." value="'+escAttr(state.ui.pasajeSearch)+'" style="max-width:220px;">'+
+      '<select id="pasajeFilterSelect">'+
+        '<option value="all" '+(filter==='all'?'selected':'')+'>Todos los estados</option>'+
+        Object.keys(PASAJE_STATUS).map(k=>'<option value="'+k+'" '+(filter===k?'selected':'')+'>'+PASAJE_STATUS[k].label+'</option>').join('')+
+      '</select>'+
+    '</div>';
+
+  if(!list.length) return filterBar + '<div class="empty panel" style="padding:40px;">No hay pasajes que coincidan. <button class="btn btn-accent" style="margin-top:10px" data-action="new-pasaje">+ Registrar pasaje</button></div>';
+
+  return filterBar + '<div class="table-wrap"><table>'+
+    '<thead><tr><th>Fecha viaje</th><th>Trabajador</th><th>Cargo</th><th>Tramo</th><th>Faena</th><th>Estado</th><th>Nota</th><th></th></tr></thead>'+
+    '<tbody>'+list.map(p=>{
+      const st = PASAJE_STATUS[p.estado] || PASAJE_STATUS.pendiente;
+      const tramo = (p.origen||'—')+' → '+(p.destino||'—');
+      return '<tr>'+
+        '<td class="mono">'+(p.fechaViaje||'—')+'</td>'+
+        '<td><b>'+escHtml(p.workerNombre)+'</b></td>'+
+        '<td>'+escHtml(p.workerCargo||'—')+'</td>'+
+        '<td>'+escHtml(tramo)+'</td>'+
+        '<td>'+escHtml(p.faena||'—')+'</td>'+
+        '<td><span class="chip '+st.cls+'">'+st.label+'</span></td>'+
+        '<td style="max-width:220px;">'+escHtml(p.nota||'')+'</td>'+
+        '<td style="white-space:nowrap;"><button class="link-btn" data-action="open-pasaje" data-id="'+p.id+'">Editar</button> '+
+        '<button class="icon-btn" data-action="delete-pasaje" data-id="'+p.id+'" title="Eliminar">✕</button></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+function pasajeModalHtml(pasajeId){
+  const isNew = !pasajeId;
+  const p = isNew
+    ? {id: uid('p'), workerId: (state.workers[0] && state.workers[0].id) || '', faena:'', fechaViaje: todayStr(), origen:'', destino:'', estado:'pendiente', nota:''}
+    : state.pasajes.find(x=>x.id===pasajeId);
+
+  const workerOptions = state.workers.length
+    ? state.workers.map(w=>'<option value="'+w.id+'" '+(p.workerId===w.id?'selected':'')+'>'+escHtml(w.nombre)+'</option>').join('')
+    : '<option value="">No hay trabajadores cargados</option>';
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
+    '<div class="modal-head"><h2>'+(isNew?'Registrar pasaje':'Editar pasaje')+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="field"><label>Trabajador</label><select id="pj-worker">'+workerOptions+'</select></div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Fecha de viaje</label><input type="date" id="pj-fecha" value="'+(p.fechaViaje||todayStr())+'"></div>'+
+        '<div class="field"><label>Faena (opcional)</label><select id="pj-faena"><option value="">—</option>'+state.faenas.map(f=>'<option value="'+f+'" '+(p.faena===f?'selected':'')+'>'+f+'</option>').join('')+'</select></div>'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Origen</label><input id="pj-origen" value="'+escAttr(p.origen||'')+'" placeholder="Ej: Antofagasta"></div>'+
+        '<div class="field"><label>Destino</label><input id="pj-destino" value="'+escAttr(p.destino||'')+'" placeholder="Ej: Calama"></div>'+
+      '</div>'+
+      '<div class="field"><label>Estado</label><select id="pj-estado">'+
+        Object.keys(PASAJE_STATUS).map(k=>'<option value="'+k+'" '+(p.estado===k?'selected':'')+'>'+PASAJE_STATUS[k].label+'</option>').join('')+
+      '</select></div>'+
+      '<div class="field"><label>Nota</label><input id="pj-nota" value="'+escAttr(p.nota||'')+'" placeholder="Ej: vuelo confirmado 08:40"></div>'+
+    '</div>'+
+    '<div class="modal-foot">'+
+      '<div>'+(isNew?'':'<button class="btn btn-danger" data-action="delete-pasaje" data-id="'+p.id+'">Eliminar</button>')+'</div>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="save-pasaje" data-is-new="'+isNew+'" data-id="'+p.id+'">Guardar</button></div>'+
+    '</div></div></div>';
+}
+
+/* ============================= VIEW: TURNOS ============================= */
+function viewTurnos(){
+  const y = state.ui.calYear, m = state.ui.calMonth;
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const monthLabel = MESES[m] + ' ' + y;
+  const size = state.ui.gridSize || 'compact';
+  const faenaFilter = state.ui.turnoFaenaFilter || null;
+
+  let headerCells = '';
+  for(let d=1; d<=daysInMonth; d++){
+    const wd = new Date(y,m,d).getDay();
+    headerCells += '<th class="'+(wd===0||wd===6?'weekend-col':'')+'">'+d+'<br><span style="font-weight:400;">'+DIAS_CORTO[wd]+'</span></th>';
+  }
+
+  let workersToShow = state.workers;
+  if(faenaFilter){
+    workersToShow = state.workers.filter(w=>{
+      for(let d=1; d<=daysInMonth; d++){
+        if(dayStatus(w, fmt(new Date(y,m,d))).faena === faenaFilter) return true;
+      }
+      return false;
+    });
+  }
+
+  const rows = workersToShow.map(w=>{
+    let cells = '';
+    for(let d=1; d<=daysInMonth; d++){
+      const dateStr = fmt(new Date(y,m,d));
+      const info = dayStatus(w, dateStr);
+      let cls = 'daycell';
+      let style = '';
+      if(info.faena){
+        style = 'background:'+faenaColor(info.faena)+';';
+        if(info.tipo==='extra') cls += ' ring-extra';
+        else if(info.tipo==='permiso') cls += ' ring-permiso';
+      } else {
+        cls += info.tipo==='trabajo' ? ' st-trabajo' : info.tipo==='extra' ? ' st-extra' : info.tipo==='permiso' ? ' st-permiso' : ' st-descanso';
+      }
+      const title = dateStr+' — '+info.tipo+(info.faena?(' · '+info.faena):'')+(info.nota?(' · '+info.nota):'');
+      let label = '', labelStyle = '';
+      if(info.faena){ label = faenaAbbrev(info.faena); }
+      else if(info.tipo==='trabajo'){ label = 'T'; }
+      else if(info.tipo==='descanso'){ label = 'D'; labelStyle = 'color:#5b5f57;text-shadow:none;'; }
+      else if(info.tipo==='extra'){ label = 'HE'; }
+      else if(info.tipo==='permiso'){ label = 'P'; labelStyle = 'color:#7a1f1f;text-shadow:none;'; }
+      const labelHtml = label ? '<span class="daycell-label" style="'+labelStyle+'">'+label+'</span>' : '';
+      cells += '<td class="'+cls+'" style="'+style+'" title="'+escAttr(title)+'" data-action="edit-day" data-id="'+w.id+'" data-date="'+dateStr+'">'+labelHtml+'</td>';
+    }
+    return '<tr><td class="namecell">'+escHtml(w.nombre)+'<div style="font-weight:400;font-size:11px;color:var(--sub);">'+escHtml(w.cargo||'')+'</div>'+
+      '<button type="button" class="link-btn worker-link-btn" data-action="view-worker-month" data-id="'+w.id+'">Ver mes ampliado →</button>'+
+      '</td>'+cells+'</tr>';
+  }).join('');
+
+  const faenaLegend = state.faenas.map(f=>{
+    const active = faenaFilter === f;
+    return '<button type="button" class="fl-item fl-btn'+(active?' fl-active':'')+'" data-action="filter-turno-faena" data-faena="'+escAttr(f)+'" title="Filtrar por '+escAttr(f)+' este mes">'+
+      '<span class="fl-sw" style="background:'+faenaColor(f)+'"></span>'+escHtml(f)+
+    '</button>';
+  }).join('') + (faenaFilter ? '<button type="button" class="fl-item fl-clear" data-action="clear-turno-faena-filter">✕ Quitar filtro</button>' : '');
+
+  const filterNotice = faenaFilter
+    ? '<div class="helptext" style="color:var(--accent-ink);font-weight:600;margin-bottom:4px;">Mostrando '+workersToShow.length+' trabajador(es) asignado(s) a "'+escHtml(faenaFilter)+'" en '+monthLabel+'.</div>'
+    : '';
+
+  return '<div class="cal-toolbar">'+
+      '<button class="btn btn-ghost btn-sm" data-action="cal-prev">← Mes anterior</button>'+
+      '<div class="month-lbl">'+monthLabel+'</div>'+
+      '<button class="btn btn-ghost btn-sm" data-action="cal-next">Mes siguiente →</button>'+
+      '<div class="size-toggle">'+
+        '<button type="button" class="'+(size==='compact'?'active-size':'')+'" data-action="grid-size" data-size="compact">Compacta</button>'+
+        '<button type="button" class="'+(size==='comfortable'?'active-size':'')+'" data-action="grid-size" data-size="comfortable">Cómoda</button>'+
+        '<button type="button" class="'+(size==='large'?'active-size':'')+'" data-action="grid-size" data-size="large">Grande</button>'+
+      '</div>'+
+      '<button class="btn btn-accent btn-sm" data-action="open-bulk" style="margin-left:14px;">+ Editar varios días</button>'+
+      '<button class="btn btn-ghost btn-sm" data-action="undo-last">↺ Deshacer (Ctrl+Z)</button>'+
+      '<div class="legend">'+
+        '<span><span class="sw" style="background:#2f3944"></span>T = Trabajo</span>'+
+        '<span><span class="sw" style="background:#e7e8e3;border:1px solid #ccc"></span>D = Descanso</span>'+
+        '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px #999"></span>HE = hora extra</span>'+
+        '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px var(--bad)"></span>P = permiso</span>'+
+      '</div></div>'+
+    '<div class="faena-legend">'+faenaLegend+'</div>'+
+    filterNotice+
+    '<div class="helptext">Haz clic en un día para editarlo individualmente, o arrastra de un día a otro para copiar el mismo estado a los días intermedios. Haz clic en el nombre de una faena para ver solo a quienes están asignados a ella este mes. Usa "Compacta / Cómoda / Grande" para ajustar el tamaño, o "Ver mes ampliado" para revisar a una persona en grande. Si te equivocas, usa "Deshacer" (Ctrl+Z).</div>'+
+    '<div class="table-wrap" style="max-height:74vh;"><table class="grid-table size-'+size+'">'+
+      '<thead><tr><th class="namecell">Trabajador</th>'+headerCells+'</tr></thead>'+
+      '<tbody>'+(rows || '<tr><td class="namecell" style="color:var(--sub)">Sin trabajadores asignados a esta faena este mes</td></tr>')+'</tbody>'+
+    '</table></div>';
+}
+
+/* ============================= MODALS ============================= */
+function renderModal(){
+  const root = document.getElementById('modalRoot');
+  if(!state.ui.modal){ root.innerHTML=''; return; }
+  if(state.ui.modal.type==='worker') root.innerHTML = workerModalHtml(state.ui.modal.workerId);
+  else if(state.ui.modal.type==='day') root.innerHTML = dayModalHtml(state.ui.modal.workerId, state.ui.modal.date);
+  else if(state.ui.modal.type==='addFaena') root.innerHTML = addSimpleListModalHtml('Agregar faena','new-faena-name','save-faena');
+  else if(state.ui.modal.type==='addEquipo') root.innerHTML = addSimpleListModalHtml('Agregar tipo de equipo','new-equipo-name','save-equipo');
+  else if(state.ui.modal.type==='bulk') root.innerHTML = bulkModalHtml();
+  else if(state.ui.modal.type==='workerMonth') root.innerHTML = workerMonthModalHtml();
+  else if(state.ui.modal.type==='llamada') root.innerHTML = llamadaModalHtml(state.ui.modal.llamadaId);
+  else if(state.ui.modal.type==='pasaje') root.innerHTML = pasajeModalHtml(state.ui.modal.pasajeId);
+  else if(state.ui.modal.type==='import') root.innerHTML = importModalHtml();
+}
+
+function importModalHtml(){
+  if(!importState){
+    return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
+      '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+      '<div class="modal-body">'+
+        '<div class="helptext">Sube tu archivo Excel (.xlsx) o CSV con la información de tus trabajadores. En el siguiente paso podrás indicar qué columna corresponde a cada dato.</div>'+
+        '<div class="field"><label>Archivo</label><input type="file" id="importFileInput" accept=".xlsx,.xls,.csv"></div>'+
+      '</div>'+
+      '<div class="modal-foot"><div></div><button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>'+
+    '</div></div>';
+  }
+
+  const headers = importState.headers;
+  const optionsBase = ['<option value="-1">No importar</option>'].concat(
+    headers.map((h,i)=>'<option value="'+i+'">'+escHtml(h || ('Columna '+(i+1)))+'</option>')
+  );
+  const fieldRows = IMPORT_FIELDS.map(f=>{
+    const selected = importState.mapping[f.key] ?? -1;
+    const options = optionsBase.map(opt=>{
+      const valMatch = opt.match(/value="(-?\d+)"/);
+      const val = valMatch ? parseInt(valMatch[1]) : -1;
+      return val===selected ? opt.replace('<option ', '<option selected ') : opt;
+    }).join('');
+    return '<div class="field-row" style="grid-template-columns:1fr 1fr;align-items:center;margin-bottom:8px;">'+
+      '<div style="font-weight:600;font-size:13px;">'+f.label+(f.required?' *':'')+'</div>'+
+      '<select class="import-map-select" data-field="'+f.key+'">'+options+'</select>'+
+    '</div>';
+  }).join('');
+
+  const previewRows = importState.rows.slice(0,3).map(row=>{
+    return '<tr>'+IMPORT_FIELDS.map(f=>{
+      const idx = importState.mapping[f.key];
+      const val = (idx!=null && idx>=0) ? (row[idx]||'') : '';
+      return '<td style="font-size:12px;">'+escHtml(String(val))+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="width:720px;">'+
+    '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="helptext">Detectamos '+importState.rows.length+' filas de datos. Indica qué columna de tu Excel corresponde a cada dato (deja "No importar" en lo que no tengas).</div>'+
+      fieldRows+
+      '<div class="section-title">Vista previa (primeras 3 filas)</div>'+
+      '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+'</th>').join('')+'</tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
+      '<div class="helptext" style="margin-top:10px;">Si el RUT de una fila coincide con un trabajador que ya tienes cargado, se actualizarán sus datos personales (sin borrar exámenes, turnos ni certificaciones). Si no coincide con nadie, se creará un trabajador nuevo.</div>'+
+    '</div>'+
+    '<div class="modal-foot"><button class="btn btn-ghost" data-action="import-back">← Elegir otro archivo</button>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm">Importar '+importState.rows.length+' trabajadores</button></div>'+
+    '</div></div></div>';
+}
+
+function workerMonthModalHtml(){
+  const modal = state.ui.modal;
+  const w = state.workers.find(x=>x.id===modal.workerId);
+  if(!w) return '';
+  const y = modal.year, m = modal.month;
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const firstWd = new Date(y, m, 1).getDay();
+  const monthLabel = MESES[m] + ' ' + y;
+
+  let cellsHtml = '';
+  for(let i=0;i<firstWd;i++) cellsHtml += '<div></div>';
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = fmt(new Date(y,m,d));
+    const info = dayStatus(w, dateStr);
+    let cls = 'daycell daycell-lg';
+    let style = '';
+    if(info.faena){
+      style = 'background:'+faenaColor(info.faena)+';';
+      if(info.tipo==='extra') cls += ' ring-extra';
+      else if(info.tipo==='permiso') cls += ' ring-permiso';
+    } else {
+      cls += info.tipo==='trabajo' ? ' st-trabajo' : info.tipo==='extra' ? ' st-extra' : info.tipo==='permiso' ? ' st-permiso' : ' st-descanso';
+    }
+    let big = '';
+    if(info.faena) big = faenaAbbrev(info.faena);
+    else if(info.tipo==='trabajo') big = 'T';
+    else if(info.tipo==='descanso') big = 'D';
+    else if(info.tipo==='extra') big = 'HE';
+    else if(info.tipo==='permiso') big = 'P';
+    const title = dateStr+' — '+info.tipo+(info.faena?(' · '+info.faena):'')+(info.nota?(' · '+info.nota):'');
+    cellsHtml += '<div class="'+cls+'" style="'+style+'" data-action="edit-day" data-id="'+w.id+'" data-date="'+dateStr+'" title="'+escAttr(title)+'">'+
+        '<span class="daynum">'+d+'</span><span class="biglabel">'+big+'</span>'+
+        (info.faena ? '<span class="faename">'+escHtml(info.faena)+'</span>' : '')+
+        (info.nota ? '<span class="faename" style="opacity:.85;">'+escHtml(info.nota)+'</span>' : '')+
+      '</div>';
+  }
+  const weekdayHeaders = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d=>'<div class="month-cal-weekday">'+d+'</div>').join('');
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="width:780px;">'+
+    '<div class="modal-head"><h2>'+escHtml(w.nombre)+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="cal-toolbar" style="margin-bottom:2px;">'+
+        '<button class="btn btn-ghost btn-sm" data-action="wm-prev">← Mes anterior</button>'+
+        '<div class="month-lbl" style="min-width:150px;">'+monthLabel+'</div>'+
+        '<button class="btn btn-ghost btn-sm" data-action="wm-next">Mes siguiente →</button>'+
+      '</div>'+
+      '<div class="helptext">Haz clic en un día para editarlo, o arrastra de un día a otro para copiar el mismo estado a los días intermedios.</div>'+
+      '<div class="month-cal-grid">'+weekdayHeaders+cellsHtml+'</div>'+
+    '</div>'+
+    '<div class="modal-foot"><div></div><button class="btn btn-ghost" data-action="close-modal">Cerrar</button></div>'+
+  '</div></div>';
+}
+
+function bulkWorkerListHtml(query){
+  const q = (query||'').toLowerCase();
+  const list = state.workers.filter(w=> !q || w.nombre.toLowerCase().includes(q) || (w.cargo||'').toLowerCase().includes(q));
+  if(!list.length) return '<div class="helptext" style="padding:12px;">Sin resultados.</div>';
+  return list.map(w=>
+    '<label class="bulk-worker-row"><input type="checkbox" class="bulk-chk" value="'+w.id+'" '+(bulkSelected.has(w.id)?'checked':'')+'>'+
+    '<span>'+escHtml(w.nombre)+'</span><span class="w-cargo">'+escHtml(w.cargo||'')+'</span></label>'
+  ).join('');
+}
+
+function updateBulkCount(){
+  const el = document.getElementById('bulkCount');
+  if(el) el.textContent = bulkSelected.size + (bulkSelected.size===1 ? ' trabajador seleccionado' : ' trabajadores seleccionados');
+}
+
+function bulkModalHtml(){
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal">'+
+    '<div class="modal-head"><h2>Editar varios días</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="helptext">Aplica el mismo estado a un rango de fechas para uno o varios trabajadores a la vez. Esto sobrescribe lo que haya en esos días.</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Desde</label><input type="date" id="bulk-start" value="'+todayStr()+'"></div>'+
+        '<div class="field"><label>Hasta</label><input type="date" id="bulk-end" value="'+todayStr()+'"></div>'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Estado a aplicar</label><select id="bulk-tipo">'+
+          '<option value="trabajo">Trabajo</option>'+
+          '<option value="descanso">Descanso</option>'+
+          '<option value="extra">Trabajó en su descanso (hora extra)</option>'+
+          '<option value="permiso">Permiso / licencia</option>'+
+        '</select></div>'+
+        '<div class="field"><label>Faena (opcional)</label><select id="bulk-faena"><option value="">—</option>'+state.faenas.map(f=>'<option value="'+f+'">'+f+'</option>').join('')+'</select></div>'+
+      '</div>'+
+      '<div class="field"><label>Nota (opcional)</label><input id="bulk-nota" placeholder="Ej: traslado a faena"></div>'+
+
+      '<div class="section-title">Trabajadores <span class="bulk-count" id="bulkCount">'+bulkSelected.size+' trabajadores seleccionados</span></div>'+
+      '<div class="bulk-toolbar">'+
+        '<input type="text" id="bulkSearch" placeholder="Buscar por nombre o cargo..." style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:7px;">'+
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="bulk-select-all">Seleccionar todos (filtrados)</button>'+
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="bulk-select-none">Quitar selección</button>'+
+      '</div>'+
+      '<div class="bulk-list-wrap" id="bulkWorkerList">'+bulkWorkerListHtml('')+'</div>'+
+    '</div>'+
+    '<div class="modal-foot"><div></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="apply-bulk">Aplicar cambios</button></div></div>'+
+  '</div></div>';
+}
+
+function certFileChipHtml(workerId, certId, file){
+  const key = certDocKey(workerId, certId, file.id);
+  return '<span class="file-chip" data-file-id="'+escAttr(file.id)+'">'+
+    '<span class="file-chip-name">'+escHtml(file.nombre)+'</span>'+
+    '<button type="button" class="link-btn" data-action="view-doc" data-key="'+key+'">Ver</button>'+
+    '<button type="button" class="icon-btn" data-action="remove-cert-file" data-certid="'+certId+'" data-fileid="'+escAttr(file.id)+'">✕</button>'+
+  '</span>';
+}
+
+function certBlockHtml(workerId, c){
+  const inputId = 'certfile-'+c.id;
+  const files = c.archivos || [];
+  const chips = files.map(f=>certFileChipHtml(workerId, c.id, f)).join('');
+  return '<div class="cert-block" data-cert-id="'+c.id+'">'+
+    '<div class="cert-top-row">'+
+      '<select class="cert-equipo">'+state.equipos.map(eq=>'<option value="'+eq+'" '+(c.equipo===eq?'selected':'')+'>'+eq+'</option>').join('')+'</select>'+
+      '<input type="date" class="cert-fecha" value="'+(c.fecha||'')+'" title="Fecha obtenido">'+
+      '<input type="date" class="cert-venc" value="'+(c.vencimiento||'')+'" title="Fecha vencimiento">'+
+      '<button class="icon-btn" data-action="remove-cert" data-certid="'+c.id+'">✕</button>'+
+    '</div>'+
+    '<div class="file-row">'+
+      '<input type="file" id="'+inputId+'" class="cert-file-multi" multiple accept=".pdf,.jpg,.jpeg,.png">'+
+      '<label for="'+inputId+'" class="file-pill-label">\uD83D\uDCCE Adjuntar archivo(s)</label>'+
+      '<div class="file-chip-list">'+(chips || '<span class="file-name">Sin archivos adjuntos</span>')+'</div>'+
+    '</div>'+
+    '<div class="helptext" style="margin:6px 0 0;">Puedes adjuntar más de un archivo (por ejemplo, si tiene certificaciones de distintas fechas u organismos para este mismo equipo).</div>'+
+  '</div>';
+}
+
+function examCardHtml(workerId, tipo, e){
+  const key = examDocKey(workerId, tipo);
+  const inputId = 'examfile-'+slugify(tipo)+'-'+workerId;
+  const hasFile = !!e.archivoNombre;
+  return '<div class="exam-card" data-exam-type="'+tipo+'">'+
+    '<div class="exam-card-title">'+tipo+'</div>'+
+    '<div class="exam-card-fields">'+
+      '<div><label>Fecha realizado</label><input type="date" class="exam-fecha" value="'+(e.fecha||'')+'"></div>'+
+      '<div><label>Vence</label><input type="date" class="exam-venc" value="'+(e.vencimiento||'')+'"></div>'+
+    '</div>'+
+    '<div class="file-row" data-doc-key="'+key+'">'+
+      '<input type="file" id="'+inputId+'" class="exam-file" accept=".pdf,.jpg,.jpeg,.png">'+
+      '<label for="'+inputId+'" class="file-pill-label">\uD83D\uDCCE Adjuntar archivo</label>'+
+      '<span class="file-name" data-role="filename">'+(hasFile?escHtml(e.archivoNombre):'Sin archivo adjunto')+'</span>'+
+      (hasFile?'<button type="button" class="link-btn" data-action="view-doc" data-key="'+key+'">Ver</button>':'')+
+      (hasFile?'<button type="button" class="icon-btn" data-action="remove-doc" data-scope="exam" data-tipo="'+tipo+'" title="Quitar archivo">✕</button>':'')+
+    '</div></div>';
+}
+
+function examExtraCardHtml(workerId, item){
+  const key = examExtraDocKey(workerId, item.id);
+  const inputId = 'examextra-'+item.id;
+  const hasFile = !!item.archivoNombre;
+  return '<div class="exam-card" data-extra-id="'+item.id+'">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">'+
+      '<input type="text" class="exam-extra-nombre" value="'+escAttr(item.nombre||'')+'" placeholder="Ej: Examen de altura física, curso IPER, licencia de conducir..." style="font-weight:700;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:7px 9px;flex:1;background:var(--panel);">'+
+      '<button class="icon-btn" data-action="remove-exam-extra" data-extraid="'+item.id+'">✕</button>'+
+    '</div>'+
+    '<div class="exam-card-fields">'+
+      '<div><label>Fecha realizado</label><input type="date" class="exam-extra-fecha" value="'+(item.fecha||'')+'"></div>'+
+      '<div><label>Vence (opcional)</label><input type="date" class="exam-extra-venc" value="'+(item.vencimiento||'')+'"></div>'+
+    '</div>'+
+    '<div class="file-row" data-doc-key="'+key+'">'+
+      '<input type="file" id="'+inputId+'" class="exam-extra-file" accept=".pdf,.jpg,.jpeg,.png">'+
+      '<label for="'+inputId+'" class="file-pill-label">\uD83D\uDCCE Adjuntar archivo</label>'+
+      '<span class="file-name" data-role="filename">'+(hasFile?escHtml(item.archivoNombre):'Sin archivo adjunto')+'</span>'+
+      (hasFile?'<button type="button" class="link-btn" data-action="view-doc" data-key="'+key+'">Ver</button>':'')+
+      (hasFile?'<button type="button" class="icon-btn" data-action="remove-doc" data-scope="examextra" data-extraid="'+item.id+'" title="Quitar archivo">✕</button>':'')+
+    '</div></div>';
+}
+
+function workerModalHtml(workerId){
+  const isNew = !workerId;
+  const w = isNew ? {id:uid('w'), nombre:'', rut:'', telefono:'', correo:'', ciudad:'', cargo:state.cargos[0], empresa:'', turno:{fechaInicioCiclo: todayStr(), diasTrabajo:14, diasDescanso:14}, overrides:{}, examenes: EXAM_TYPES.map(t=>({tipo:t, fecha:'', vencimiento:''})), acreditaciones:[], certificaciones:[], examenesExtra:[]} : state.workers.find(x=>x.id===workerId);
+
+  const examCards = EXAM_TYPES.map(t=>{
+    const e = (w.examenes||[]).find(x=>x.tipo===t) || {tipo:t, fecha:'', vencimiento:''};
+    return examCardHtml(w.id, t, e);
+  }).join('');
+
+  const acredRows = (w.acreditaciones||[]).map((a,i)=>
+    '<div class="repeat-row2" data-idx="'+i+'">'+
+      '<select class="acred-faena">'+state.faenas.map(f=>'<option value="'+f+'" '+(a.faena===f?'selected':'')+'>'+f+'</option>').join('')+'</select>'+
+      '<select class="acred-estado">'+['Acreditado','En trámite','No acreditado'].map(s=>'<option value="'+s+'" '+(a.estado===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'+
+      '<input type="date" class="acred-venc" value="'+(a.vencimiento||'')+'" title="Vencimiento (opcional)">'+
+      '<button class="icon-btn" data-action="remove-acred" data-idx="'+i+'">✕</button>'+
+    '</div>'
+  ).join('');
+
+  const certBlocks = (w.certificaciones||[]).map(c=>certBlockHtml(w.id, c)).join('');
+  const examExtraBlocks = (w.examenesExtra||[]).map(item=>examExtraCardHtml(w.id, item)).join('');
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal">'+
+    '<div class="modal-head"><h2>'+(isNew?'Nuevo trabajador':'Ficha de trabajador')+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body" id="workerForm" data-worker-id="'+w.id+'" data-is-new="'+isNew+'">'+
+
+      '<div class="section-title">Datos personales</div>'+
+      '<div class="field"><label>Nombre completo</label><input id="f-nombre" value="'+escAttr(w.nombre)+'" placeholder="Ej: Juan Pérez Soto"></div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>RUT</label><input id="f-rut" class="mono" value="'+escAttr(w.rut)+'" placeholder="12.345.678-9"></div>'+
+        '<div class="field"><label>Cargo</label><select id="f-cargo">'+state.cargos.map(c=>'<option value="'+c+'" '+(w.cargo===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Teléfono</label><input id="f-telefono" value="'+escAttr(w.telefono)+'" placeholder="+56 9 ..."></div>'+
+        '<div class="field"><label>Correo</label><input id="f-correo" value="'+escAttr(w.correo)+'" placeholder="correo@ejemplo.cl"></div>'+
+      '</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Ciudad</label><input id="f-ciudad" value="'+escAttr(w.ciudad)+'"></div>'+
+        '<div class="field"><label>Empresa / contratista (opcional)</label><input id="f-empresa" value="'+escAttr(w.empresa||'')+'"></div>'+
+      '</div>'+
+
+      '<div class="section-title">Turno 14x14</div>'+
+      '<div class="helptext" style="margin-bottom:8px;">Define una fecha en que comience un ciclo de trabajo. El sistema calcula automáticamente los días de trabajo/descanso desde esa fecha.</div>'+
+      '<div class="field-row">'+
+        '<div class="field"><label>Inicio de un ciclo de trabajo</label><input type="date" id="f-cicloinicio" value="'+(w.turno && w.turno.fechaInicioCiclo || todayStr())+'"></div>'+
+        '<div class="field"><label>Días trabajo / descanso</label><div style="display:flex;gap:6px;align-items:center;">'+
+          '<input type="number" id="f-diastrabajo" value="'+((w.turno && w.turno.diasTrabajo) ?? 14)+'" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:7px;">'+
+          '<span style="color:var(--sub)">x</span>'+
+          '<input type="number" id="f-diasdescanso" value="'+((w.turno && w.turno.diasDescanso) ?? 14)+'" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:7px;">'+
+        '</div></div>'+
+      '</div>'+
+
+      '<div class="section-title">Exámenes (adjunta el PDF o foto del documento)</div>'+
+      '<div id="examList">'+examCards+'</div>'+
+
+      '<div class="section-title">Otros exámenes o documentos <button class="link-btn" data-action="add-exam-extra">+ Agregar</button></div>'+
+      '<div class="helptext" style="margin-bottom:8px;">Agrega cualquier examen o documento adicional que necesites y que no esté en la lista de arriba (por ejemplo, examen de altura física, curso IPER, licencia de conducir, etc.)</div>'+
+      '<div id="examExtraList">'+(examExtraBlocks || '<div class="helptext" id="examExtraEmptyMsg">Sin documentos adicionales.</div>')+'</div>'+
+
+      '<div class="section-title">Acreditación por faena <button class="link-btn" data-action="add-acred-row">+ Agregar</button></div>'+
+      '<div id="acredList">'+(acredRows || '<div class="helptext">Sin acreditaciones registradas.</div>')+'</div>'+
+
+      '<div class="section-title">Certificaciones de equipos que opera <button class="link-btn" data-action="add-cert-row">+ Agregar</button></div>'+
+      '<div class="helptext" style="margin-bottom:8px;">Registra en qué equipos está certificado este trabajador (grúa horquilla, grúa pluma, manlift, etc.). Puedes agregar más de una certificación para el mismo equipo (por ejemplo, de distintos organismos o fechas) y adjuntar varios archivos a cada una.</div>'+
+      '<div id="certList">'+(certBlocks || '<div class="helptext" id="certEmptyMsg">Sin certificaciones registradas.</div>')+'</div>'+
+
+    '</div>'+
+    '<div class="modal-foot">'+
+      '<div>'+(isNew?'':'<button class="btn btn-danger" data-action="delete-worker" data-id="'+w.id+'">Eliminar trabajador</button>')+'</div>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="save-worker">Guardar</button></div>'+
+    '</div></div></div>';
+}
+
+function dayModalHtml(workerId, dateStr){
+  const w = state.workers.find(x=>x.id===workerId);
+  if(!w) return '';
+  const info = dayStatus(w, dateStr);
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
+    '<div class="modal-head"><h2>'+escHtml(w.nombre)+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body">'+
+      '<div class="helptext">Día: <b class="mono">'+dateStr+'</b> · Estado base del ciclo: <b>'+info.base+'</b></div>'+
+      '<div class="field"><label>Estado de este día</label><select id="day-tipo">'+
+        '<option value="trabajo" '+(info.tipo==='trabajo'?'selected':'')+'>Trabajo (turno normal)</option>'+
+        '<option value="descanso" '+(info.tipo==='descanso'?'selected':'')+'>Descanso</option>'+
+        '<option value="extra" '+(info.tipo==='extra'?'selected':'')+'>Trabajó en su descanso (hora extra)</option>'+
+        '<option value="permiso" '+(info.tipo==='permiso'?'selected':'')+'>Permiso / licencia</option>'+
+      '</select></div>'+
+      '<div class="field"><label>Faena (opcional)</label><select id="day-faena"><option value="">—</option>'+state.faenas.map(f=>'<option value="'+f+'" '+(info.faena===f?'selected':'')+'>'+f+'</option>').join('')+'</select></div>'+
+      '<div class="field"><label>Nota (opcional)</label><input id="day-nota" value="'+escAttr(info.nota)+'" placeholder="Ej: reemplazo turno noche"></div>'+
+    '</div>'+
+    '<div class="modal-foot"><button class="btn btn-ghost" data-action="clear-day" data-id="'+workerId+'" data-date="'+dateStr+'">Volver a estado normal</button>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="save-day" data-id="'+workerId+'" data-date="'+dateStr+'">Guardar</button></div>'+
+    '</div></div></div>';
+}
+
+function addSimpleListModalHtml(title, inputId, saveAction){
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
+    '<div class="modal-head"><h2>'+title+'</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
+    '<div class="modal-body"><div class="field"><label>Nombre</label><input id="'+inputId+'" placeholder="Escribe el nombre..."></div></div>'+
+    '<div class="modal-foot"><div></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="'+saveAction+'">Agregar</button></div></div>'+
+  '</div></div>';
+}
+
+/* ============================= FILE INPUT CHANGE HANDLER ============================= */
+document.addEventListener('change', async (e)=>{
+  const input = e.target;
+  if(input.id === 'importFileInput'){
+    const file = input.files[0];
+    if(!file) return;
+    try{
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      const headers = (raw[0]||[]).map(h=>String(h||'').trim());
+      const rows = raw.slice(1).filter(r=>r.some(cell=>String(cell||'').trim()!==''));
+      if(!rows.length){ alert('No se encontraron filas de datos en el archivo.'); return; }
+      importState = { headers, rows, mapping: guessImportMapping(headers) };
+      renderModal();
+    }catch(err){
+      console.error(err);
+      alert('No se pudo leer el archivo. Verifica que sea un Excel (.xlsx) o CSV válido.');
+    }
+    return;
+  }
+  if(input.classList && input.classList.contains('import-map-select')){
+    if(!importState) return;
+    importState.mapping[input.dataset.field] = parseInt(input.value);
+    renderModal();
+    return;
+  }
+  if(input.classList && input.classList.contains('bulk-chk')){
+    if(input.checked) bulkSelected.add(input.value); else bulkSelected.delete(input.value);
+    updateBulkCount();
+    return;
+  }
+  if(input.classList && (input.classList.contains('exam-file') || input.classList.contains('exam-extra-file'))){
+    const file = input.files[0];
+    if(!file) return;
+    if(file.size > MAX_FILE_BYTES){
+      alert('El archivo pesa demasiado (máx. 3.5 MB). Comprime el archivo o sube una foto en vez de un escaneo pesado.');
+      input.value = '';
+      return;
+    }
+    try{
+      const base64 = await readFileAsBase64(file);
+      input._pendingFile = {nombre: file.name, mime: file.type || 'application/octet-stream', data: base64};
+      input._pendingRemove = false;
+      const row = input.closest('.file-row');
+      const label = row.querySelector('[data-role="filename"]');
+      if(label) label.textContent = file.name + ' (se guardará al confirmar)';
+    }catch(err){
+      console.error(err);
+      alert('No se pudo leer el archivo.');
+    }
+    return;
+  }
+  if(input.classList && input.classList.contains('cert-file-multi')){
+    const files = Array.from(input.files || []);
+    const block = input.closest('.cert-block');
+    const chipList = block.querySelector('.file-chip-list');
+    for(const file of files){
+      if(file.size > MAX_FILE_BYTES){
+        alert('El archivo "'+file.name+'" pesa demasiado (máx. 3.5 MB). Comprime el archivo o sube una foto en vez de un escaneo pesado.');
+        continue;
+      }
+      try{
+        const base64 = await readFileAsBase64(file);
+        const tempId = uid('f');
+        block._pendingFiles = block._pendingFiles || [];
+        block._pendingFiles.push({id: tempId, nombre: file.name, mime: file.type || 'application/octet-stream', data: base64});
+        const emptyMsg = chipList.querySelector('.file-name');
+        if(emptyMsg) emptyMsg.remove();
+        const chip = document.createElement('span');
+        chip.className = 'file-chip';
+        chip.dataset.pendingId = tempId;
+        chip.innerHTML = '<span class="file-chip-name">'+escHtml(file.name)+' (nuevo)</span><button type="button" class="icon-btn" data-action="remove-pending-cert-file" data-certid="'+block.dataset.certId+'" data-tempid="'+tempId+'">✕</button>';
+        chipList.appendChild(chip);
+      }catch(err){
+        console.error(err);
+        alert('No se pudo leer el archivo "'+file.name+'".');
+      }
+    }
+    input.value = '';
+  }
+});
+
+/* ============================= EVENTS ============================= */
+document.addEventListener('click', async (e)=>{
+  const el = e.target.closest('[data-action]');
+  if(!el){
+    const navEl = e.target.closest('[data-nav]');
+    if(navEl){ state.ui.tab = navEl.dataset.nav; render(); }
+    return;
+  }
+  const action = el.dataset.action;
+
+  if(action==='logout'){ await window.amecoLogout(); return; }
+
+  if(action==='new-worker'){ state.ui.modal = {type:'worker', workerId:null}; renderModal(); }
+  else if(action==='open-worker'){ state.ui.modal = {type:'worker', workerId: el.dataset.id}; renderModal(); }
+  else if(action==='goto-worker-from-doc'){ state.ui.tab='trabajadores'; render(); }
+  else if(action==='grid-size'){ state.ui.gridSize = el.dataset.size; render(); }
+  else if(action==='save-now'){
+    const btn = document.getElementById('saveNowBtn');
+    if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
+    const ok = await persistNow();
+    if(btn){ btn.disabled = false; btn.textContent = ok ? '✓ Guardado' : '\uD83D\uDCBE Guardar'; }
+    if(ok) setTimeout(()=>{ const b = document.getElementById('saveNowBtn'); if(b) b.textContent = '\uD83D\uDCBE Guardar'; }, 2000);
+  }
+  else if(action==='export-excel'){ exportToExcel(); }
+  else if(action==='filter-turno-faena'){
+    const f = el.dataset.faena;
+    state.ui.turnoFaenaFilter = (state.ui.turnoFaenaFilter === f) ? null : f;
+    render();
+  }
+  else if(action==='clear-turno-faena-filter'){ state.ui.turnoFaenaFilter = null; render(); }
+
+  else if(action==='new-llamada'){ state.ui.modal = {type:'llamada', llamadaId:null}; renderModal(); }
+  else if(action==='open-llamada'){ state.ui.modal = {type:'llamada', llamadaId: el.dataset.id}; renderModal(); }
+  else if(action==='save-llamada'){
+    const isNewLlamada = el.dataset.isNew === 'true';
+    const workerId = document.getElementById('ll-worker').value;
+    if(!workerId){ alert('Selecciona un trabajador.'); return; }
+    const payload = {
+      id: el.dataset.id,
+      workerId,
+      fecha: document.getElementById('ll-fecha').value || todayStr(),
+      hora: document.getElementById('ll-hora').value,
+      resultado: document.getElementById('ll-resultado').value,
+      nota: document.getElementById('ll-nota').value.trim()
+    };
+    if(isNewLlamada){ state.llamados.push(payload); }
+    else {
+      const idx = state.llamados.findIndex(x=>x.id===el.dataset.id);
+      if(idx>=0) state.llamados[idx] = payload;
+    }
+    state.ui.modal = null;
+    render();
+    await persist();
+  }
+  else if(action==='delete-llamada'){
+    if(confirm('¿Eliminar este registro de llamado?')){
+      state.llamados = state.llamados.filter(x=>x.id!==el.dataset.id);
+      state.ui.modal = null;
+      render();
+      await persist();
+    }
+  }
+
+  else if(action==='new-pasaje'){ state.ui.modal = {type:'pasaje', pasajeId:null}; renderModal(); }
+  else if(action==='open-pasaje'){ state.ui.modal = {type:'pasaje', pasajeId: el.dataset.id}; renderModal(); }
+  else if(action==='save-pasaje'){
+    const isNewPasaje = el.dataset.isNew === 'true';
+    const workerId = document.getElementById('pj-worker').value;
+    if(!workerId){ alert('Selecciona un trabajador.'); return; }
+    const payload = {
+      id: el.dataset.id,
+      workerId,
+      faena: document.getElementById('pj-faena').value,
+      fechaViaje: document.getElementById('pj-fecha').value || todayStr(),
+      origen: document.getElementById('pj-origen').value.trim(),
+      destino: document.getElementById('pj-destino').value.trim(),
+      estado: document.getElementById('pj-estado').value,
+      nota: document.getElementById('pj-nota').value.trim()
+    };
+    if(isNewPasaje){ state.pasajes.push(payload); }
+    else {
+      const idx = state.pasajes.findIndex(x=>x.id===el.dataset.id);
+      if(idx>=0) state.pasajes[idx] = payload;
+    }
+    state.ui.modal = null;
+    render();
+    await persist();
+  }
+  else if(action==='delete-pasaje'){
+    if(confirm('¿Eliminar este registro de pasaje?')){
+      state.pasajes = state.pasajes.filter(x=>x.id!==el.dataset.id);
+      state.ui.modal = null;
+      render();
+      await persist();
+    }
+  }
+  else if(action==='import-worker'){ importState = null; state.ui.modal = {type:'import'}; renderModal(); }
+  else if(action==='import-back'){ importState = null; renderModal(); }
+  else if(action==='close-modal' || action==='close-modal-overlay'){
+    if(action==='close-modal-overlay' && e.target!==el) return;
+    const cur = state.ui.modal;
+    if(cur && cur.type==='import') importState = null;
+    state.ui.modal = (cur && cur.type==='day' && cur.returnModal) ? cur.returnModal : null;
+    renderModal();
+  }
+
+  else if(action==='import-confirm'){
+    if(!importState) return;
+    const mapping = importState.mapping;
+    if(mapping.nombre==null || mapping.nombre<0){ alert('Debes indicar qué columna corresponde al Nombre.'); return; }
+    let created=0, updated=0, skipped=0;
+    importState.rows.forEach(row=>{
+      const get = (key)=>{ const idx = mapping[key]; return (idx!=null && idx>=0) ? String(row[idx]??'').trim() : ''; };
+      const nombre = get('nombre');
+      if(!nombre){ skipped++; return; }
+      const rut = get('rut');
+      const rutNorm = normalizeRut(rut);
+      let existing = null;
+      if(rutNorm) existing = state.workers.find(w=>normalizeRut(w.rut)===rutNorm && rutNorm);
+      if(!existing) existing = state.workers.find(w=>w.nombre.trim().toLowerCase()===nombre.toLowerCase());
+      const cargo = get('cargo');
+      if(cargo && !state.cargos.includes(cargo)) state.cargos.push(cargo);
+      if(existing){
+        existing.nombre = nombre || existing.nombre;
+        if(rut) existing.rut = rut;
+        const tel=get('telefono'); if(tel) existing.telefono=tel;
+        const correo=get('correo'); if(correo) existing.correo=correo;
+        const ciudad=get('ciudad'); if(ciudad) existing.ciudad=ciudad;
+        if(cargo) existing.cargo=cargo;
+        const empresa=get('empresa'); if(empresa) existing.empresa=empresa;
+        updated++;
+      } else {
+        state.workers.push({
+          id: uid('w'), nombre, rut, telefono:get('telefono'), correo:get('correo'), ciudad:get('ciudad'),
+          cargo: cargo || state.cargos[0], empresa:get('empresa'),
+          turno:{fechaInicioCiclo: todayStr(), diasTrabajo:14, diasDescanso:14}, overrides:{},
+          examenes: EXAM_TYPES.map(t=>({tipo:t, fecha:'', vencimiento:''})),
+          acreditaciones:[], certificaciones:[], examenesExtra:[]
+        });
+        created++;
+      }
+    });
+    importState = null;
+    state.ui.modal = null;
+    render();
+    await persist();
+    alert('Importación completa: '+created+' trabajadores nuevos, '+updated+' actualizados'+(skipped?(', '+skipped+' filas omitidas por no tener nombre'):'')+'.');
+  }
+
+  else if(action==='add-acred-row'){
+    const list = document.getElementById('acredList');
+    if(list.querySelector('.helptext')) list.innerHTML='';
+    const idx = list.querySelectorAll('.repeat-row2').length;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<div class="repeat-row2" data-idx="'+idx+'">'+
+        '<select class="acred-faena">'+state.faenas.map(f=>'<option value="'+f+'">'+f+'</option>').join('')+'</select>'+
+        '<select class="acred-estado">'+['Acreditado','En trámite','No acreditado'].map(s=>'<option value="'+s+'">'+s+'</option>').join('')+'</select>'+
+        '<input type="date" class="acred-venc">'+
+        '<button class="icon-btn" data-action="remove-acred" data-idx="'+idx+'">✕</button>'+
+      '</div>';
+    list.appendChild(wrap.firstElementChild);
+  }
+  else if(action==='remove-acred'){ el.closest('.repeat-row2').remove(); }
+
+  else if(action==='add-cert-row'){
+    const list = document.getElementById('certList');
+    const empty = document.getElementById('certEmptyMsg');
+    if(empty) empty.remove();
+    const newId = uid('c');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = certBlockHtml(document.getElementById('workerForm').dataset.workerId, {id:newId, equipo:state.equipos[0], fecha:'', vencimiento:'', archivos:[]});
+    list.appendChild(wrap.firstElementChild);
+  }
+  else if(action==='remove-cert'){ el.closest('.cert-block').remove(); }
+  else if(action==='remove-cert-file'){
+    const block = document.querySelector('.cert-block[data-cert-id="'+el.dataset.certid+'"]');
+    if(block){ block._removedFileIds = block._removedFileIds || new Set(); block._removedFileIds.add(el.dataset.fileid); }
+    el.closest('.file-chip').remove();
+  }
+  else if(action==='remove-pending-cert-file'){
+    const block = document.querySelector('.cert-block[data-cert-id="'+el.dataset.certid+'"]');
+    if(block && block._pendingFiles){ block._pendingFiles = block._pendingFiles.filter(f=>f.id!==el.dataset.tempid); }
+    el.closest('.file-chip').remove();
+  }
+
+  else if(action==='add-exam-extra'){
+    const list = document.getElementById('examExtraList');
+    const empty = document.getElementById('examExtraEmptyMsg');
+    if(empty) empty.remove();
+    const newId = uid('e');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = examExtraCardHtml(document.getElementById('workerForm').dataset.workerId, {id:newId, nombre:'', fecha:'', vencimiento:''});
+    list.appendChild(wrap.firstElementChild);
+  }
+  else if(action==='remove-exam-extra'){ el.closest('[data-extra-id]').remove(); }
+
+  else if(action==='view-doc'){ viewDocument(el.dataset.key); }
+  else if(action==='view-doc-table'){ viewDocument(el.dataset.key); }
+
+  else if(action==='remove-doc'){
+    const row = el.closest('.file-row');
+    const fileInput = row.querySelector('input[type=file]');
+    fileInput._pendingRemove = true;
+    fileInput._pendingFile = null;
+    fileInput.value = '';
+    const label = row.querySelector('[data-role="filename"]');
+    if(label) label.textContent = 'Se eliminará al guardar';
+    const viewBtn = row.querySelector('[data-action="view-doc"]');
+    if(viewBtn) viewBtn.remove();
+    el.remove();
+  }
+
+  else if(action==='save-worker'){ saveWorkerFromForm(); }
+  else if(action==='delete-worker'){
+    if(confirm('¿Eliminar a este trabajador? Esta acción no se puede deshacer.')){
+      state.workers = state.workers.filter(w=>w.id!==el.dataset.id);
+      state.ui.modal = null; render(); await persist();
+    }
+  }
+
+  else if(action==='edit-day'){
+    if(justDragged){ justDragged = false; return; }
+    const prevModal = state.ui.modal;
+    state.ui.modal = {type:'day', workerId: el.dataset.id, date: el.dataset.date, returnModal: (prevModal && prevModal.type==='workerMonth') ? prevModal : null};
+    renderModal();
+  }
+  else if(action==='save-day'){
+    const w = state.workers.find(x=>x.id===el.dataset.id);
+    lastAction = snapshotOverrides([el.dataset.id]);
+    const tipo = document.getElementById('day-tipo').value;
+    const faena = document.getElementById('day-faena').value;
+    const nota = document.getElementById('day-nota').value;
+    w.overrides = w.overrides || {};
+    const base = shiftBaseStatus(w, el.dataset.date);
+    if(tipo===base && !faena && !nota){ delete w.overrides[el.dataset.date]; }
+    else { w.overrides[el.dataset.date] = {tipo, faena, nota}; }
+    const cur = state.ui.modal;
+    state.ui.modal = (cur && cur.returnModal) ? cur.returnModal : null;
+    render();
+    await persist();
+  }
+  else if(action==='clear-day'){
+    const w = state.workers.find(x=>x.id===el.dataset.id);
+    lastAction = snapshotOverrides([el.dataset.id]);
+    if(w.overrides) delete w.overrides[el.dataset.date];
+    const cur = state.ui.modal;
+    state.ui.modal = (cur && cur.returnModal) ? cur.returnModal : null;
+    render();
+    await persist();
+  }
+  else if(action==='cal-prev'){ state.ui.calMonth--; if(state.ui.calMonth<0){state.ui.calMonth=11; state.ui.calYear--;} render(); }
+  else if(action==='cal-next'){ state.ui.calMonth++; if(state.ui.calMonth>11){state.ui.calMonth=0; state.ui.calYear++;} render(); }
+  else if(action==='view-worker-month'){ state.ui.modal = {type:'workerMonth', workerId: el.dataset.id, year: state.ui.calYear, month: state.ui.calMonth}; renderModal(); }
+  else if(action==='wm-prev'){ state.ui.modal.month--; if(state.ui.modal.month<0){state.ui.modal.month=11; state.ui.modal.year--;} renderModal(); }
+  else if(action==='wm-next'){ state.ui.modal.month++; if(state.ui.modal.month>11){state.ui.modal.month=0; state.ui.modal.year++;} renderModal(); }
+  else if(action==='undo-last'){ await performUndo(); }
+
+  else if(action==='open-bulk'){ bulkSelected = new Set(); state.ui.modal = {type:'bulk'}; renderModal(); attachDynamicListeners(); }
+  else if(action==='bulk-select-all'){
+    const q = (document.getElementById('bulkSearch')||{}).value || '';
+    const qlc = q.toLowerCase();
+    state.workers.filter(w=> !qlc || w.nombre.toLowerCase().includes(qlc) || (w.cargo||'').toLowerCase().includes(qlc)).forEach(w=>bulkSelected.add(w.id));
+    document.getElementById('bulkWorkerList').innerHTML = bulkWorkerListHtml(q);
+    updateBulkCount();
+  }
+  else if(action==='bulk-select-none'){
+    bulkSelected.clear();
+    const q = (document.getElementById('bulkSearch')||{}).value || '';
+    document.getElementById('bulkWorkerList').innerHTML = bulkWorkerListHtml(q);
+    updateBulkCount();
+  }
+  else if(action==='apply-bulk'){
+    const startVal = document.getElementById('bulk-start').value;
+    const endVal = document.getElementById('bulk-end').value;
+    const tipo = document.getElementById('bulk-tipo').value;
+    const faena = document.getElementById('bulk-faena').value;
+    const nota = document.getElementById('bulk-nota').value;
+    if(!startVal || !endVal){ alert('Selecciona la fecha de inicio y de término.'); return; }
+    if(bulkSelected.size===0){ alert('Selecciona al menos un trabajador.'); return; }
+    let s = parseDate(startVal), en = parseDate(endVal);
+    if(s > en){ const tmp = s; s = en; en = tmp; }
+    const ids = Array.from(bulkSelected);
+    lastAction = snapshotOverrides(ids);
+    ids.forEach(id=>{
+      const w = state.workers.find(x=>x.id===id);
+      if(!w) return;
+      w.overrides = w.overrides || {};
+      let cur = new Date(s);
+      while(cur <= en){
+        const dateStr = fmt(cur);
+        const base = shiftBaseStatus(w, dateStr);
+        if(tipo===base && !faena && !nota) delete w.overrides[dateStr];
+        else w.overrides[dateStr] = {tipo, faena, nota};
+        cur = addDays(cur, 1);
+      }
+    });
+    state.ui.modal = null;
+    render();
+    await persist();
+  }
+
+  else if(action==='add-faena'){ state.ui.modal = {type:'addFaena'}; renderModal(); }
+  else if(action==='save-faena'){
+    const name = document.getElementById('new-faena-name').value.trim();
+    if(name && !state.faenas.includes(name)){ state.faenas.push(name); await persist(); }
+    state.ui.modal=null; render();
+  }
+  else if(action==='add-equipo'){ state.ui.modal = {type:'addEquipo'}; renderModal(); }
+  else if(action==='save-equipo'){
+    const name = document.getElementById('new-equipo-name').value.trim();
+    if(name && !state.equipos.includes(name)){ state.equipos.push(name); await persist(); }
+    state.ui.modal=null; render();
+  }
+});
+
+function attachDynamicListeners(){
+  const search = document.getElementById('searchInput');
+  if(search){ search.oninput = (e)=>{ state.ui.search = e.target.value; renderContentOnly(); }; }
+  const cargoFilterEl = document.getElementById('cargoFilter');
+  if(cargoFilterEl){ cargoFilterEl.onchange = (e)=>{ state.ui.cargoFilter = e.target.value; renderContentOnly(); }; }
+  const docType = document.getElementById('docTypeFilter');
+  if(docType){ docType.onchange = (e)=>{ state.ui.docTypeFilter = e.target.value; render(); }; }
+  const docStatus = document.getElementById('docStatusFilter');
+  if(docStatus){ docStatus.onchange = (e)=>{ state.ui.docFilter = e.target.value; render(); }; }
+  const acredFaena = document.getElementById('acredFaenaFilter');
+  if(acredFaena){ acredFaena.onchange = (e)=>{ state.ui.acredFaenaFilter = e.target.value; render(); }; }
+  const certEquipo = document.getElementById('certEquipoFilter');
+  if(certEquipo){ certEquipo.onchange = (e)=>{ state.ui.certEquipoFilter = e.target.value; render(); }; }
+  const bulkSearch = document.getElementById('bulkSearch');
+  if(bulkSearch){ bulkSearch.oninput = (e)=>{ document.getElementById('bulkWorkerList').innerHTML = bulkWorkerListHtml(e.target.value); }; }
+  const llamadaSearchInput = document.getElementById('llamadaSearchInput');
+  if(llamadaSearchInput){ llamadaSearchInput.oninput = (e)=>{ state.ui.llamadaSearch = e.target.value; renderContentOnly(); }; }
+  const llamadaFilterSelect = document.getElementById('llamadaFilterSelect');
+  if(llamadaFilterSelect){ llamadaFilterSelect.onchange = (e)=>{ state.ui.llamadaFilter = e.target.value; render(); }; }
+  const pasajeSearchInput = document.getElementById('pasajeSearchInput');
+  if(pasajeSearchInput){ pasajeSearchInput.oninput = (e)=>{ state.ui.pasajeSearch = e.target.value; renderContentOnly(); }; }
+  const pasajeFilterSelect = document.getElementById('pasajeFilterSelect');
+  if(pasajeFilterSelect){ pasajeFilterSelect.onchange = (e)=>{ state.ui.pasajeFilter = e.target.value; render(); }; }
+}
+function renderContentOnly(){
+  const c = document.getElementById('content');
+  if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
+  else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
+  else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
+}
+
+async function saveWorkerFromForm(){
+  const form = document.getElementById('workerForm');
+  const id = form.dataset.workerId;
+  const isNew = form.dataset.isNew === 'true';
+  const nombre = document.getElementById('f-nombre').value.trim();
+  if(!nombre){ alert('El nombre es obligatorio.'); return; }
+
+  const saveBtn = document.querySelector('[data-action="save-worker"]');
+  const cancelBtn = document.querySelector('.modal-foot [data-action="close-modal"]');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
+  if(cancelBtn){ cancelBtn.disabled = true; }
+
+  const existingWorker = isNew ? null : state.workers.find(w=>w.id===id);
+  const failedFiles = [];
+
+  // ---- Exámenes: leer campos, y guardar/eliminar archivos ANTES de confirmar el nombre adjunto ----
+  const examCardsEls = document.querySelectorAll('#examList .exam-card');
+  const examenes = [];
+  for(const card of examCardsEls){
+    const tipo = card.dataset.examType;
+    const fecha = card.querySelector('.exam-fecha').value;
+    const vencimiento = card.querySelector('.exam-venc').value;
+    const fileInput = card.querySelector('.exam-file');
+    const existing = (existingWorker ? (existingWorker.examenes||[]) : []).find(x=>x.tipo===tipo) || {};
+    let archivoNombre = existing.archivoNombre || '';
+    let archivoTipo = existing.archivoTipo || '';
+
+    if(fileInput && fileInput._pendingRemove){
+      try{ await window.storage.delete(examDocKey(id, tipo), true); }catch(e){ /* puede no existir, no es grave */ }
+      archivoNombre = ''; archivoTipo = '';
+    } else if(fileInput && fileInput._pendingFile){
+      const key = examDocKey(id, tipo);
+      try{
+        await window.storage.set(key, JSON.stringify(fileInput._pendingFile), true);
+        archivoNombre = fileInput._pendingFile.nombre;
+        archivoTipo = fileInput._pendingFile.mime;
+      }catch(err){
+        console.error('Error guardando examen', key, err);
+        failedFiles.push(tipo+' ('+fileInput._pendingFile.nombre+')');
+        // se mantiene el archivo anterior (si había) ya que el nuevo no se pudo guardar
+      }
+    }
+    examenes.push({tipo, fecha, vencimiento, archivoNombre, archivoTipo});
+  }
+
+  // Acreditaciones
+  const acreditaciones = Array.from(document.querySelectorAll('#acredList .repeat-row2')).map(row=>({
+    faena: row.querySelector('.acred-faena').value,
+    estado: row.querySelector('.acred-estado').value,
+    vencimiento: row.querySelector('.acred-venc').value
+  }));
+
+  // ---- Certificaciones de equipos: ahora soportan varios archivos por certificación ----
+  const certBlockEls = document.querySelectorAll('#certList .cert-block');
+  const certificaciones = [];
+  const existingCerts = existingWorker ? (existingWorker.certificaciones||[]) : [];
+  for(const block of certBlockEls){
+    const certId = block.dataset.certId;
+    const equipo = block.querySelector('.cert-equipo').value;
+    const fecha = block.querySelector('.cert-fecha').value;
+    const vencimiento = block.querySelector('.cert-venc').value;
+    const existing = existingCerts.find(c=>c.id===certId) || {};
+    const existingFiles = existing.archivos || [];
+    const removedIds = block._removedFileIds || new Set();
+    const pendingFiles = block._pendingFiles || [];
+
+    for(const fid of removedIds){
+      try{ await window.storage.delete(certDocKey(id, certId, fid), true); }catch(e){ /* puede no existir */ }
+    }
+    let finalFiles = existingFiles.filter(f=>!removedIds.has(f.id));
+    for(const pf of pendingFiles){
+      const key = certDocKey(id, certId, pf.id);
+      try{
+        await window.storage.set(key, JSON.stringify({nombre: pf.nombre, mime: pf.mime, data: pf.data}), true);
+        finalFiles.push({id: pf.id, nombre: pf.nombre, mime: pf.mime});
+      }catch(err){
+        console.error('Error guardando archivo de certificación', key, err);
+        failedFiles.push(equipo+' ('+pf.nombre+')');
+      }
+    }
+    certificaciones.push({id: certId, equipo, fecha, vencimiento, archivos: finalFiles});
+  }
+
+  // ---- Otros exámenes / documentos adicionales (mismo tratamiento que exámenes fijos) ----
+  const examExtraEls = document.querySelectorAll('#examExtraList [data-extra-id]');
+  const examenesExtra = [];
+  const existingExtra = existingWorker ? (existingWorker.examenesExtra||[]) : [];
+  for(const card of examExtraEls){
+    const extraId = card.dataset.extraId;
+    const nombreExtra = card.querySelector('.exam-extra-nombre').value.trim();
+    if(!nombreExtra) continue; // se descartan filas vacías sin nombre
+    const fecha = card.querySelector('.exam-extra-fecha').value;
+    const vencimiento = card.querySelector('.exam-extra-venc').value;
+    const fileInput = card.querySelector('.exam-extra-file');
+    const existing = existingExtra.find(x=>x.id===extraId) || {};
+    let archivoNombre = existing.archivoNombre || '';
+    let archivoTipo = existing.archivoTipo || '';
+
+    if(fileInput && fileInput._pendingRemove){
+      try{ await window.storage.delete(examExtraDocKey(id, extraId), true); }catch(e){ /* puede no existir */ }
+      archivoNombre = ''; archivoTipo = '';
+    } else if(fileInput && fileInput._pendingFile){
+      const key = examExtraDocKey(id, extraId);
+      try{
+        await window.storage.set(key, JSON.stringify(fileInput._pendingFile), true);
+        archivoNombre = fileInput._pendingFile.nombre;
+        archivoTipo = fileInput._pendingFile.mime;
+      }catch(err){
+        console.error('Error guardando documento adicional', key, err);
+        failedFiles.push(nombreExtra+' ('+fileInput._pendingFile.nombre+')');
+      }
+    }
+    examenesExtra.push({id: extraId, nombre: nombreExtra, fecha, vencimiento, archivoNombre, archivoTipo});
+  }
+
+  const data = {
+    id, nombre,
+    rut: document.getElementById('f-rut').value.trim(),
+    cargo: document.getElementById('f-cargo').value,
+    telefono: document.getElementById('f-telefono').value.trim(),
+    correo: document.getElementById('f-correo').value.trim(),
+    ciudad: document.getElementById('f-ciudad').value.trim(),
+    empresa: document.getElementById('f-empresa').value.trim(),
+    turno: {
+      fechaInicioCiclo: document.getElementById('f-cicloinicio').value || todayStr(),
+      diasTrabajo: parseInt(document.getElementById('f-diastrabajo').value)||14,
+      diasDescanso: parseInt(document.getElementById('f-diasdescanso').value)||14
+    },
+    examenes, acreditaciones, certificaciones, examenesExtra
+  };
+
+  if(isNew){
+    data.overrides = {};
+    state.workers.push(data);
+  } else {
+    const existing = state.workers.find(w=>w.id===id);
+    data.overrides = existing.overrides || {};
+    Object.assign(existing, data);
+  }
+  state.ui.modal = null;
+  render();
+  await persist();
+
+  if(failedFiles.length){
+    alert('Se guardó la ficha, pero estos archivos no se pudieron subir (probablemente pesan demasiado): \n\n'+failedFiles.join('\n')+'\n\nVuelve a abrir la ficha e inténtalo de nuevo, idealmente con un archivo más liviano (menos de 3.5 MB).');
+  }
+}
+
+/* ============================= INIT ============================= */
+loadData();
+</script>
 </body>
 </html>

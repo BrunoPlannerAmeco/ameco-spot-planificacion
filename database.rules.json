@@ -2,25 +2,7 @@
   "rules": {
     "amecoSpotPlanner": {
       ".read": "auth != null",
-      ".write": "auth != null",
-      "workers": {
-        "$workerId": {
-          ".validate": "newData.hasChildren(['id','nombre','estadoLaboral','turno','examenes','overrides'])"
-        }
-      },
-      "sites": {
-        "$siteId": {
-          ".validate": "newData.hasChildren(['id','nombre','activa'])"
-        }
-      },
-      "accreditations": {
-        "$accreditationId": {
-          ".validate": "newData.hasChildren(['id','trabajadorId','faenaId','estado'])"
-        }
-      },
-      "settings": {},
-      "contacts": {},
-      "tickets": {}
+      ".write": "auth != null"
     }
   }
 }

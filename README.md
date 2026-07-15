@@ -1,18 +1,42 @@
-# AMECO Spot Planner v2.4.0 — Integración Checkpoint
+# AMECO Spot Planner v3.0.0 — HTML Rebuild
 
-Esta versión porta al Track B cloud las partes esenciales del checkpoint y del HTML operativo:
+Esta versión reinicia el desarrollo tomando como referencia directa el diseño
+y los módulos de `control_personal (15)(1).html`.
 
-- ficha avanzada de Personal;
-- cargos adicionales;
-- ciclo configurable y overrides;
-- exámenes fijos y adicionales;
-- certificaciones con metadata multiarchivo;
-- importación Excel con deduplicación por RUT;
-- migración de respaldo JSON Track A;
-- vista transversal de Documentos;
-- matriz mensual de Turnos con edición individual y deshacer;
-- indicadores documentales en el Dashboard.
+## Conservado
 
-## Limitación conocida
+- Diseño lateral oscuro y acento naranja.
+- Dashboard con indicadores y alertas.
+- Trabajadores y ficha completa.
+- Importación desde Excel.
+- Exportación profesional a Excel.
+- Llamados.
+- Pasajes.
+- Documentos y exámenes.
+- Acreditaciones por faena.
+- Certificaciones de equipos.
+- Turnos configurables y matriz interactiva.
+- Edición masiva, arrastre y deshacer.
 
-Firebase Storage todavía no está implementado. Se conserva la metadata de archivos del HTML anterior, pero no el contenido Base64.
+## Cambiado
+
+- Marca visible: AMECO Spot Planner.
+- Login con Firebase Authentication.
+- Datos compartidos mediante Firebase Realtime Database.
+- Migración automática de datos existentes desde las colecciones v2 cuando
+  todavía no existe el respaldo unificado.
+- Se eliminaron los trabajadores de demostración.
+- Se agregó cierre de sesión.
+- Se mantiene un único `index.html` para evitar problemas de rutas al subir
+  desde el navegador a GitHub.
+
+## Datos
+
+La aplicación usa temporalmente:
+
+```text
+amecoSpotPlanner/legacyStorage/
+```
+
+El objetivo de las siguientes versiones será separar internamente cada módulo
+sin cambiar el diseño ni perder funciones.
