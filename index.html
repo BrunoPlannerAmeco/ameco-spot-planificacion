@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.1.0 — eliminación masiva de trabajadores -->
+<!-- AMECO Spot Planner v3.2.0 — cargos y filtros de turnos -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -313,6 +313,106 @@
     background:#a92824;
   }
 
+
+  /* ============================= CARGOS Y FILTRO DE TURNOS ============================= */
+  .turno-filter-row{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .turno-cargo-filter{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:230px;
+  }
+  .turno-cargo-filter label{
+    font-size:10.5px;
+    font-weight:700;
+    color:var(--sub);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .turno-cargo-filter select{
+    min-height:36px;
+    background:var(--panel);
+  }
+  .turno-filter-notice{
+    color:var(--accent-ink);
+    font-weight:600;
+    margin-bottom:6px;
+    background:#fff4ee;
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:8px 10px;
+  }
+  .settings-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 310px;
+    gap:18px;
+    align-items:start;
+  }
+  .settings-head-sub{
+    color:var(--sub);
+    font-size:12px;
+    margin-top:3px;
+  }
+  .settings-list{
+    padding:4px 0;
+  }
+  .settings-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 18px;
+    border-bottom:1px solid #f0f1ec;
+  }
+  .settings-item:last-child{
+    border-bottom:none;
+  }
+  .settings-item-main{
+    flex:1;
+    min-width:0;
+  }
+  .settings-item-title{
+    color:var(--steel);
+    font-weight:700;
+    font-size:14px;
+  }
+  .settings-item-sub{
+    color:var(--sub);
+    font-size:11.5px;
+    margin-top:2px;
+  }
+  .settings-note{
+    background:#fff8f4;
+    border:1px solid #f1d4c7;
+    border-radius:var(--radius);
+    padding:17px;
+    color:var(--accent-ink);
+    line-height:1.5;
+  }
+  .settings-note strong{
+    display:block;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:18px;
+    margin-bottom:7px;
+  }
+  .settings-note p{
+    color:var(--sub);
+    font-size:12px;
+    margin:8px 0 0;
+  }
+  button:disabled{
+    cursor:not-allowed;
+    opacity:.5;
+  }
+  @media(max-width:1050px){
+    .settings-layout{grid-template-columns:1fr;}
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -605,7 +705,7 @@ let state = {
   equipos: [...DEFAULT_EQUIPOS],
   llamados: [],
   pasajes: [],
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'' },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'' },
   saving:false
 };
 let bulkSelected = new Set();
@@ -1179,9 +1279,10 @@ const NAV = [
   {id:'documentos', label:'Documentos', ic:'▤'},
   {id:'acreditaciones', label:'Acreditaciones', ic:'✓'},
   {id:'certificaciones', label:'Certificaciones equipos', ic:'⚙'},
-  {id:'turnos', label:'Turnos 14x14', ic:'▦'}
+  {id:'turnos', label:'Turnos 14x14', ic:'▦'},
+  {id:'configuracion', label:'Configuración', ic:'☰'}
 ];
-const TAB_TITLES = {dashboard:'Resumen general', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14'};
+const TAB_TITLES = {dashboard:'Resumen general', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14', configuracion:'Configuración'};
 
 function renderSidebar(){
   const alertCount = state.workers.filter(w=>{const s=workerWorstExam(w); return s==='bad'||s==='warn';}).length;
@@ -1204,30 +1305,60 @@ function renderSidebar(){
 function renderTopbar(){
   const tb = document.getElementById('topbar');
   let searchHtml = '';
+
   if(state.ui.tab==='trabajadores'){
-    searchHtml = '<div class="search-box"><span class="ic">\uD83D\uDD0E</span><input id="searchInput" placeholder="Buscar por nombre, RUT o cargo..." value="'+escAttr(state.ui.search)+'"></div>'+
+    searchHtml =
+      '<div class="search-box"><span class="ic">\uD83D\uDD0E</span><input id="searchInput" placeholder="Buscar por nombre, RUT o cargo..." value="'+escAttr(state.ui.search)+'"></div>'+
       '<select id="cargoFilter" style="max-width:190px;">'+
         '<option value="all" '+(state.ui.cargoFilter==='all'?'selected':'')+'>Todos los cargos</option>'+
-        state.cargos.map(c=>'<option value="'+c+'" '+(state.ui.cargoFilter===c?'selected':'')+'>'+c+'</option>').join('')+
+        state.cargos.map(c=>'<option value="'+escAttr(c)+'" '+(state.ui.cargoFilter===c?'selected':'')+'>'+escHtml(c)+'</option>').join('')+
       '</select>';
   }
-  let addBtn = '';
-  if(state.ui.tab==='trabajadores') addBtn =
-    '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button>'+
-    '<button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>'+
-    '<button class="btn btn-danger" data-action="toggle-worker-delete-mode">'+
-      (workerDeleteMode ? 'Cancelar selección' : 'Eliminar varios')+
-    '</button>';
-  else if(state.ui.tab==='llamados') addBtn = '<button class="btn btn-accent" data-action="new-llamada">+ Registrar llamado</button>';
-  else if(state.ui.tab==='pasajes') addBtn = '<button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button>';
-  const globalBtns = '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'+
-    '<button class="btn btn-ghost" data-action="save-now" id="saveNowBtn" title="Guarda todos los cambios inmediatamente">\uD83D\uDCBE Guardar</button>'+
-    '<span class="cloud-pill"><span class="dot-live"></span> Firebase</span>'+
-    '<span class="session-email" id="sessionEmail">'+escHtml((window.amecoCurrentUser&&window.amecoCurrentUser.email)||'Usuario')+'</span>'+
-    '<button class="btn btn-ghost" data-action="logout">Cerrar sesión</button>';
-  tb.innerHTML = '<h1>'+TAB_TITLES[state.ui.tab]+'</h1>'+searchHtml+addBtn+globalBtns+'<span class="save-pill" id="savePill"></span>';
-  renderSavePill();
+
+  let actionButtons = '';
+
+  if(state.ui.tab==='trabajadores'){
+    actionButtons =
+      '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button>'+
+      '<button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>'+
+      '<button class="btn btn-danger" data-action="toggle-worker-delete-mode">'+
+        (workerDeleteMode ? 'Cancelar selección' : 'Eliminar varios')+
+      '</button>'+
+      '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>';
+  }
+  else if(state.ui.tab==='llamados'){
+    actionButtons = '<button class="btn btn-accent" data-action="new-llamada">+ Registrar llamado</button>';
+  }
+  else if(state.ui.tab==='pasajes'){
+    actionButtons = '<button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button>';
+  }
+  else if(state.ui.tab==='configuracion'){
+    actionButtons = '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>';
+  }
+
+  const showGlobalControls = state.ui.tab !== 'trabajadores';
+  const globalButtons = showGlobalControls
+    ? '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'+
+      '<button class="btn btn-ghost" data-action="save-now" id="saveNowBtn" title="Guarda todos los cambios inmediatamente">\uD83D\uDCBE Guardar</button>'+
+      '<span class="cloud-pill"><span class="dot-live"></span> Firebase</span>'+
+      '<span class="session-email" id="sessionEmail">'+escHtml((window.amecoCurrentUser&&window.amecoCurrentUser.email)||'Usuario')+'</span>'+
+      '<button class="btn btn-ghost" data-action="logout">Cerrar sesión</button>'
+    : '';
+
+  const saveStatus = showGlobalControls
+    ? '<span class="save-pill" id="savePill"></span>'
+    : '';
+
+  tb.innerHTML =
+    '<h1>'+TAB_TITLES[state.ui.tab]+'</h1>'+
+    searchHtml+
+    actionButtons+
+    globalButtons+
+    saveStatus;
+
+  if(showGlobalControls) renderSavePill();
 }
+
 function renderSavePill(){
   const el = document.getElementById('savePill');
   if(!el) return;
@@ -1246,6 +1377,7 @@ function render(){
   else if(state.ui.tab==='acreditaciones') c.innerHTML = viewAcreditaciones();
   else if(state.ui.tab==='certificaciones') c.innerHTML = viewCertificaciones();
   else if(state.ui.tab==='turnos') c.innerHTML = viewTurnos();
+  else if(state.ui.tab==='configuracion') c.innerHTML = viewConfiguracion();
   renderModal();
   attachDynamicListeners();
 }
@@ -1814,6 +1946,50 @@ function pasajeModalHtml(pasajeId){
     '</div></div></div>';
 }
 
+
+/* ============================= VIEW: CONFIGURACIÓN ============================= */
+function viewConfiguracion(){
+  const cargos = [...state.cargos].sort((a,b)=>a.localeCompare(b,'es'));
+
+  const rows = cargos.map(cargo=>{
+    const assigned = state.workers.filter(w=>w.cargo===cargo).length;
+    const inUse = assigned > 0;
+
+    return '<div class="settings-item">'+
+      '<div class="settings-item-main">'+
+        '<div class="settings-item-title">'+escHtml(cargo)+'</div>'+
+        '<div class="settings-item-sub">'+
+          (inUse
+            ? assigned+' trabajador'+(assigned===1?' asignado':'es asignados')
+            : 'Sin trabajadores asignados')+
+        '</div>'+
+      '</div>'+
+      '<span class="chip '+(inUse?'warn':'grey')+'">'+(inUse?'En uso':'Disponible')+'</span>'+
+      '<button class="btn btn-danger btn-sm" data-action="delete-cargo" data-cargo="'+escAttr(cargo)+'" '+(inUse?'disabled title="Primero reasigna los trabajadores que usan este cargo."':'')+'>Eliminar</button>'+
+    '</div>';
+  }).join('');
+
+  return '<div class="settings-layout">'+
+    '<section class="panel">'+
+      '<div class="panel-head">'+
+        '<div>'+
+          '<h2>Cargos de trabajadores</h2>'+
+          '<div class="settings-head-sub">Crea los cargos disponibles para las fichas, filtros y planificación de turnos.</div>'+
+        '</div>'+
+        '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>'+
+      '</div>'+
+      '<div class="settings-list">'+
+        (rows || '<div class="empty">No existen cargos registrados.</div>')+
+      '</div>'+
+    '</section>'+
+    '<section class="settings-note">'+
+      '<strong>Protección de datos</strong>'+
+      '<p>No se puede eliminar un cargo mientras tenga trabajadores asignados. Primero debes editar esas fichas y escoger otro cargo.</p>'+
+      '<p>Los cambios se guardan en Firebase y aparecen automáticamente en Trabajadores y Turnos 14×14.</p>'+
+    '</section>'+
+  '</div>';
+}
+
 /* ============================= VIEW: TURNOS ============================= */
 function viewTurnos(){
   const y = state.ui.calYear, m = state.ui.calMonth;
@@ -1821,6 +1997,7 @@ function viewTurnos(){
   const monthLabel = MESES[m] + ' ' + y;
   const size = state.ui.gridSize || 'compact';
   const faenaFilter = state.ui.turnoFaenaFilter || null;
+  const cargoFilter = state.ui.turnoCargoFilter || 'all';
 
   let headerCells = '';
   for(let d=1; d<=daysInMonth; d++){
@@ -1829,8 +2006,13 @@ function viewTurnos(){
   }
 
   let workersToShow = state.workers;
+
+  if(cargoFilter !== 'all'){
+    workersToShow = workersToShow.filter(w=>w.cargo===cargoFilter);
+  }
+
   if(faenaFilter){
-    workersToShow = state.workers.filter(w=>{
+    workersToShow = workersToShow.filter(w=>{
       for(let d=1; d<=daysInMonth; d++){
         if(dayStatus(w, fmt(new Date(y,m,d))).faena === faenaFilter) return true;
       }
@@ -1874,11 +2056,28 @@ function viewTurnos(){
     '</button>';
   }).join('') + (faenaFilter ? '<button type="button" class="fl-item fl-clear" data-action="clear-turno-faena-filter">✕ Quitar filtro</button>' : '');
 
-  const filterNotice = faenaFilter
-    ? '<div class="helptext" style="color:var(--accent-ink);font-weight:600;margin-bottom:4px;">Mostrando '+workersToShow.length+' trabajador(es) asignado(s) a "'+escHtml(faenaFilter)+'" en '+monthLabel+'.</div>'
+  const activeFilters = [];
+  if(cargoFilter !== 'all') activeFilters.push('cargo "'+cargoFilter+'"');
+  if(faenaFilter) activeFilters.push('faena "'+faenaFilter+'"');
+
+  const filterNotice = activeFilters.length
+    ? '<div class="helptext turno-filter-notice">Mostrando '+workersToShow.length+' trabajador(es) por '+escHtml(activeFilters.join(' y '))+' en '+monthLabel+'.</div>'
     : '';
 
-  return '<div class="cal-toolbar">'+
+  const cargoSelector =
+    '<div class="turno-cargo-filter">'+
+      '<label for="turnoCargoFilter">Filtrar por cargo</label>'+
+      '<select id="turnoCargoFilter">'+
+        '<option value="all" '+(cargoFilter==='all'?'selected':'')+'>Todos los cargos</option>'+
+        state.cargos.map(c=>'<option value="'+escAttr(c)+'" '+(cargoFilter===c?'selected':'')+'>'+escHtml(c)+'</option>').join('')+
+      '</select>'+
+    '</div>';
+
+  return '<div class="turno-filter-row">'+
+      cargoSelector+
+      (cargoFilter!=='all' ? '<button class="btn btn-ghost btn-sm" data-action="clear-turno-cargo-filter">✕ Quitar filtro de cargo</button>' : '')+
+    '</div>'+
+    '<div class="cal-toolbar">'+
       '<button class="btn btn-ghost btn-sm" data-action="cal-prev">← Mes anterior</button>'+
       '<div class="month-lbl">'+monthLabel+'</div>'+
       '<button class="btn btn-ghost btn-sm" data-action="cal-next">Mes siguiente →</button>'+
@@ -1897,10 +2096,10 @@ function viewTurnos(){
       '</div></div>'+
     '<div class="faena-legend">'+faenaLegend+'</div>'+
     filterNotice+
-    '<div class="helptext">Haz clic en un día para editarlo individualmente, o arrastra de un día a otro para copiar el mismo estado a los días intermedios. Haz clic en el nombre de una faena para ver solo a quienes están asignados a ella este mes. Usa "Compacta / Cómoda / Grande" para ajustar el tamaño, o "Ver mes ampliado" para revisar a una persona en grande. Si te equivocas, usa "Deshacer" (Ctrl+Z).</div>'+
+    '<div class="helptext">Haz clic en un día para editarlo individualmente, o arrastra de un día a otro para copiar el mismo estado a los días intermedios. Usa el filtro de cargo o haz clic en una faena para mostrar únicamente los trabajadores que correspondan. Usa "Compacta / Cómoda / Grande" para ajustar el tamaño, o "Ver mes ampliado" para revisar a una persona en grande. Si te equivocas, usa "Deshacer" (Ctrl+Z).</div>'+
     '<div class="table-wrap" style="max-height:74vh;"><table class="grid-table size-'+size+'">'+
       '<thead><tr><th class="namecell">Trabajador</th>'+headerCells+'</tr></thead>'+
-      '<tbody>'+(rows || '<tr><td class="namecell" style="color:var(--sub)">Sin trabajadores asignados a esta faena este mes</td></tr>')+'</tbody>'+
+      '<tbody>'+(rows || '<tr><td class="namecell" style="color:var(--sub)">No hay trabajadores que coincidan con los filtros seleccionados</td></tr>')+'</tbody>'+
     '</table></div>';
 }
 
@@ -1917,6 +2116,7 @@ function renderModal(){
   else if(state.ui.modal.type==='llamada') root.innerHTML = llamadaModalHtml(state.ui.modal.llamadaId);
   else if(state.ui.modal.type==='pasaje') root.innerHTML = pasajeModalHtml(state.ui.modal.pasajeId);
   else if(state.ui.modal.type==='import') root.innerHTML = importModalHtml();
+  else if(state.ui.modal.type==='addCargo') root.innerHTML = addSimpleListModalHtml('Agregar cargo','new-cargo-name','save-cargo');
 }
 
 function importModalHtml(){
@@ -2391,6 +2591,60 @@ document.addEventListener('click', async (e)=>{
     render();
   }
   else if(action==='clear-turno-faena-filter'){ state.ui.turnoFaenaFilter = null; render(); }
+  else if(action==='clear-turno-cargo-filter'){
+    state.ui.turnoCargoFilter = 'all';
+    render();
+  }
+
+  else if(action==='open-add-cargo'){
+    state.ui.modal = {type:'addCargo'};
+    renderModal();
+  }
+  else if(action==='save-cargo'){
+    const input = document.getElementById('new-cargo-name');
+    const name = String(input ? input.value : '').trim();
+
+    if(!name){
+      alert('Escribe el nombre del cargo.');
+      return;
+    }
+
+    const duplicate = state.cargos.some(c=>c.toLowerCase()===name.toLowerCase());
+    if(duplicate){
+      alert('Ese cargo ya existe.');
+      return;
+    }
+
+    state.cargos.push(name);
+    state.cargos.sort((a,b)=>a.localeCompare(b,'es'));
+    state.ui.modal = null;
+    await persistNow();
+    render();
+  }
+  else if(action==='delete-cargo'){
+    const cargo = el.dataset.cargo;
+    const assigned = state.workers.filter(w=>w.cargo===cargo).length;
+
+    if(assigned>0){
+      alert('No puedes eliminar este cargo porque tiene '+assigned+' trabajador(es) asignado(s). Reasígnalos primero.');
+      return;
+    }
+
+    if(state.cargos.length<=1){
+      alert('Debe existir al menos un cargo.');
+      return;
+    }
+
+    if(!confirm('¿Eliminar el cargo "'+cargo+'"?')){
+      return;
+    }
+
+    state.cargos = state.cargos.filter(c=>c!==cargo);
+    if(state.ui.cargoFilter===cargo) state.ui.cargoFilter='all';
+    if(state.ui.turnoCargoFilter===cargo) state.ui.turnoCargoFilter='all';
+    await persistNow();
+    render();
+  }
 
   else if(action==='new-llamada'){ state.ui.modal = {type:'llamada', llamadaId:null}; renderModal(); }
   else if(action==='open-llamada'){ state.ui.modal = {type:'llamada', llamadaId: el.dataset.id}; renderModal(); }
@@ -2687,6 +2941,13 @@ function attachDynamicListeners(){
   if(search){ search.oninput = (e)=>{ state.ui.search = e.target.value; renderContentOnly(); }; }
   const cargoFilterEl = document.getElementById('cargoFilter');
   if(cargoFilterEl){ cargoFilterEl.onchange = (e)=>{ state.ui.cargoFilter = e.target.value; renderContentOnly(); }; }
+  const turnoCargoFilterEl = document.getElementById('turnoCargoFilter');
+  if(turnoCargoFilterEl){
+    turnoCargoFilterEl.onchange = (e)=>{
+      state.ui.turnoCargoFilter = e.target.value;
+      render();
+    };
+  }
   const docType = document.getElementById('docTypeFilter');
   if(docType){ docType.onchange = (e)=>{ state.ui.docTypeFilter = e.target.value; render(); }; }
   const docStatus = document.getElementById('docStatusFilter');

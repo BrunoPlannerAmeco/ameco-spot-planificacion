@@ -51,3 +51,18 @@ sin cambiar el diseño ni perder funciones.
 - Eliminación grupal con confirmación.
 - Limpieza de llamados, pasajes y archivos asociados.
 - La eliminación individual ahora también limpia datos relacionados.
+
+
+## v3.2.0 — Cargos y filtros
+
+- La barra de Trabajadores muestra solo:
+  - Importar desde Excel.
+  - Nuevo trabajador.
+  - Eliminar varios.
+  - Exportar Excel.
+- Se ocultaron Guardar, Firebase, correo, Cerrar sesión y el indicador Guardado en la vista Trabajadores.
+- Turnos 14×14 permite filtrar trabajadores por cargo.
+- El filtro de cargo puede combinarse con el filtro por faena.
+- Se agregó el menú Configuración.
+- Configuración permite crear cargos y eliminar cargos sin trabajadores asignados.
+- Los cargos nuevos aparecen automáticamente en fichas y filtros.

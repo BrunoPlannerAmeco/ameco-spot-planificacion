@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## v3.1.0
+## v3.2.0
 
-- Se agregó eliminación masiva de trabajadores.
-- Se agregó selección por tarjetas.
-- Se agregó selección de resultados filtrados.
-- Se agregó limpieza automática de llamados, pasajes y documentos asociados.
-- Se mejoró la eliminación individual.
+- Se simplificó la barra superior de Trabajadores.
+- Se agregó filtro por cargo en Turnos 14×14.
+- Se agregó el menú Configuración.
+- Se agregó creación y eliminación segura de cargos.
+- Se impide eliminar cargos que estén asignados a trabajadores.
