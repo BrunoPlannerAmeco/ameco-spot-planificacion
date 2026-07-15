@@ -40,3 +40,14 @@ amecoSpotPlanner/legacyStorage/
 
 El objetivo de las siguientes versiones será separar internamente cada módulo
 sin cambiar el diseño ni perder funciones.
+
+
+## v3.1.0 — Eliminación masiva
+
+- Modo de selección dentro de Trabajadores.
+- Selección individual mediante tarjetas.
+- Seleccionar o desmarcar todos los resultados visibles.
+- Compatible con búsqueda y filtro por cargo.
+- Eliminación grupal con confirmación.
+- Limpieza de llamados, pasajes y archivos asociados.
+- La eliminación individual ahora también limpia datos relacionados.

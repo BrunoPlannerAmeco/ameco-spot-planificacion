@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.0.0 — rebuild basado en control_personal (15) -->
+<!-- AMECO Spot Planner v3.1.0 — eliminación masiva de trabajadores -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -253,6 +253,64 @@
   }
   .cloud-pill{
     font-size:11px; color:var(--sub); display:flex; align-items:center; gap:6px;
+  }
+
+
+  /* ============================= ELIMINACIÓN MASIVA ============================= */
+  .worker-bulk-bar{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex-wrap:wrap;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--bad);
+    border-radius:var(--radius);
+    padding:11px 13px;
+    margin-bottom:15px;
+    box-shadow:var(--shadow);
+  }
+  .worker-bulk-count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--bad);
+    margin-right:auto;
+  }
+  .wcard.bulk-mode{
+    position:relative;
+    padding-left:45px;
+    cursor:pointer;
+  }
+  .wcard.bulk-mode:hover{
+    border-color:var(--bad);
+  }
+  .wcard.bulk-selected{
+    border-color:var(--bad);
+    box-shadow:inset 0 0 0 1px var(--bad), var(--shadow);
+    background:#fffafa;
+  }
+  .worker-select-box{
+    position:absolute;
+    left:14px;
+    top:15px;
+    width:20px;
+    height:20px;
+    accent-color:var(--bad);
+    pointer-events:none;
+  }
+  .bulk-delete-help{
+    width:100%;
+    color:var(--sub);
+    font-size:11px;
+    margin-top:1px;
+  }
+  .btn-danger-solid{
+    background:var(--bad);
+    color:#fff;
+  }
+  .btn-danger-solid:hover{
+    background:#a92824;
   }
 
 </style>
@@ -551,6 +609,8 @@ let state = {
   saving:false
 };
 let bulkSelected = new Set();
+let workerDeleteSelected = new Set();
+let workerDeleteMode = false;
 let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColumna}}
 
 const IMPORT_FIELDS = [
@@ -1152,7 +1212,12 @@ function renderTopbar(){
       '</select>';
   }
   let addBtn = '';
-  if(state.ui.tab==='trabajadores') addBtn = '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button><button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>';
+  if(state.ui.tab==='trabajadores') addBtn =
+    '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button>'+
+    '<button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>'+
+    '<button class="btn btn-danger" data-action="toggle-worker-delete-mode">'+
+      (workerDeleteMode ? 'Cancelar selección' : 'Eliminar varios')+
+    '</button>';
   else if(state.ui.tab==='llamados') addBtn = '<button class="btn btn-accent" data-action="new-llamada">+ Registrar llamado</button>';
   else if(state.ui.tab==='pasajes') addBtn = '<button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button>';
   const globalBtns = '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'+
@@ -1315,40 +1380,94 @@ function viewDashboard(){
 }
 
 /* ============================= VIEW: TRABAJADORES ============================= */
+function filteredWorkers(){
+  const q = (state.ui.search||'').toLowerCase();
+  const cargoFilter = state.ui.cargoFilter || 'all';
+  let list = state.workers.filter(w=>
+    !q ||
+    (w.nombre||'').toLowerCase().includes(q) ||
+    (w.rut||'').toLowerCase().includes(q) ||
+    (w.cargo||'').toLowerCase().includes(q)
+  );
+  if(cargoFilter!=='all') list = list.filter(w=>w.cargo===cargoFilter);
+  return list;
+}
+
 function workerCardHtml(w){
   const worst = workerWorstExam(w);
   const dotColor = worst==='bad'?'var(--bad)':worst==='warn'?'var(--amber)':worst==='sin-dato'?'#c7cac2':'var(--good)';
-  const stickers = (w.acreditaciones||[]).filter(a=>a.estado==='Acreditado').map(a=>'<span class="sticker" style="background:'+faenaColor(a.faena)+'" title="'+escAttr(a.faena)+'"></span>').join('');
-  return '<div class="wcard" data-action="open-worker" data-id="'+w.id+'">'+
+  const stickers = (w.acreditaciones||[])
+    .filter(a=>a.estado==='Acreditado')
+    .map(a=>'<span class="sticker" style="background:'+faenaColor(a.faena)+'" title="'+escAttr(a.faena)+'"></span>')
+    .join('');
+
+  const selected = workerDeleteSelected.has(w.id);
+  const action = workerDeleteMode ? 'toggle-worker-delete' : 'open-worker';
+
+  return '<div class="wcard '+(workerDeleteMode?'bulk-mode ':'')+(selected?'bulk-selected':'')+'" data-action="'+action+'" data-id="'+w.id+'">'+
+    (workerDeleteMode
+      ? '<input class="worker-select-box" type="checkbox" '+(selected?'checked':'')+' tabindex="-1" aria-label="Seleccionar '+escAttr(w.nombre)+'">'
+      : '')+
     '<div class="wcard-top"><div><div class="name">'+escHtml(w.nombre)+'</div><div class="cargo">'+escHtml(w.cargo||'—')+'</div></div>'+
     '<span class="status-dot" style="background:'+dotColor+'" title="Estado de documentos"></span></div>'+
     '<div class="rut mono">'+escHtml(w.rut||'Sin RUT')+'</div>'+
     '<div class="sticker-row">'+(stickers || '<span class="sticker-empty">Sin acreditaciones</span>')+'</div></div>';
 }
 
-function viewTrabajadores(){
-  const q = (state.ui.search||'').toLowerCase();
-  const cargoFilter = state.ui.cargoFilter || 'all';
-  let list = state.workers.filter(w=> !q || w.nombre.toLowerCase().includes(q) || (w.rut||'').toLowerCase().includes(q) || (w.cargo||'').toLowerCase().includes(q));
-  if(cargoFilter!=='all') list = list.filter(w=>w.cargo===cargoFilter);
-  if(!list.length) return '<div class="empty panel" style="padding:40px;">No hay trabajadores que coincidan. <button class="btn btn-accent" style="margin-top:10px" data-action="new-worker">+ Agregar trabajador</button></div>';
+function workerBulkToolbar(list){
+  if(!workerDeleteMode) return '';
 
-  // Si hay un cargo específico filtrado, se muestra como una sola grilla (ya viene agrupado de por sí)
-  if(cargoFilter!=='all'){
-    return '<div class="card-grid">'+list.map(workerCardHtml).join('')+'</div>';
+  const visibleIds = new Set(list.map(w=>w.id));
+  const selectedVisible = list.filter(w=>workerDeleteSelected.has(w.id)).length;
+  const allVisibleSelected = list.length>0 && selectedVisible===list.length;
+
+  return '<div class="worker-bulk-bar">'+
+    '<span class="worker-bulk-count">'+workerDeleteSelected.size+' seleccionado'+(workerDeleteSelected.size===1?'':'s')+'</span>'+
+    '<button class="btn btn-ghost" data-action="select-visible-workers">'+
+      (allVisibleSelected ? 'Desmarcar resultados' : 'Seleccionar resultados')+
+    '</button>'+
+    '<button class="btn btn-ghost" data-action="clear-worker-selection" '+(!workerDeleteSelected.size?'disabled':'')+'>Limpiar selección</button>'+
+    '<button class="btn btn-danger-solid" data-action="delete-selected-workers" '+(!workerDeleteSelected.size?'disabled':'')+'>'+
+      'Eliminar seleccionados'+
+    '</button>'+
+    '<div class="bulk-delete-help">Puedes buscar o filtrar por cargo y luego seleccionar únicamente los resultados visibles.</div>'+
+  '</div>';
+}
+
+function viewTrabajadores(){
+  const list = filteredWorkers();
+  const cargoFilter = state.ui.cargoFilter || 'all';
+  const toolbar = workerBulkToolbar(list);
+
+  if(!list.length){
+    return toolbar+
+      '<div class="empty panel" style="padding:40px;">No hay trabajadores que coincidan. '+
+      (!workerDeleteMode
+        ? '<button class="btn btn-accent" style="margin-top:10px" data-action="new-worker">+ Agregar trabajador</button>'
+        : '')+
+      '</div>';
   }
 
-  // Sin filtro: se agrupa por cargo (en el orden definido en Cargos) para facilitar la búsqueda visual
+  if(cargoFilter!=='all'){
+    return toolbar+'<div class="card-grid">'+list.map(workerCardHtml).join('')+'</div>';
+  }
+
   const groupOrder = [...state.cargos];
   const grouped = {};
   list.forEach(w=>{
-    const key = w.cargo && groupOrder.includes(w.cargo) ? w.cargo : (w.cargo || 'Sin cargo asignado');
+    const key = w.cargo && groupOrder.includes(w.cargo)
+      ? w.cargo
+      : (w.cargo || 'Sin cargo asignado');
     if(!grouped[key]) grouped[key] = [];
     grouped[key].push(w);
   });
-  const orderedKeys = [...groupOrder.filter(c=>grouped[c]), ...Object.keys(grouped).filter(k=>!groupOrder.includes(k))];
 
-  return orderedKeys.map(key=>
+  const orderedKeys = [
+    ...groupOrder.filter(c=>grouped[c]),
+    ...Object.keys(grouped).filter(k=>!groupOrder.includes(k))
+  ];
+
+  return toolbar+orderedKeys.map(key=>
     '<div style="margin-bottom:22px;">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
         '<h2 style="font-size:15px;color:var(--steel);margin:0;font-weight:700;">'+escHtml(key)+'</h2>'+
@@ -1357,6 +1476,52 @@ function viewTrabajadores(){
       '<div class="card-grid">'+grouped[key].map(workerCardHtml).join('')+'</div>'+
     '</div>'
   ).join('');
+}
+
+async function removeWorkerDocuments(workerIds){
+  try{
+    const result = await window.storage.list('doc__', true);
+    const keys = (result && result.keys) || [];
+    const prefixes = workerIds.map(id=>'doc__'+id+'__');
+    const toDelete = keys.filter(key=>prefixes.some(prefix=>key.startsWith(prefix)));
+    await Promise.all(toDelete.map(key=>window.storage.delete(key, true)));
+  }catch(error){
+    console.warn('No fue posible limpiar todos los archivos asociados.', error);
+  }
+}
+
+async function deleteWorkersInBulk(){
+  const ids = Array.from(workerDeleteSelected);
+  if(!ids.length){
+    alert('Selecciona al menos un trabajador.');
+    return;
+  }
+
+  const selectedWorkers = state.workers.filter(w=>workerDeleteSelected.has(w.id));
+  const preview = selectedWorkers.slice(0,5).map(w=>'• '+w.nombre).join('\n');
+  const extra = selectedWorkers.length>5
+    ? '\n• y '+(selectedWorkers.length-5)+' trabajador(es) más'
+    : '';
+
+  const accepted = confirm(
+    '¿Eliminar '+selectedWorkers.length+' trabajador(es)?\n\n'+
+    preview+extra+
+    '\n\nTambién se eliminarán sus llamados, pasajes y archivos asociados. Esta acción no se puede deshacer.'
+  );
+  if(!accepted) return;
+
+  state.workers = state.workers.filter(w=>!workerDeleteSelected.has(w.id));
+  state.llamados = (state.llamados||[]).filter(item=>!workerDeleteSelected.has(item.workerId));
+  state.pasajes = (state.pasajes||[]).filter(item=>!workerDeleteSelected.has(item.workerId));
+
+  await removeWorkerDocuments(ids);
+  await persistNow();
+
+  workerDeleteSelected.clear();
+  workerDeleteMode = false;
+  render();
+
+  alert(selectedWorkers.length+' trabajador(es) eliminado(s) correctamente.');
 }
 
 /* ============================= VIEW: DOCUMENTOS ============================= */
@@ -2166,7 +2331,14 @@ document.addEventListener('click', async (e)=>{
   const el = e.target.closest('[data-action]');
   if(!el){
     const navEl = e.target.closest('[data-nav]');
-    if(navEl){ state.ui.tab = navEl.dataset.nav; render(); }
+    if(navEl){
+      state.ui.tab = navEl.dataset.nav;
+      if(state.ui.tab!=='trabajadores'){
+        workerDeleteMode = false;
+        workerDeleteSelected.clear();
+      }
+      render();
+    }
     return;
   }
   const action = el.dataset.action;
@@ -2175,6 +2347,34 @@ document.addEventListener('click', async (e)=>{
 
   if(action==='new-worker'){ state.ui.modal = {type:'worker', workerId:null}; renderModal(); }
   else if(action==='open-worker'){ state.ui.modal = {type:'worker', workerId: el.dataset.id}; renderModal(); }
+  else if(action==='toggle-worker-delete-mode'){
+    workerDeleteMode = !workerDeleteMode;
+    if(!workerDeleteMode) workerDeleteSelected.clear();
+    render();
+  }
+  else if(action==='toggle-worker-delete'){
+    const id = el.dataset.id;
+    if(workerDeleteSelected.has(id)) workerDeleteSelected.delete(id);
+    else workerDeleteSelected.add(id);
+    renderContentOnly();
+    renderTopbar();
+  }
+  else if(action==='select-visible-workers'){
+    const visible = filteredWorkers();
+    const allSelected = visible.length>0 && visible.every(w=>workerDeleteSelected.has(w.id));
+    visible.forEach(w=>{
+      if(allSelected) workerDeleteSelected.delete(w.id);
+      else workerDeleteSelected.add(w.id);
+    });
+    renderContentOnly();
+  }
+  else if(action==='clear-worker-selection'){
+    workerDeleteSelected.clear();
+    renderContentOnly();
+  }
+  else if(action==='delete-selected-workers'){
+    await deleteWorkersInBulk();
+  }
   else if(action==='goto-worker-from-doc'){ state.ui.tab='trabajadores'; render(); }
   else if(action==='grid-size'){ state.ui.gridSize = el.dataset.size; render(); }
   else if(action==='save-now'){
@@ -2375,9 +2575,15 @@ document.addEventListener('click', async (e)=>{
 
   else if(action==='save-worker'){ saveWorkerFromForm(); }
   else if(action==='delete-worker'){
-    if(confirm('¿Eliminar a este trabajador? Esta acción no se puede deshacer.')){
-      state.workers = state.workers.filter(w=>w.id!==el.dataset.id);
-      state.ui.modal = null; render(); await persist();
+    if(confirm('¿Eliminar a este trabajador? También se eliminarán sus llamados, pasajes y archivos asociados. Esta acción no se puede deshacer.')){
+      const workerId = el.dataset.id;
+      state.workers = state.workers.filter(w=>w.id!==workerId);
+      state.llamados = (state.llamados||[]).filter(item=>item.workerId!==workerId);
+      state.pasajes = (state.pasajes||[]).filter(item=>item.workerId!==workerId);
+      await removeWorkerDocuments([workerId]);
+      state.ui.modal = null;
+      render();
+      await persistNow();
     }
   }
 

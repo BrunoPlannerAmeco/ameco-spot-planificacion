@@ -1,12 +1,9 @@
 # CHANGELOG
 
-## v2.4.0-checkpoint-integracion
+## v3.1.0
 
-- Migración del modelo completo Worker del checkpoint.
-- Normalización automática de trabajadores creados en versiones anteriores.
-- Portado del ciclo de turnos y overrides.
-- Portados exámenes fijos, exámenes adicionales y certificaciones.
-- Importador Excel y migrador JSON Track A.
-- Nueva vista Documentos.
-- Nueva matriz Turnos.
-- Dashboard con alertas documentales.
+- Se agregó eliminación masiva de trabajadores.
+- Se agregó selección por tarjetas.
+- Se agregó selección de resultados filtrados.
+- Se agregó limpieza automática de llamados, pasajes y documentos asociados.
+- Se mejoró la eliminación individual.
