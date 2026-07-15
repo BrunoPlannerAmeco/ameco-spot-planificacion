@@ -226,3 +226,15 @@ El menú lateral quedó ordenado así:
 - El texto escrito permanece visible mientras se actualizan los resultados.
 - Se mejoró el foco, cursor, color del texto y visualización del placeholder.
 - En pantallas pequeñas, el buscador y el filtro por cargo ocupan una fila completa.
+
+
+## v3.7.7 — Turnos en dos meses
+
+- Turnos 14x14 abre de manera predeterminada dos meses consecutivos.
+- Se agregó un selector para alternar entre 1 mes y 2 meses.
+- La tabla muestra un encabezado independiente para cada mes.
+- El inicio del segundo mes se marca con una línea naranja.
+- Los botones de navegación avanzan o retroceden dos meses cuando la vista doble está activa.
+- Los filtros por cargo y faena consideran todo el período visible.
+- Se mantiene la edición individual, edición masiva, arrastre y función Deshacer.
+- La tabla utiliza desplazamiento horizontal para mantener legibles los días.

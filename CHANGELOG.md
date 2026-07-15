@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## v3.7.6
+## v3.7.7
 
-- Se dejó Exportar Excel solamente en el menú Resumen.
-- Se corrigió el ancho del buscador de Trabajadores.
-- Se mejoró la visibilidad del texto escrito.
-- Se agregó comportamiento adaptable para pantallas pequeñas.
+- Se agregó vista de dos meses en Turnos 14x14.
+- Se agregó selector 1 mes / 2 meses.
+- Se agregaron encabezados agrupados por mes.
+- Se adaptaron filtros y navegación al período visible.
+- Se agregó separación visual entre meses.

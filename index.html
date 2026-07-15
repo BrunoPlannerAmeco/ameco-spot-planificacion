@@ -1376,6 +1376,103 @@
     }
   }
 
+
+  /* ============================= TURNOS EN DOS MESES ============================= */
+  .turno-cal-toolbar{
+    flex-wrap:wrap;
+  }
+  .turno-period-label{
+    min-width:250px !important;
+  }
+  .turno-period-toggle{
+    display:inline-flex;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  .turno-period-toggle button{
+    border:0;
+    border-right:1px solid var(--line);
+    background:transparent;
+    color:var(--sub);
+    padding:7px 10px;
+    font-size:10.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .turno-period-toggle button:last-child{
+    border-right:0;
+  }
+  .turno-period-toggle button.active-size{
+    background:var(--steel);
+    color:#fff;
+  }
+  .turno-main-legend{
+    display:flex;
+    gap:13px;
+    flex-wrap:wrap;
+    margin:0 0 10px;
+  }
+  .turno-two-month-wrap{
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:var(--panel);
+  }
+  .turno-two-month-grid{
+    width:max-content;
+    min-width:100%;
+  }
+  .turno-two-month-grid thead tr:first-child th{
+    top:0;
+    height:31px;
+  }
+  .turno-two-month-grid thead tr:nth-child(2) th{
+    top:31px;
+  }
+  .turno-two-month-grid .turno-worker-header{
+    top:0 !important;
+    z-index:6;
+    vertical-align:middle;
+  }
+  .turno-month-group{
+    position:sticky;
+    top:0;
+    z-index:4;
+    background:var(--steel) !important;
+    color:#fff !important;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:14px;
+    text-transform:capitalize;
+    letter-spacing:.02em;
+    border-bottom-color:#35424d !important;
+  }
+  .turno-month-separator{
+    border-left:3px solid var(--accent) !important;
+  }
+  .turno-two-month-grid td.namecell{
+    z-index:3;
+  }
+  .turno-two-month-grid.size-compact .daycell{
+    width:27px;
+    min-width:27px;
+  }
+  .turno-two-month-grid.size-comfortable .daycell{
+    min-width:36px;
+  }
+  .turno-two-month-grid.size-large .daycell{
+    min-width:48px;
+  }
+  @media(max-width:850px){
+    .turno-period-label{
+      order:-1;
+      width:100%;
+      min-width:100% !important;
+      text-align:left !important;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1672,7 +1769,7 @@ let state = {
   pasajes: [],
   servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended' },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended' },
   saving:false
 };
 let bulkSelected = new Set();
@@ -4807,76 +4904,162 @@ function viewConfiguracion(){
 
 /* ============================= VIEW: TURNOS ============================= */
 function viewTurnos(){
-  const y = state.ui.calYear, m = state.ui.calMonth;
-  const daysInMonth = new Date(y, m+1, 0).getDate();
-  const monthLabel = MESES[m] + ' ' + y;
+  const y = state.ui.calYear;
+  const m = state.ui.calMonth;
+  const monthSpan = state.ui.turnoMonthSpan===1 ? 1 : 2;
   const size = state.ui.gridSize || 'compact';
   const faenaFilter = state.ui.turnoFaenaFilter || null;
   const cargoFilter = state.ui.turnoCargoFilter || 'all';
 
-  let headerCells = '';
-  for(let d=1; d<=daysInMonth; d++){
-    const wd = new Date(y,m,d).getDay();
-    headerCells += '<th class="'+(wd===0||wd===6?'weekend-col':'')+'">'+d+'<br><span style="font-weight:400;">'+DIAS_CORTO[wd]+'</span></th>';
+  const months = [];
+  const dates = [];
+
+  for(let offset=0; offset<monthSpan; offset++){
+    const monthDate = new Date(y,m+offset,1);
+    const monthYear = monthDate.getFullYear();
+    const monthIndex = monthDate.getMonth();
+    const daysInMonth = new Date(monthYear,monthIndex+1,0).getDate();
+
+    const monthInfo = {
+      year:monthYear,
+      month:monthIndex,
+      days:daysInMonth,
+      label:MESES[monthIndex]+' '+monthYear
+    };
+    months.push(monthInfo);
+
+    for(let day=1; day<=daysInMonth; day++){
+      dates.push({
+        year:monthYear,
+        month:monthIndex,
+        day,
+        dateStr:fmt(new Date(monthYear,monthIndex,day)),
+        weekday:new Date(monthYear,monthIndex,day).getDay(),
+        firstDay:day===1
+      });
+    }
   }
+
+  const periodLabel = monthSpan===1
+    ? months[0].label
+    : months[0].year===months[1].year
+      ? MESES[months[0].month]+' – '+MESES[months[1].month]+' '+months[0].year
+      : months[0].label+' – '+months[1].label;
+
+  const monthHeaderCells = months.map((monthInfo,index)=>
+    '<th class="turno-month-group '+(index>0?'turno-month-separator':'')+'" colspan="'+monthInfo.days+'">'+
+      escHtml(monthInfo.label)+
+    '</th>'
+  ).join('');
+
+  const dayHeaderCells = dates.map(dateInfo=>
+    '<th class="'+
+      (dateInfo.weekday===0||dateInfo.weekday===6?'weekend-col ':'')+
+      (dateInfo.firstDay && dateInfo.month!==months[0].month?'turno-month-separator':'')+
+    '">'+
+      dateInfo.day+
+      '<br><span style="font-weight:400;">'+DIAS_CORTO[dateInfo.weekday]+'</span>'+
+    '</th>'
+  ).join('');
 
   let workersToShow = state.workers;
 
   if(cargoFilter !== 'all'){
-    workersToShow = workersToShow.filter(w=>w.cargo===cargoFilter);
+    workersToShow = workersToShow.filter(worker=>worker.cargo===cargoFilter);
   }
 
   if(faenaFilter){
-    workersToShow = workersToShow.filter(w=>{
-      for(let d=1; d<=daysInMonth; d++){
-        if(dayStatus(w, fmt(new Date(y,m,d))).faena === faenaFilter) return true;
-      }
-      return false;
-    });
+    workersToShow = workersToShow.filter(worker=>
+      dates.some(dateInfo=>
+        dayStatus(worker,dateInfo.dateStr).faena===faenaFilter
+      )
+    );
   }
 
-  const rows = workersToShow.map(w=>{
-    let cells = '';
-    for(let d=1; d<=daysInMonth; d++){
-      const dateStr = fmt(new Date(y,m,d));
-      const info = dayStatus(w, dateStr);
+  const rows = workersToShow.map(worker=>{
+    const workerCargoColor = cargoColor(worker.cargo);
+
+    const cells = dates.map(dateInfo=>{
+      const info = dayStatus(worker,dateInfo.dateStr);
       let cls = 'daycell';
       let style = '';
+
+      if(dateInfo.firstDay && dateInfo.month!==months[0].month){
+        cls += ' turno-month-separator';
+      }
+
       if(info.faena){
         style = 'background:'+faenaColor(info.faena)+';';
         if(info.tipo==='extra') cls += ' ring-extra';
         else if(info.tipo==='permiso') cls += ' ring-permiso';
-      } else {
-        cls += info.tipo==='trabajo' ? ' st-trabajo' : info.tipo==='extra' ? ' st-extra' : info.tipo==='permiso' ? ' st-permiso' : ' st-descanso';
+      }else{
+        cls += info.tipo==='trabajo'
+          ? ' st-trabajo'
+          : info.tipo==='extra'
+            ? ' st-extra'
+            : info.tipo==='permiso'
+              ? ' st-permiso'
+              : ' st-descanso';
       }
-      const title = dateStr+' — '+info.tipo+(info.faena?(' · '+info.faena):'')+(info.nota?(' · '+info.nota):'');
-      let label = '', labelStyle = '';
-      if(info.faena){ label = faenaAbbrev(info.faena); }
-      else if(info.tipo==='trabajo'){ label = 'T'; }
-      else if(info.tipo==='descanso'){ label = 'D'; labelStyle = 'color:#5b5f57;text-shadow:none;'; }
-      else if(info.tipo==='extra'){ label = 'HE'; }
-      else if(info.tipo==='permiso'){ label = 'P'; labelStyle = 'color:#7a1f1f;text-shadow:none;'; }
-      const labelHtml = label ? '<span class="daycell-label" style="'+labelStyle+'">'+label+'</span>' : '';
-      cells += '<td class="'+cls+'" style="'+style+'" title="'+escAttr(title)+'" data-action="edit-day" data-id="'+w.id+'" data-date="'+dateStr+'">'+labelHtml+'</td>';
-    }
-    return '<tr><td class="namecell">'+escHtml(w.nombre)+'<div style="font-weight:400;font-size:11px;color:var(--sub);">'+escHtml(w.cargo||'')+'</div>'+
-      '<button type="button" class="link-btn worker-link-btn" data-action="view-worker-month" data-id="'+w.id+'">Ver mes ampliado →</button>'+
-      '</td>'+cells+'</tr>';
+
+      const title =
+        dateInfo.dateStr+
+        ' — '+info.tipo+
+        (info.faena ? ' · '+info.faena : '')+
+        (info.nota ? ' · '+info.nota : '');
+
+      let label = '';
+      let labelStyle = '';
+
+      if(info.faena){
+        label = faenaAbbrev(info.faena);
+      }else if(info.tipo==='trabajo'){
+        label = 'T';
+      }else if(info.tipo==='descanso'){
+        label = 'D';
+        labelStyle = 'color:#5b5f57;text-shadow:none;';
+      }else if(info.tipo==='extra'){
+        label = 'HE';
+      }else if(info.tipo==='permiso'){
+        label = 'P';
+        labelStyle = 'color:#7a1f1f;text-shadow:none;';
+      }
+
+      const labelHtml = label
+        ? '<span class="daycell-label" style="'+labelStyle+'">'+label+'</span>'
+        : '';
+
+      return '<td class="'+cls+'" style="'+style+'" title="'+escAttr(title)+'" data-action="edit-day" data-id="'+worker.id+'" data-date="'+dateInfo.dateStr+'">'+labelHtml+'</td>';
+    }).join('');
+
+    return '<tr>'+
+      '<td class="namecell" style="border-left:5px solid '+workerCargoColor+';">'+
+        escHtml(worker.nombre)+
+        '<div style="font-weight:400;font-size:11px;color:var(--sub);">'+escHtml(worker.cargo||'')+'</div>'+
+        '<button type="button" class="link-btn worker-link-btn" data-action="view-worker-month" data-id="'+worker.id+'">Ver mes ampliado →</button>'+
+      '</td>'+
+      cells+
+    '</tr>';
   }).join('');
 
-  const faenaLegend = state.faenas.map(f=>{
-    const active = faenaFilter === f;
-    return '<button type="button" class="fl-item fl-btn'+(active?' fl-active':'')+'" data-action="filter-turno-faena" data-faena="'+escAttr(f)+'" title="Filtrar por '+escAttr(f)+' este mes">'+
-      '<span class="fl-sw" style="background:'+faenaColor(f)+'"></span>'+escHtml(f)+
+  const faenaLegend = state.faenas.map(faena=>{
+    const active = faenaFilter===faena;
+
+    return '<button type="button" class="fl-item fl-btn'+(active?' fl-active':'')+'" data-action="filter-turno-faena" data-faena="'+escAttr(faena)+'" title="Filtrar por '+escAttr(faena)+' en el período">'+
+      '<span class="fl-sw" style="background:'+faenaColor(faena)+'"></span>'+
+      escHtml(faena)+
     '</button>';
-  }).join('') + (faenaFilter ? '<button type="button" class="fl-item fl-clear" data-action="clear-turno-faena-filter">✕ Quitar filtro</button>' : '');
+  }).join()+
+  (faenaFilter
+    ? '<button type="button" class="fl-item fl-clear" data-action="clear-turno-faena-filter">✕ Quitar filtro</button>'
+    : '');
 
   const activeFilters = [];
-  if(cargoFilter !== 'all') activeFilters.push('cargo "'+cargoFilter+'"');
+  if(cargoFilter!=='all') activeFilters.push('cargo "'+cargoFilter+'"');
   if(faenaFilter) activeFilters.push('faena "'+faenaFilter+'"');
 
   const filterNotice = activeFilters.length
-    ? '<div class="helptext turno-filter-notice">Mostrando '+workersToShow.length+' trabajador(es) por '+escHtml(activeFilters.join(' y '))+' en '+monthLabel+'.</div>'
+    ? '<div class="helptext turno-filter-notice">Mostrando '+workersToShow.length+' trabajador(es) por '+escHtml(activeFilters.join(' y '))+' entre '+escHtml(periodLabel)+'.</div>'
     : '';
 
   const cargoSelector =
@@ -4884,38 +5067,61 @@ function viewTurnos(){
       '<label for="turnoCargoFilter">Filtrar por cargo</label>'+
       '<select id="turnoCargoFilter">'+
         '<option value="all" '+(cargoFilter==='all'?'selected':'')+'>Todos los cargos</option>'+
-        state.cargos.map(c=>'<option value="'+escAttr(c)+'" '+(cargoFilter===c?'selected':'')+'>'+escHtml(c)+'</option>').join('')+
+        state.cargos.map(cargo=>
+          '<option value="'+escAttr(cargo)+'" '+(cargoFilter===cargo?'selected':'')+'>'+escHtml(cargo)+'</option>'
+        ).join('')+
       '</select>'+
     '</div>';
 
+  const navigationStepLabel = monthSpan===2 ? '2 meses' : 'mes';
+
   return '<div class="turno-filter-row">'+
       cargoSelector+
-      (cargoFilter!=='all' ? '<button class="btn btn-ghost btn-sm" data-action="clear-turno-cargo-filter">✕ Quitar filtro de cargo</button>' : '')+
+      (cargoFilter!=='all'
+        ? '<button class="btn btn-ghost btn-sm" data-action="clear-turno-cargo-filter">✕ Quitar filtro de cargo</button>'
+        : '')+
     '</div>'+
-    '<div class="cal-toolbar">'+
-      '<button class="btn btn-ghost btn-sm" data-action="cal-prev">← Mes anterior</button>'+
-      '<div class="month-lbl">'+monthLabel+'</div>'+
-      '<button class="btn btn-ghost btn-sm" data-action="cal-next">Mes siguiente →</button>'+
+    '<div class="cal-toolbar turno-cal-toolbar">'+
+      '<button class="btn btn-ghost btn-sm" data-action="cal-prev">← '+navigationStepLabel+' anteriores</button>'+
+      '<div class="month-lbl turno-period-label">'+escHtml(periodLabel)+'</div>'+
+      '<button class="btn btn-ghost btn-sm" data-action="cal-next">'+navigationStepLabel+' siguientes →</button>'+
+      '<div class="turno-period-toggle">'+
+        '<button type="button" class="'+(monthSpan===1?'active-size':'')+'" data-action="turno-month-span" data-span="1">1 mes</button>'+
+        '<button type="button" class="'+(monthSpan===2?'active-size':'')+'" data-action="turno-month-span" data-span="2">2 meses</button>'+
+      '</div>'+
       '<div class="size-toggle">'+
         '<button type="button" class="'+(size==='compact'?'active-size':'')+'" data-action="grid-size" data-size="compact">Compacta</button>'+
         '<button type="button" class="'+(size==='comfortable'?'active-size':'')+'" data-action="grid-size" data-size="comfortable">Cómoda</button>'+
         '<button type="button" class="'+(size==='large'?'active-size':'')+'" data-action="grid-size" data-size="large">Grande</button>'+
       '</div>'+
-      '<button class="btn btn-accent btn-sm" data-action="open-bulk" style="margin-left:14px;">+ Editar varios días</button>'+
+      '<button class="btn btn-accent btn-sm" data-action="open-bulk">+ Editar varios días</button>'+
       '<button class="btn btn-ghost btn-sm" data-action="undo-last">↺ Deshacer (Ctrl+Z)</button>'+
-      '<div class="legend">'+
-        '<span><span class="sw" style="background:#2f3944"></span>T = Trabajo</span>'+
-        '<span><span class="sw" style="background:#e7e8e3;border:1px solid #ccc"></span>D = Descanso</span>'+
-        '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px #999"></span>HE = hora extra</span>'+
-        '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px var(--bad)"></span>P = permiso</span>'+
-      '</div></div>'+
+    '</div>'+
+    '<div class="legend turno-main-legend">'+
+      '<span><span class="sw" style="background:#2f3944"></span>T = Trabajo</span>'+
+      '<span><span class="sw" style="background:#e7e8e3;border:1px solid #ccc"></span>D = Descanso</span>'+
+      '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px #999"></span>HE = hora extra</span>'+
+      '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px var(--bad)"></span>P = permiso</span>'+
+    '</div>'+
     '<div class="faena-legend">'+faenaLegend+'</div>'+
     filterNotice+
-    '<div class="helptext">Haz clic en un día para editarlo individualmente, o arrastra de un día a otro para copiar el mismo estado a los días intermedios. Usa el filtro de cargo o haz clic en una faena para mostrar únicamente los trabajadores que correspondan. Usa "Compacta / Cómoda / Grande" para ajustar el tamaño, o "Ver mes ampliado" para revisar a una persona en grande. Si te equivocas, usa "Deshacer" (Ctrl+Z).</div>'+
-    '<div class="table-wrap" style="max-height:74vh;"><table class="grid-table size-'+size+'">'+
-      '<thead><tr><th class="namecell">Trabajador</th>'+headerCells+'</tr></thead>'+
-      '<tbody>'+(rows || '<tr><td class="namecell" style="color:var(--sub)">No hay trabajadores que coincidan con los filtros seleccionados</td></tr>')+'</tbody>'+
-    '</table></div>';
+    '<div class="helptext">La tabla muestra '+monthSpan+' mes'+(monthSpan===1?'':'es')+' consecutivo'+(monthSpan===1?'':'s')+'. Desplázate horizontalmente para revisar todos los días. Haz clic en un día para editarlo o arrastra para copiar un estado. El cambio de período avanza o retrocede '+navigationStepLabel+'.</div>'+
+    '<div class="table-wrap turno-two-month-wrap" style="max-height:74vh;">'+
+      '<table class="grid-table turno-two-month-grid size-'+size+'">'+
+        '<thead>'+
+          '<tr>'+
+            '<th class="namecell turno-worker-header" rowspan="2">Trabajador</th>'+
+            monthHeaderCells+
+          '</tr>'+
+          '<tr>'+dayHeaderCells+'</tr>'+
+        '</thead>'+
+        '<tbody>'+
+          (rows ||
+            '<tr><td class="namecell" style="color:var(--sub)">No hay trabajadores que coincidan con los filtros seleccionados</td>'+
+            '<td colspan="'+dates.length+'"></td></tr>')+
+        '</tbody>'+
+      '</table>'+
+    '</div>';
 }
 
 /* ============================= MODALS ============================= */
@@ -5828,6 +6034,10 @@ document.addEventListener('click', async (e)=>{
   }
   else if(action==='goto-worker-from-doc'){ state.ui.tab='trabajadores'; render(); }
   else if(action==='grid-size'){ state.ui.gridSize = el.dataset.size; render(); }
+  else if(action==='turno-month-span'){
+    state.ui.turnoMonthSpan = Number(el.dataset.span)===1 ? 1 : 2;
+    render();
+  }
   else if(action==='save-now'){
     const btn = document.getElementById('saveNowBtn');
     if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
@@ -6312,8 +6522,20 @@ document.addEventListener('click', async (e)=>{
     render();
     await persist();
   }
-  else if(action==='cal-prev'){ state.ui.calMonth--; if(state.ui.calMonth<0){state.ui.calMonth=11; state.ui.calYear--;} render(); }
-  else if(action==='cal-next'){ state.ui.calMonth++; if(state.ui.calMonth>11){state.ui.calMonth=0; state.ui.calYear++;} render(); }
+  else if(action==='cal-prev'){
+    const step = state.ui.turnoMonthSpan===1 ? 1 : 2;
+    const previous = new Date(state.ui.calYear,state.ui.calMonth-step,1);
+    state.ui.calYear = previous.getFullYear();
+    state.ui.calMonth = previous.getMonth();
+    render();
+  }
+  else if(action==='cal-next'){
+    const step = state.ui.turnoMonthSpan===1 ? 1 : 2;
+    const next = new Date(state.ui.calYear,state.ui.calMonth+step,1);
+    state.ui.calYear = next.getFullYear();
+    state.ui.calMonth = next.getMonth();
+    render();
+  }
   else if(action==='view-worker-month'){ state.ui.modal = {type:'workerMonth', workerId: el.dataset.id, year: state.ui.calYear, month: state.ui.calMonth}; renderModal(); }
   else if(action==='wm-prev'){ state.ui.modal.month--; if(state.ui.modal.month<0){state.ui.modal.month=11; state.ui.modal.year--;} renderModal(); }
   else if(action==='wm-next'){ state.ui.modal.month++; if(state.ui.modal.month>11){state.ui.modal.month=0; state.ui.modal.year++;} renderModal(); }
