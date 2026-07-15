@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.3.0 — gestión de faenas -->
+<!-- AMECO Spot Planner v3.4.0 — validación de RUT en importación -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -425,6 +425,76 @@
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.13);
   }
 
+
+  /* ============================= VALIDACIÓN IMPORTACIÓN EXCEL ============================= */
+  .import-validation-summary{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+    margin:14px 0 17px;
+  }
+  .import-stat{
+    background:var(--grey-bg);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .import-stat strong{
+    display:block;
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:25px;
+    line-height:1;
+    color:var(--steel);
+  }
+  .import-stat span{
+    display:block;
+    margin-top:4px;
+    color:var(--sub);
+    font-size:10.5px;
+    font-weight:600;
+    text-transform:uppercase;
+  }
+  .import-stat.valid{
+    background:var(--good-bg);
+    border-color:#bee0c7;
+  }
+  .import-stat.valid strong{
+    color:var(--good);
+  }
+  .import-stat.invalid{
+    background:var(--bad-bg);
+    border-color:#edc8c6;
+  }
+  .import-stat.invalid strong{
+    color:var(--bad);
+  }
+  .import-row-invalid td{
+    background:#fff7f7 !important;
+  }
+  .import-required-missing{
+    box-shadow:inset 3px 0 0 var(--bad);
+  }
+  .import-cell-error{
+    color:var(--bad);
+    font-size:9px;
+    font-weight:700;
+    margin-top:3px;
+    text-transform:uppercase;
+  }
+  .import-rule-note{
+    margin-top:11px;
+    padding:10px 12px;
+    background:#fff4ee;
+    border-left:3px solid var(--accent);
+    border-radius:7px;
+  }
+  @media(max-width:700px){
+    .import-validation-summary{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -727,7 +797,7 @@ let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColu
 
 const IMPORT_FIELDS = [
   {key:'nombre', label:'Nombre completo', required:true},
-  {key:'rut', label:'RUT'},
+  {key:'rut', label:'RUT', required:true},
   {key:'telefono', label:'Teléfono'},
   {key:'correo', label:'Correo'},
   {key:'ciudad', label:'Ciudad'},
@@ -2190,12 +2260,61 @@ function renderModal(){
   else if(state.ui.modal.type==='addCargo') root.innerHTML = addSimpleListModalHtml('Agregar cargo','new-cargo-name','save-cargo');
 }
 
+function analyzeImportRows(){
+  if(!importState){
+    return {valid:0, missingName:0, missingRut:0, rows:[]};
+  }
+
+  const mapping = importState.mapping || {};
+  const result = {
+    valid: 0,
+    missingName: 0,
+    missingRut: 0,
+    rows: []
+  };
+
+  importState.rows.forEach((row,index)=>{
+    const get = (key)=>{
+      const column = mapping[key];
+      return (column!=null && column>=0)
+        ? String(row[column]??'').trim()
+        : '';
+    };
+
+    const nombre = get('nombre');
+    const rut = get('rut');
+    const errors = [];
+
+    if(!nombre){
+      result.missingName++;
+      errors.push('Sin nombre');
+    }
+    if(!rut){
+      result.missingRut++;
+      errors.push('Sin RUT');
+    }
+
+    const valid = errors.length===0;
+    if(valid) result.valid++;
+
+    result.rows.push({
+      index,
+      nombre,
+      rut,
+      valid,
+      errors
+    });
+  });
+
+  return result;
+}
+
 function importModalHtml(){
   if(!importState){
     return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
       '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
       '<div class="modal-body">'+
-        '<div class="helptext">Sube tu archivo Excel (.xlsx) o CSV con la información de tus trabajadores. En el siguiente paso podrás indicar qué columna corresponde a cada dato.</div>'+
+        '<div class="helptext">Sube tu archivo Excel (.xlsx) o CSV. Para ingresar o actualizar un trabajador, cada fila debe contener obligatoriamente <b>Nombre completo y RUT</b>. Las demás columnas son opcionales.</div>'+
         '<div class="field"><label>Archivo</label><input type="file" id="importFileInput" accept=".xlsx,.xls,.csv"></div>'+
       '</div>'+
       '<div class="modal-foot"><div></div><button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>'+
@@ -2203,6 +2322,7 @@ function importModalHtml(){
   }
 
   const headers = importState.headers;
+  const importAnalysis = analyzeImportRows();
   const optionsBase = ['<option value="-1">No importar</option>'].concat(
     headers.map((h,i)=>'<option value="'+i+'">'+escHtml(h || ('Columna '+(i+1)))+'</option>')
   );
@@ -2219,25 +2339,43 @@ function importModalHtml(){
     '</div>';
   }).join('');
 
-  const previewRows = importState.rows.slice(0,3).map(row=>{
-    return '<tr>'+IMPORT_FIELDS.map(f=>{
-      const idx = importState.mapping[f.key];
-      const val = (idx!=null && idx>=0) ? (row[idx]||'') : '';
-      return '<td style="font-size:12px;">'+escHtml(String(val))+'</td>';
-    }).join('')+'</tr>';
+  const previewRows = importState.rows.slice(0,5).map((row,rowIndex)=>{
+    const analyzed = importAnalysis.rows[rowIndex];
+    return '<tr class="'+(analyzed && !analyzed.valid ? 'import-row-invalid' : '')+'">'+
+      IMPORT_FIELDS.map(f=>{
+        const idx = importState.mapping[f.key];
+        const val = (idx!=null && idx>=0) ? (row[idx]||'') : '';
+        const requiredMissing = f.required && !String(val??'').trim();
+        return '<td class="'+(requiredMissing?'import-required-missing':'')+'" style="font-size:12px;">'+
+          escHtml(String(val))+
+          (requiredMissing ? '<div class="import-cell-error">Obligatorio</div>' : '')+
+        '</td>';
+      }).join('')+
+      '<td style="font-size:12px;">'+
+        (analyzed && analyzed.valid
+          ? '<span class="chip good">Se importará</span>'
+          : '<span class="chip bad">'+escHtml((analyzed&&analyzed.errors||[]).join(' / '))+'</span>')+
+      '</td>'+
+    '</tr>';
   }).join('');
 
   return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="width:720px;">'+
     '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
     '<div class="modal-body">'+
-      '<div class="helptext">Detectamos '+importState.rows.length+' filas de datos. Indica qué columna de tu Excel corresponde a cada dato (deja "No importar" en lo que no tengas).</div>'+
+      '<div class="helptext">Detectamos '+importState.rows.length+' filas. Selecciona las columnas correspondientes. <b>Nombre completo y RUT son obligatorios</b>; las filas que no tengan ambos datos serán omitidas.</div>'+
       fieldRows+
-      '<div class="section-title">Vista previa (primeras 3 filas)</div>'+
-      '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+'</th>').join('')+'</tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
-      '<div class="helptext" style="margin-top:10px;">Si el RUT de una fila coincide con un trabajador que ya tienes cargado, se actualizarán sus datos personales (sin borrar exámenes, turnos ni certificaciones). Si no coincide con nadie, se creará un trabajador nuevo.</div>'+
+      '<div class="import-validation-summary">'+
+        '<div class="import-stat valid"><strong>'+importAnalysis.valid+'</strong><span>Filas válidas</span></div>'+
+        '<div class="import-stat invalid"><strong>'+(importState.rows.length-importAnalysis.valid)+'</strong><span>Filas omitidas</span></div>'+
+        '<div class="import-stat"><strong>'+importAnalysis.missingName+'</strong><span>Sin nombre</span></div>'+
+        '<div class="import-stat"><strong>'+importAnalysis.missingRut+'</strong><span>Sin RUT</span></div>'+
+      '</div>'+
+      '<div class="section-title">Vista previa (primeras 5 filas)</div>'+
+      '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+(f.required?' *':'')+'</th>').join('')+'<th>Resultado</th></tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
+      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre y RUT</b>. La coincidencia y actualización de trabajadores existentes se realizará únicamente mediante el RUT, nunca solamente por el nombre.</div>'+
     '</div>'+
     '<div class="modal-foot"><button class="btn btn-ghost" data-action="import-back">← Elegir otro archivo</button>'+
-      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm">Importar '+importState.rows.length+' trabajadores</button></div>'+
+      '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm" '+(importAnalysis.valid===0?'disabled':'')+'>Importar '+importAnalysis.valid+' trabajador'+(importAnalysis.valid===1?'':'es')+'</button></div>'+
     '</div></div></div>';
 }
 
@@ -2798,45 +2936,140 @@ document.addEventListener('click', async (e)=>{
 
   else if(action==='import-confirm'){
     if(!importState) return;
+
     const mapping = importState.mapping;
-    if(mapping.nombre==null || mapping.nombre<0){ alert('Debes indicar qué columna corresponde al Nombre.'); return; }
-    let created=0, updated=0, skipped=0;
+
+    if(mapping.nombre==null || mapping.nombre<0){
+      alert('Debes indicar qué columna corresponde al Nombre completo.');
+      return;
+    }
+
+    if(mapping.rut==null || mapping.rut<0){
+      alert('Debes indicar qué columna corresponde al RUT.');
+      return;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let skippedMissingName = 0;
+    let skippedMissingRut = 0;
+    let duplicatedRutInFile = 0;
+
+    const processedRuts = new Set();
+
     importState.rows.forEach(row=>{
-      const get = (key)=>{ const idx = mapping[key]; return (idx!=null && idx>=0) ? String(row[idx]??'').trim() : ''; };
+      const get = (key)=>{
+        const idx = mapping[key];
+        return (idx!=null && idx>=0)
+          ? String(row[idx]??'').trim()
+          : '';
+      };
+
       const nombre = get('nombre');
-      if(!nombre){ skipped++; return; }
       const rut = get('rut');
+
+      if(!nombre){
+        skippedMissingName++;
+        return;
+      }
+
+      if(!rut){
+        skippedMissingRut++;
+        return;
+      }
+
       const rutNorm = normalizeRut(rut);
-      let existing = null;
-      if(rutNorm) existing = state.workers.find(w=>normalizeRut(w.rut)===rutNorm && rutNorm);
-      if(!existing) existing = state.workers.find(w=>w.nombre.trim().toLowerCase()===nombre.toLowerCase());
+
+      if(processedRuts.has(rutNorm)){
+        duplicatedRutInFile++;
+        return;
+      }
+      processedRuts.add(rutNorm);
+
+      const existing = state.workers.find(
+        worker=>normalizeRut(worker.rut)===rutNorm
+      );
+
       const cargo = get('cargo');
-      if(cargo && !state.cargos.includes(cargo)) state.cargos.push(cargo);
+      if(cargo && !state.cargos.some(item=>item.toLowerCase()===cargo.toLowerCase())){
+        state.cargos.push(cargo);
+      }
+
       if(existing){
-        existing.nombre = nombre || existing.nombre;
-        if(rut) existing.rut = rut;
-        const tel=get('telefono'); if(tel) existing.telefono=tel;
-        const correo=get('correo'); if(correo) existing.correo=correo;
-        const ciudad=get('ciudad'); if(ciudad) existing.ciudad=ciudad;
-        if(cargo) existing.cargo=cargo;
-        const empresa=get('empresa'); if(empresa) existing.empresa=empresa;
+        existing.nombre = nombre;
+        existing.rut = rut;
+
+        const telefono = get('telefono');
+        const correo = get('correo');
+        const ciudad = get('ciudad');
+        const empresa = get('empresa');
+
+        if(telefono) existing.telefono = telefono;
+        if(correo) existing.correo = correo;
+        if(ciudad) existing.ciudad = ciudad;
+        if(cargo) existing.cargo = cargo;
+        if(empresa) existing.empresa = empresa;
+
         updated++;
-      } else {
+      }else{
         state.workers.push({
-          id: uid('w'), nombre, rut, telefono:get('telefono'), correo:get('correo'), ciudad:get('ciudad'),
-          cargo: cargo || state.cargos[0], empresa:get('empresa'),
-          turno:{fechaInicioCiclo: todayStr(), diasTrabajo:14, diasDescanso:14}, overrides:{},
-          examenes: EXAM_TYPES.map(t=>({tipo:t, fecha:'', vencimiento:''})),
-          acreditaciones:[], certificaciones:[], examenesExtra:[]
+          id: uid('w'),
+          nombre,
+          rut,
+          telefono: get('telefono'),
+          correo: get('correo'),
+          ciudad: get('ciudad'),
+          cargo: cargo || state.cargos[0],
+          empresa: get('empresa'),
+          turno: {
+            fechaInicioCiclo: todayStr(),
+            diasTrabajo: 14,
+            diasDescanso: 14
+          },
+          overrides: {},
+          examenes: EXAM_TYPES.map(tipo=>({
+            tipo,
+            fecha: '',
+            vencimiento: ''
+          })),
+          acreditaciones: [],
+          certificaciones: [],
+          examenesExtra: []
         });
+
         created++;
       }
     });
+
+    state.cargos.sort((a,b)=>a.localeCompare(b,'es'));
     importState = null;
     state.ui.modal = null;
+
+    await persistNow();
     render();
-    await persist();
-    alert('Importación completa: '+created+' trabajadores nuevos, '+updated+' actualizados'+(skipped?(', '+skipped+' filas omitidas por no tener nombre'):'')+'.');
+
+    const omitted = skippedMissingName + skippedMissingRut + duplicatedRutInFile;
+    let message =
+      'Importación completa:\n\n'+
+      '• '+created+' trabajador(es) nuevo(s)\n'+
+      '• '+updated+' trabajador(es) actualizado(s)';
+
+    if(omitted){
+      message +=
+        '\n• '+omitted+' fila(s) omitida(s)';
+
+      if(skippedMissingName){
+        message += '\n   - '+skippedMissingName+' sin nombre';
+      }
+      if(skippedMissingRut){
+        message += '\n   - '+skippedMissingRut+' sin RUT';
+      }
+      if(duplicatedRutInFile){
+        message += '\n   - '+duplicatedRutInFile+' con RUT repetido dentro del Excel';
+      }
+    }
+
+    alert(message);
   }
 
   else if(action==='add-acred-row'){

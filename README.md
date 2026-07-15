@@ -76,3 +76,18 @@ sin cambiar el diseño ni perder funciones.
 - Se muestra el uso de cada faena en acreditaciones, turnos y pasajes.
 - Se impide eliminar una faena que esté siendo utilizada.
 - Las faenas creadas aparecen en fichas, acreditaciones, pasajes y turnos.
+
+
+## v3.4.0 — Validación de importación por RUT
+
+- Nombre completo y RUT son obligatorios para importar.
+- Las filas sin nombre o sin RUT se omiten automáticamente.
+- La actualización de trabajadores existentes se realiza únicamente por RUT.
+- Ya no se actualizan trabajadores solo porque coincida el nombre.
+- Los RUT repetidos dentro del mismo Excel se omiten.
+- El importador muestra antes de confirmar:
+  - Filas válidas.
+  - Filas omitidas.
+  - Filas sin nombre.
+  - Filas sin RUT.
+- Al terminar se entrega un resumen detallado.
