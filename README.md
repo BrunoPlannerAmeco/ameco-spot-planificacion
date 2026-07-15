@@ -107,3 +107,24 @@ sin cambiar el diseño ni perder funciones.
   - Miguel Ángel Contreras Díaz.
 - Las tarjetas de demostración muestran la etiqueta “Ejemplo”.
 - En Configuración se pueden eliminar o volver a cargar los trabajadores de ejemplo.
+
+
+## v3.6.0 — Servicios y requisiciones
+
+- Se agregó el menú Servicios.
+- Se pueden crear, editar y eliminar servicios.
+- Cada servicio registra:
+  - Nombre.
+  - Faena.
+  - Cliente o área solicitante.
+  - Fechas de inicio y término.
+  - Turno día, noche o mixto.
+  - Supervisor o responsable.
+  - Estado operativo.
+  - Descripción.
+- Se pueden agregar varios cargos requeridos y su cantidad.
+- Se valida que no existan cargos repetidos dentro del servicio.
+- Se agregaron filtros por estado, faena y texto.
+- El Dashboard muestra los próximos servicios.
+- La exportación Excel incluye una hoja Servicios.
+- No se pueden eliminar faenas o cargos utilizados por servicios.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.5.0 — nombre, apellido y trabajadores de ejemplo -->
+<!-- AMECO Spot Planner v3.6.0 — servicios y requisiciones -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -532,6 +532,202 @@
     }
   }
 
+
+  /* ============================= SERVICIOS Y REQUISICIONES ============================= */
+  .service-filter-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:15px;
+  }
+  .service-search{
+    max-width:430px;
+    min-width:280px;
+  }
+  .service-filter-bar select{
+    min-height:35px;
+    background:var(--panel);
+  }
+  .service-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+    gap:14px;
+  }
+  .service-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:17px;
+    box-shadow:var(--shadow);
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+  .service-card:hover{
+    border-color:#c9cbc5;
+  }
+  .service-card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .service-title{
+    font-family:'Barlow Condensed',sans-serif;
+    color:var(--steel);
+    font-size:24px;
+    font-weight:800;
+    line-height:1.05;
+  }
+  .service-client{
+    color:var(--sub);
+    font-size:11.5px;
+    margin-top:4px;
+  }
+  .service-site-line{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-top:14px;
+    color:var(--sub);
+    font-size:12px;
+  }
+  .service-site-line strong{
+    color:var(--ink);
+  }
+  .service-site-line span:last-child{
+    margin-left:auto;
+    background:var(--grey-bg);
+    border-radius:999px;
+    padding:3px 8px;
+    font-size:10.5px;
+    font-weight:600;
+  }
+  .service-meta-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-top:13px;
+  }
+  .service-meta-grid > div{
+    background:var(--bg);
+    border-radius:8px;
+    padding:9px 10px;
+    min-width:0;
+  }
+  .service-meta-grid span{
+    display:block;
+    color:var(--sub);
+    text-transform:uppercase;
+    font-size:9px;
+    letter-spacing:.03em;
+    margin-bottom:3px;
+  }
+  .service-meta-grid strong{
+    display:block;
+    color:var(--steel);
+    font-size:11.5px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .service-requirements-preview{
+    margin-top:13px;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .service-preview-title{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    color:var(--sub);
+    font-size:11px;
+  }
+  .service-preview-title strong{
+    color:var(--steel);
+  }
+  .service-requirement-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:9px;
+  }
+  .service-requirement-chips span{
+    background:#fff2eb;
+    color:var(--accent-ink);
+    border:1px solid #f1d4c7;
+    border-radius:999px;
+    padding:4px 8px;
+    font-size:10.5px;
+  }
+  .service-no-requirements{
+    color:var(--bad);
+    font-size:11px;
+    margin-top:8px;
+  }
+  .service-description{
+    color:var(--sub);
+    background:#fafaf8;
+    border-left:3px solid var(--line);
+    border-radius:5px;
+    padding:8px 10px;
+    font-size:11.5px;
+    line-height:1.45;
+    margin-top:12px;
+  }
+  .service-card-actions{
+    display:flex;
+    gap:8px;
+    margin-top:auto;
+    padding-top:14px;
+  }
+  .service-empty{
+    padding:45px 18px;
+  }
+  .service-empty .btn{
+    display:flex;
+    margin:12px auto 0;
+  }
+  .service-modal{
+    width:820px;
+  }
+  .service-modal-sub{
+    color:var(--sub);
+    font-size:11.5px;
+    margin-top:2px;
+  }
+  .service-requirement-row{
+    display:grid;
+    grid-template-columns:minmax(180px,1fr) 100px minmax(220px,1.5fr) 34px;
+    gap:9px;
+    align-items:end;
+    background:var(--bg);
+    padding:10px;
+    border-radius:9px;
+    margin-bottom:9px;
+  }
+  .service-requirement-row .field{
+    margin:0;
+  }
+  .service-remove-requirement{
+    margin-bottom:7px;
+  }
+  @media(max-width:800px){
+    .service-grid{grid-template-columns:1fr;}
+    .service-requirement-row{
+      grid-template-columns:1fr 90px;
+    }
+    .service-requirement-row .field:nth-child(3){
+      grid-column:1 / -1;
+    }
+    .service-remove-requirement{
+      grid-column:2;
+      grid-row:1;
+      justify-self:end;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -824,8 +1020,9 @@ let state = {
   equipos: [...DEFAULT_EQUIPOS],
   llamados: [],
   pasajes: [],
+  servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'' },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'' },
   saving:false
 };
 let bulkSelected = new Set();
@@ -1026,6 +1223,7 @@ async function loadData(){
       state.equipos = parsed.equipos && parsed.equipos.length ? parsed.equipos : [...DEFAULT_EQUIPOS];
       state.llamados = parsed.llamados || [];
       state.pasajes = parsed.pasajes || [];
+      state.servicios = parsed.servicios || [];
       state.examplesSeeded = parsed.examplesSeeded === true;
       state.workers.forEach(w=>{
         if(!w.certificaciones) w.certificaciones = [];
@@ -1039,12 +1237,12 @@ async function loadData(){
       });
     } else {
       state.workers = seedData();
-      state.llamados = []; state.pasajes = [];
+      state.llamados = []; state.pasajes = []; state.servicios = [];
       await persist();
     }
   }catch(e){
     state.workers = seedData();
-    state.llamados = []; state.pasajes = [];
+    state.llamados = []; state.pasajes = []; state.servicios = [];
     try{ await persist(); }catch(e2){}
   }
 
@@ -1064,7 +1262,7 @@ function persist(){
     saveTimeout = setTimeout(async ()=>{
       state.saving = true; renderSavePill();
       try{
-        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, examplesSeeded:state.examplesSeeded}), true);
+        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, servicios:state.servicios, examplesSeeded:state.examplesSeeded}), true);
       }catch(e){ console.error('Error al guardar', e); }
       state.saving = false; renderSavePill();
       resolve();
@@ -1077,7 +1275,7 @@ async function persistNow(){
   clearTimeout(saveTimeout);
   state.saving = true; renderSavePill();
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, examplesSeeded:state.examplesSeeded}), true);
+    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, servicios:state.servicios, examplesSeeded:state.examplesSeeded}), true);
     state.saving = false; renderSavePill();
     return true;
   }catch(e){
@@ -1132,6 +1330,8 @@ async function exportToExcel(){
       'Vigente':[C.good, C.goodTx], 'Acreditado':[C.good, C.goodTx], 'Confirmado':[C.good, C.goodTx], 'Emitido':[C.good, C.goodTx],
       'Por vencer':[C.warn, C.warnTx], 'En trámite':[C.warn, C.warnTx], 'No contesta':[C.warn, C.warnTx], 'Solicitado':[C.warn, C.warnTx],
       'Vencido':[C.bad, C.badTx], 'Rechazó':[C.bad, C.badTx], 'Cancelado':[C.bad, C.badTx],
+      'Planificando':[C.warn, C.warnTx], 'Contactando personal':[C.warn, C.warnTx], 'Acreditando':[C.warn, C.warnTx],
+      'Listo':[C.good, C.goodTx], 'En ejecución':[C.good, C.goodTx], 'Finalizado':[C.grey, C.greyTx], 'Borrador':[C.grey, C.greyTx],
       'Sin dato':[C.grey, C.greyTx], 'Pendiente':[C.grey, C.greyTx], 'No acreditado':[C.grey, C.greyTx]
     };
     const s = map[label];
@@ -1185,6 +1385,7 @@ async function exportToExcel(){
   const pendCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta').length;
   const pendTickets = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado').length;
   const sinExamenes = state.workers.filter(w=>(w.examenes||[]).every(e=>!e.vencimiento)).length;
+  const serviciosActivos = (state.servicios||[]).filter(s=>!['finalizado','cancelado'].includes(s.estado)).length;
 
   /* ---------- Hoja 1: Resumen ejecutivo ---------- */
   const wsR = wb.addWorksheet('Resumen', {views:[{showGridLines:false}]});
@@ -1209,7 +1410,8 @@ async function exportToExcel(){
     ['Llamados pendientes / sin respuesta', pendCalls, pendCalls>0?'warn':null],
     ['Tasa de confirmación de llamados', llamadosTotal ? Math.round(llamadosConfirmados/llamadosTotal*100)+'%' : '—', null],
     ['Pasajes pendientes de emitir', pendTickets, pendTickets>0?'warn':null],
-    ['Pasajes urgentes (viaje ≤7 días, sin emitir)', pasajesUrgentes, pasajesUrgentes>0?'bad':null]
+    ['Pasajes urgentes (viaje ≤7 días, sin emitir)', pasajesUrgentes, pasajesUrgentes>0?'bad':null],
+    ['Servicios activos', serviciosActivos, serviciosActivos>0?'warn':null]
   ];
   const faenaCounts = state.faenas.map(f=>[f, state.workers.filter(w=>(w.acreditaciones||[]).some(a=>a.faena===f && a.estado==='Acreditado')).length]);
   const nRows = Math.max(kpis.length, faenaCounts.length);
@@ -1339,6 +1541,26 @@ async function exportToExcel(){
   });
   dataSheet('Pasajes', 'Gestión de traslados de personal',
     ['Fecha viaje','Trabajador','Faena','Origen','Destino','Estado','Nota'], pasRows, [12,28,16,16,16,12,36], 6);
+
+  /* ---------- Hoja 9: Servicios ---------- */
+  const serviceRows = (state.servicios||[]).map(service=>[
+    service.nombre||'',
+    service.faena||'',
+    service.cliente||'',
+    service.fechaInicio||'',
+    service.fechaFin||'',
+    SERVICE_SHIFT[service.turno]||service.turno||'',
+    service.supervisor||'',
+    (SERVICE_STATUS[service.estado]||{}).label||service.estado||'',
+    servicePeopleTotal(service),
+    (service.requerimientos||[]).map(item=>
+      item.cargo+' x'+item.cantidad+(item.nota?(' — '+item.nota):'')
+    ).join('; '),
+    service.descripcion||''
+  ]);
+  dataSheet('Servicios', 'Servicios y requisiciones de personal',
+    ['Servicio','Faena','Cliente / área','Inicio','Término','Turno','Supervisor','Estado','Personas requeridas','Detalle por cargo','Observaciones'],
+    serviceRows, [28,18,22,12,12,15,22,20,14,48,42], 8);
 
   /* ---------- Descargar ---------- */
   const buf = await wb.xlsx.writeBuffer();
@@ -1544,6 +1766,7 @@ async function viewDocument(key, fallbackName){
 /* ============================= RENDER: SHELL ============================= */
 const NAV = [
   {id:'dashboard', label:'Resumen', ic:'◆'},
+  {id:'servicios', label:'Servicios', ic:'▣'},
   {id:'trabajadores', label:'Trabajadores', ic:'●'},
   {id:'llamados', label:'Llamados', ic:'☎'},
   {id:'pasajes', label:'Pasajes', ic:'\u2708'},
@@ -1553,14 +1776,16 @@ const NAV = [
   {id:'turnos', label:'Turnos 14x14', ic:'▦'},
   {id:'configuracion', label:'Configuración', ic:'☰'}
 ];
-const TAB_TITLES = {dashboard:'Resumen general', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14', configuracion:'Configuración'};
+const TAB_TITLES = {dashboard:'Resumen general', servicios:'Servicios y requisiciones', trabajadores:'Trabajadores', llamados:'Llamados', pasajes:'Pasajes', documentos:'Documentos y exámenes', acreditaciones:'Acreditación por faena', certificaciones:'Certificaciones por equipo', turnos:'Turnos 14x14', configuracion:'Configuración'};
 
 function renderSidebar(){
   const alertCount = state.workers.filter(w=>{const s=workerWorstExam(w); return s==='bad'||s==='warn';}).length;
   const pendingCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta').length;
   const pendingTickets = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado').length;
+  const openServices = (state.servicios||[]).filter(s=>!['finalizado','cancelado'].includes(s.estado)).length;
   document.getElementById('navList').innerHTML = NAV.map(n=>{
     let count = '';
+    if(n.id==='servicios' && openServices>0) count = '<span class="nav-count alert">'+openServices+'</span>';
     if(n.id==='trabajadores') count = '<span class="nav-count">'+state.workers.length+'</span>';
     if(n.id==='documentos' && alertCount>0) count = '<span class="nav-count alert">'+alertCount+'</span>';
     if(n.id==='llamados' && pendingCalls>0) count = '<span class="nav-count alert">'+pendingCalls+'</span>';
@@ -1588,7 +1813,10 @@ function renderTopbar(){
 
   let actionButtons = '';
 
-  if(state.ui.tab==='trabajadores'){
+  if(state.ui.tab==='servicios'){
+    actionButtons = '<button class="btn btn-accent" data-action="new-service">+ Nuevo servicio</button>';
+  }
+  else if(state.ui.tab==='trabajadores'){
     actionButtons =
       '<button class="btn btn-ghost" data-action="import-worker">\u2B06 Importar desde Excel</button>'+
       '<button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>'+
@@ -1643,6 +1871,7 @@ function render(){
   renderTopbar();
   const c = document.getElementById('content');
   if(state.ui.tab==='dashboard') c.innerHTML = viewDashboard();
+  else if(state.ui.tab==='servicios') c.innerHTML = viewServicios();
   else if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
   else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
   else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
@@ -1693,6 +1922,28 @@ function viewDashboard(){
   const llamadosConfirmados = (state.llamados||[]).filter(l=>l.resultado==='confirmado').length;
   const tasaConfirmacion = llamadosTotal ? Math.round(llamadosConfirmados/llamadosTotal*100) : null;
   const sinExamenes = state.workers.filter(w=>(w.examenes||[]).every(e=>!e.vencimiento)).length;
+
+  const activeServices = (state.servicios||[]).filter(service=>
+    !['finalizado','cancelado'].includes(service.estado)
+  );
+  const upcomingServices = activeServices
+    .filter(service=>!service.fechaFin || service.fechaFin>=hoy)
+    .sort((a,b)=>String(a.fechaInicio||'9999-12-31').localeCompare(String(b.fechaInicio||'9999-12-31')))
+    .slice(0,8);
+
+  const upcomingServicesHtml = upcomingServices.length
+    ? upcomingServices.map(service=>{
+        const status = SERVICE_STATUS[service.estado] || SERVICE_STATUS.borrador;
+        return '<div class="alert-row">'+
+          '<span class="chip '+status.cls+'">'+status.label+'</span>'+
+          '<div style="flex:1"><b>'+escHtml(service.nombre)+'</b> '+
+            '<span style="color:var(--sub)">— '+escHtml(service.faena||'Sin faena')+
+            ' · '+servicePeopleTotal(service)+' persona'+(servicePeopleTotal(service)===1?'':'s')+'</span></div>'+
+          '<div class="mono" style="color:var(--sub)">'+escHtml(service.fechaInicio||'')+'</div>'+
+          '<button class="link-btn" data-action="open-service" data-id="'+service.id+'">Ver →</button>'+
+        '</div>';
+      }).join('')
+    : '<div class="empty">No hay servicios activos registrados.</div>';
 
   const alerts = [];
   state.workers.forEach(w=>{
@@ -1770,6 +2021,7 @@ function viewDashboard(){
       '<div class="kpi '+(pasajesUrgentes?'bad':'')+'"><div class="num">'+pasajesUrgentes+'</div><div class="lbl">Pasajes sin emitir (próx. 7 días)</div></div>'+
       '<div class="kpi '+(sinExamenes?'warn':'')+'"><div class="num">'+(tasaConfirmacion!==null ? tasaConfirmacion+'%' : '—')+'</div><div class="lbl">Tasa confirmación llamados'+(sinExamenes?(' · '+sinExamenes+' sin exámenes'):'')+'</div></div>'+
     '</div>'+
+    '<div class="panel"><div class="panel-head"><h2>Próximos servicios</h2><div style="display:flex;gap:12px;"><button class="link-btn" data-action="new-service">+ Nuevo servicio</button><button class="link-btn" data-action="goto-services">Ver todos →</button></div></div><div class="panel-body">'+upcomingServicesHtml+'</div></div>'+
     '<div class="panel"><div class="panel-head"><h2>Alertas de documentación</h2></div><div class="panel-body">'+alertsHtml+'</div></div>'+
     '<div class="panel"><div class="panel-head"><h2>Llamados pendientes</h2><button class="link-btn" data-action="new-llamada">+ Registrar llamado</button></div><div class="panel-body">'+pendingCallsHtml+'</div></div>'+
     '<div class="panel"><div class="panel-head"><h2>Pasajes pendientes</h2><button class="link-btn" data-action="new-pasaje">+ Registrar pasaje</button></div><div class="panel-body">'+pendingTicketsHtml+'</div></div>'+
@@ -2062,6 +2314,284 @@ function viewCertificaciones(){
     '<div style="margin-top:10px;"><button class="link-btn" data-action="goto-worker-from-doc">Agregar o editar certificaciones desde la ficha del trabajador →</button></div>';
 }
 
+
+/* ============================= VIEW: SERVICIOS Y REQUISICIONES ============================= */
+const SERVICE_STATUS = {
+  borrador: {label:'Borrador', cls:'grey'},
+  planificando: {label:'Planificando', cls:'warn'},
+  contactando: {label:'Contactando personal', cls:'warn'},
+  acreditando: {label:'Acreditando', cls:'warn'},
+  listo: {label:'Listo', cls:'good'},
+  en_ejecucion: {label:'En ejecución', cls:'good'},
+  finalizado: {label:'Finalizado', cls:'grey'},
+  cancelado: {label:'Cancelado', cls:'bad'}
+};
+
+const SERVICE_SHIFT = {
+  dia: 'Día',
+  noche: 'Noche',
+  mixto: 'Mixto / por definir'
+};
+
+function servicePeopleTotal(service){
+  return (service.requerimientos||[]).reduce(
+    (sum,item)=>sum + Math.max(0,Number(item.cantidad)||0),
+    0
+  );
+}
+
+function serviceDuration(service){
+  const start = parseDate(service.fechaInicio);
+  const end = parseDate(service.fechaFin);
+  if(!start || !end) return 0;
+  return Math.max(1, daysBetween(start,end)+1);
+}
+
+function serviceRequirementSummary(service){
+  return (service.requerimientos||[])
+    .map(item=>item.cargo+' x'+item.cantidad)
+    .join(', ');
+}
+
+function serviceRequirementRowHtml(item){
+  const row = item || {
+    id: uid('req'),
+    cargo: state.cargos[0] || '',
+    cantidad: 1,
+    nota: ''
+  };
+
+  const options = [...state.cargos];
+  if(row.cargo && !options.includes(row.cargo)) options.push(row.cargo);
+
+  return '<div class="service-requirement-row" data-requirement-id="'+escAttr(row.id||uid('req'))+'">'+
+    '<div class="field">'+
+      '<label>Cargo</label>'+
+      '<select class="service-req-cargo">'+
+        options.map(cargo=>
+          '<option value="'+escAttr(cargo)+'" '+(row.cargo===cargo?'selected':'')+'>'+escHtml(cargo)+'</option>'
+        ).join('')+
+      '</select>'+
+    '</div>'+
+    '<div class="field service-qty-field">'+
+      '<label>Cantidad</label>'+
+      '<input class="service-req-qty" type="number" min="1" max="99" value="'+Math.max(1,Number(row.cantidad)||1)+'">'+
+    '</div>'+
+    '<div class="field">'+
+      '<label>Detalle opcional</label>'+
+      '<input class="service-req-note" value="'+escAttr(row.nota||'')+'" placeholder="Ej: operador acreditado para grúa 160T">'+
+    '</div>'+
+    '<button class="icon-btn service-remove-requirement" type="button" data-action="remove-service-requirement" title="Quitar requisito">✕</button>'+
+  '</div>';
+}
+
+function serviceCardHtml(service){
+  const status = SERVICE_STATUS[service.estado] || SERVICE_STATUS.borrador;
+  const requirements = service.requerimientos || [];
+  const people = servicePeopleTotal(service);
+  const duration = serviceDuration(service);
+
+  return '<article class="service-card">'+
+    '<div class="service-card-head">'+
+      '<div>'+
+        '<div class="service-title">'+escHtml(service.nombre||'Servicio sin nombre')+'</div>'+
+        '<div class="service-client">'+escHtml(service.cliente||'Área solicitante no indicada')+'</div>'+
+      '</div>'+
+      '<span class="chip '+status.cls+'">'+status.label+'</span>'+
+    '</div>'+
+    '<div class="service-site-line">'+
+      '<span class="sticker" style="background:'+faenaColor(service.faena)+'"></span>'+
+      '<strong>'+escHtml(service.faena||'Sin faena')+'</strong>'+
+      '<span>'+escHtml(SERVICE_SHIFT[service.turno]||service.turno||'Turno sin definir')+'</span>'+
+    '</div>'+
+    '<div class="service-meta-grid">'+
+      '<div><span>Inicio</span><strong class="mono">'+escHtml(service.fechaInicio||'—')+'</strong></div>'+
+      '<div><span>Término</span><strong class="mono">'+escHtml(service.fechaFin||'—')+'</strong></div>'+
+      '<div><span>Duración</span><strong>'+(duration ? duration+' día'+(duration===1?'':'s') : '—')+'</strong></div>'+
+      '<div><span>Supervisor</span><strong>'+escHtml(service.supervisor||'Sin definir')+'</strong></div>'+
+    '</div>'+
+    '<div class="service-requirements-preview">'+
+      '<div class="service-preview-title">'+
+        '<span>Personal requerido</span>'+
+        '<strong>'+people+' persona'+(people===1?'':'s')+' · '+requirements.length+' cargo'+(requirements.length===1?'':'s')+'</strong>'+
+      '</div>'+
+      (requirements.length
+        ? '<div class="service-requirement-chips">'+requirements.map(item=>
+            '<span>'+escHtml(item.cargo)+' <b>x'+Number(item.cantidad||0)+'</b></span>'
+          ).join('')+'</div>'
+        : '<div class="service-no-requirements">Sin cargos requeridos registrados.</div>')+
+    '</div>'+
+    (service.descripcion
+      ? '<div class="service-description">'+escHtml(service.descripcion)+'</div>'
+      : '')+
+    '<div class="service-card-actions">'+
+      '<button class="btn btn-ghost btn-sm" data-action="open-service" data-id="'+service.id+'">Editar servicio</button>'+
+      '<button class="btn btn-danger btn-sm" data-action="delete-service" data-id="'+service.id+'">Eliminar</button>'+
+    '</div>'+
+  '</article>';
+}
+
+function viewServicios(){
+  const q = (state.ui.servicioSearch||'').trim().toLowerCase();
+  const statusFilter = state.ui.servicioFilter || 'all';
+  const siteFilter = state.ui.servicioFaenaFilter || 'all';
+
+  let list = [...(state.servicios||[])];
+
+  if(q){
+    list = list.filter(service=>[
+      service.nombre,
+      service.cliente,
+      service.faena,
+      service.supervisor,
+      serviceRequirementSummary(service)
+    ].some(value=>String(value||'').toLowerCase().includes(q)));
+  }
+
+  if(statusFilter!=='all'){
+    list = list.filter(service=>service.estado===statusFilter);
+  }
+
+  if(siteFilter!=='all'){
+    list = list.filter(service=>service.faena===siteFilter);
+  }
+
+  list.sort((a,b)=>{
+    const closedA = ['finalizado','cancelado'].includes(a.estado) ? 1 : 0;
+    const closedB = ['finalizado','cancelado'].includes(b.estado) ? 1 : 0;
+    return closedA-closedB ||
+      String(a.fechaInicio||'9999-12-31').localeCompare(String(b.fechaInicio||'9999-12-31')) ||
+      String(a.nombre||'').localeCompare(String(b.nombre||''),'es');
+  });
+
+  const total = (state.servicios||[]).length;
+  const planning = (state.servicios||[]).filter(service=>
+    ['borrador','planificando','contactando','acreditando'].includes(service.estado)
+  ).length;
+  const ready = (state.servicios||[]).filter(service=>service.estado==='listo').length;
+  const running = (state.servicios||[]).filter(service=>service.estado==='en_ejecucion').length;
+
+  const filters =
+    '<div class="service-filter-bar">'+
+      '<div class="search-box service-search">'+
+        '<span class="ic">🔎</span>'+
+        '<input id="serviceSearchInput" placeholder="Buscar servicio, faena, supervisor o cargo..." value="'+escAttr(state.ui.servicioSearch||'')+'">'+
+      '</div>'+
+      '<select id="serviceStatusFilter">'+
+        '<option value="all" '+(statusFilter==='all'?'selected':'')+'>Todos los estados</option>'+
+        Object.keys(SERVICE_STATUS).map(key=>
+          '<option value="'+key+'" '+(statusFilter===key?'selected':'')+'>'+SERVICE_STATUS[key].label+'</option>'
+        ).join('')+
+      '</select>'+
+      '<select id="serviceSiteFilter">'+
+        '<option value="all" '+(siteFilter==='all'?'selected':'')+'>Todas las faenas</option>'+
+        state.faenas.map(faena=>
+          '<option value="'+escAttr(faena)+'" '+(siteFilter===faena?'selected':'')+'>'+escHtml(faena)+'</option>'
+        ).join('')+
+      '</select>'+
+      ((q || statusFilter!=='all' || siteFilter!=='all')
+        ? '<button class="btn btn-ghost btn-sm" data-action="clear-service-filters">Limpiar filtros</button>'
+        : '')+
+    '</div>';
+
+  return '<div class="kpi-row service-kpis">'+
+      '<div class="kpi"><div class="num">'+total+'</div><div class="lbl">Servicios registrados</div></div>'+
+      '<div class="kpi '+(planning?'warn':'')+'"><div class="num">'+planning+'</div><div class="lbl">En planificación</div></div>'+
+      '<div class="kpi"><div class="num">'+ready+'</div><div class="lbl">Listos para ejecutar</div></div>'+
+      '<div class="kpi"><div class="num">'+running+'</div><div class="lbl">En ejecución</div></div>'+
+    '</div>'+
+    filters+
+    (list.length
+      ? '<div class="service-grid">'+list.map(serviceCardHtml).join('')+'</div>'
+      : '<div class="empty panel service-empty">No hay servicios que coincidan con los filtros.'+
+          '<button class="btn btn-accent" data-action="new-service">+ Crear primer servicio</button>'+
+        '</div>');
+}
+
+function serviceModalHtml(serviceId){
+  const existing = serviceId
+    ? state.servicios.find(item=>item.id===serviceId)
+    : null;
+
+  const isNew = !existing;
+  const service = existing || {
+    id: uid('srv'),
+    nombre: '',
+    faena: state.faenas[0] || '',
+    cliente: '',
+    fechaInicio: todayStr(),
+    fechaFin: todayStr(),
+    turno: 'dia',
+    supervisor: '',
+    estado: 'borrador',
+    descripcion: '',
+    requerimientos: [
+      {
+        id: uid('req'),
+        cargo: state.cargos[0] || '',
+        cantidad: 1,
+        nota: ''
+      }
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  const requirements = (service.requerimientos&&service.requerimientos.length)
+    ? service.requerimientos
+    : [{id:uid('req'),cargo:state.cargos[0]||'',cantidad:1,nota:''}];
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay">'+
+    '<div class="modal service-modal">'+
+      '<div class="modal-head">'+
+        '<div><h2>'+(isNew?'Nuevo servicio':'Editar servicio')+'</h2>'+
+        '<div class="service-modal-sub">Registra la solicitud y el personal requerido por cargo.</div></div>'+
+        '<button class="modal-close" data-action="close-modal">✕</button>'+
+      '</div>'+
+      '<div class="modal-body">'+
+        '<div class="section-title">Información del servicio</div>'+
+        '<div class="field"><label>Nombre del servicio *</label><input id="srv-name" value="'+escAttr(service.nombre||'')+'" placeholder="Ej: PM 48HRS RIPIOS"></div>'+
+        '<div class="field-row">'+
+          '<div class="field"><label>Faena *</label><select id="srv-site">'+
+            state.faenas.map(faena=>
+              '<option value="'+escAttr(faena)+'" '+(service.faena===faena?'selected':'')+'>'+escHtml(faena)+'</option>'
+            ).join('')+
+          '</select></div>'+
+          '<div class="field"><label>Cliente / área solicitante</label><input id="srv-client" value="'+escAttr(service.cliente||'')+'" placeholder="Ej: Mantención Planta"></div>'+
+        '</div>'+
+        '<div class="field-row">'+
+          '<div class="field"><label>Fecha de inicio *</label><input type="date" id="srv-start" value="'+escAttr(service.fechaInicio||todayStr())+'"></div>'+
+          '<div class="field"><label>Fecha de término *</label><input type="date" id="srv-end" value="'+escAttr(service.fechaFin||todayStr())+'"></div>'+
+        '</div>'+
+        '<div class="field-row">'+
+          '<div class="field"><label>Turno</label><select id="srv-shift">'+
+            Object.keys(SERVICE_SHIFT).map(key=>
+              '<option value="'+key+'" '+(service.turno===key?'selected':'')+'>'+SERVICE_SHIFT[key]+'</option>'
+            ).join('')+
+          '</select></div>'+
+          '<div class="field"><label>Supervisor / responsable</label><input id="srv-supervisor" value="'+escAttr(service.supervisor||'')+'" placeholder="Nombre del responsable"></div>'+
+        '</div>'+
+        '<div class="field"><label>Estado</label><select id="srv-status">'+
+          Object.keys(SERVICE_STATUS).map(key=>
+            '<option value="'+key+'" '+(service.estado===key?'selected':'')+'>'+SERVICE_STATUS[key].label+'</option>'
+          ).join('')+
+        '</select></div>'+
+        '<div class="field"><label>Descripción u observaciones</label><textarea id="srv-description" rows="3" placeholder="Actividad, equipos, condiciones especiales...">'+escHtml(service.descripcion||'')+'</textarea></div>'+
+        '<div class="section-title">Personal requerido <button class="link-btn" data-action="add-service-requirement">+ Agregar cargo</button></div>'+
+        '<div class="helptext">Indica la cantidad necesaria por cargo. La asignación de trabajadores se incorporará en la siguiente etapa.</div>'+
+        '<div id="serviceRequirements">'+requirements.map(serviceRequirementRowHtml).join('')+'</div>'+
+      '</div>'+
+      '<div class="modal-foot">'+
+        '<div>'+(isNew?'':'<button class="btn btn-danger" data-action="delete-service" data-id="'+service.id+'">Eliminar servicio</button>')+'</div>'+
+        '<div style="display:flex;gap:8px;">'+
+          '<button class="btn btn-ghost" data-action="close-modal">Cancelar</button>'+
+          '<button class="btn btn-accent" data-action="save-service" data-id="'+service.id+'" data-is-new="'+isNew+'">Guardar servicio</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
 /* ============================= VIEW: LLAMADOS ============================= */
 const LLAMADA_STATUS = {
   pendiente: {label:'Pendiente', cls:'grey'},
@@ -2233,12 +2763,14 @@ function faenaUsage(faena){
   });
 
   const pasajes = (state.pasajes||[]).filter(item=>item.faena===faena).length;
+  const servicios = (state.servicios||[]).filter(item=>item.faena===faena).length;
 
   return {
     acreditaciones,
     turnos,
     pasajes,
-    total: acreditaciones + turnos + pasajes
+    servicios,
+    total: acreditaciones + turnos + pasajes + servicios
   };
 }
 
@@ -2248,15 +2780,19 @@ function viewConfiguracion(){
 
   const cargoRows = cargos.map(cargo=>{
     const assigned = state.workers.filter(w=>w.cargo===cargo).length;
-    const inUse = assigned > 0;
+    const serviceUse = (state.servicios||[]).filter(service=>
+      (service.requerimientos||[]).some(item=>item.cargo===cargo)
+    ).length;
+    const inUse = assigned > 0 || serviceUse > 0;
+    const usageText = [];
+    if(assigned) usageText.push(assigned+' trabajador'+(assigned===1?' asignado':'es asignados'));
+    if(serviceUse) usageText.push(serviceUse+' servicio'+(serviceUse===1?'':'s'));
 
     return '<div class="settings-item">'+
       '<div class="settings-item-main">'+
         '<div class="settings-item-title">'+escHtml(cargo)+'</div>'+
         '<div class="settings-item-sub">'+
-          (inUse
-            ? assigned+' trabajador'+(assigned===1?' asignado':'es asignados')
-            : 'Sin trabajadores asignados')+
+          (usageText.length ? usageText.join(' · ') : 'Sin trabajadores ni servicios asociados')+
         '</div>'+
       '</div>'+
       '<span class="chip '+(inUse?'warn':'grey')+'">'+(inUse?'En uso':'Disponible')+'</span>'+
@@ -2272,6 +2808,7 @@ function viewConfiguracion(){
     if(usage.acreditaciones) details.push(usage.acreditaciones+' acreditación'+(usage.acreditaciones===1?'':'es'));
     if(usage.turnos) details.push(usage.turnos+' día'+(usage.turnos===1?'':'s')+' planificado'+(usage.turnos===1?'':'s'));
     if(usage.pasajes) details.push(usage.pasajes+' pasaje'+(usage.pasajes===1?'':'s'));
+    if(usage.servicios) details.push(usage.servicios+' servicio'+(usage.servicios===1?'':'s'));
 
     return '<div class="settings-item">'+
       '<span class="faena-color-dot" style="background:'+faenaColor(faena)+'"></span>'+
@@ -2333,7 +2870,7 @@ function viewConfiguracion(){
     '</div>'+
     '<section class="settings-note">'+
       '<strong>Protección de datos</strong>'+
-      '<p>No se puede eliminar una faena mientras esté utilizada en acreditaciones, pasajes o días de turno.</p>'+
+      '<p>No se puede eliminar una faena mientras esté utilizada en servicios, acreditaciones, pasajes o días de turno.</p>'+
       '<p>Tampoco se puede eliminar un cargo mientras tenga trabajadores asignados.</p>'+
       '<p>Los cambios se guardan en Firebase y aparecen en todos los formularios y filtros.</p>'+
     '</section>'+
@@ -2466,6 +3003,7 @@ function renderModal(){
   else if(state.ui.modal.type==='llamada') root.innerHTML = llamadaModalHtml(state.ui.modal.llamadaId);
   else if(state.ui.modal.type==='pasaje') root.innerHTML = pasajeModalHtml(state.ui.modal.pasajeId);
   else if(state.ui.modal.type==='import') root.innerHTML = importModalHtml();
+  else if(state.ui.modal.type==='service') root.innerHTML = serviceModalHtml(state.ui.modal.serviceId);
   else if(state.ui.modal.type==='addCargo') root.innerHTML = addSimpleListModalHtml('Agregar cargo','new-cargo-name','save-cargo');
 }
 
@@ -2977,7 +3515,146 @@ document.addEventListener('click', async (e)=>{
 
   if(action==='logout'){ await window.amecoLogout(); return; }
 
-  if(action==='new-worker'){ state.ui.modal = {type:'worker', workerId:null}; renderModal(); }
+  if(action==='new-service'){
+    if(!state.faenas.length || !state.cargos.length){
+      alert('Primero debes registrar al menos una faena y un cargo en Configuración.');
+      return;
+    }
+    state.ui.modal = {type:'service', serviceId:null};
+    renderModal();
+  }
+  else if(action==='open-service'){
+    state.ui.modal = {type:'service', serviceId:el.dataset.id};
+    renderModal();
+  }
+  else if(action==='goto-services'){
+    state.ui.tab = 'servicios';
+    state.ui.modal = null;
+    render();
+  }
+  else if(action==='clear-service-filters'){
+    state.ui.servicioSearch = '';
+    state.ui.servicioFilter = 'all';
+    state.ui.servicioFaenaFilter = 'all';
+    render();
+  }
+  else if(action==='add-service-requirement'){
+    const root = document.getElementById('serviceRequirements');
+    if(root){
+      root.insertAdjacentHTML('beforeend', serviceRequirementRowHtml());
+    }
+  }
+  else if(action==='remove-service-requirement'){
+    const row = el.closest('.service-requirement-row');
+    const allRows = document.querySelectorAll('.service-requirement-row');
+    if(allRows.length<=1){
+      alert('El servicio debe mantener al menos un cargo requerido.');
+      return;
+    }
+    if(row) row.remove();
+  }
+  else if(action==='save-service'){
+    const nombre = String(document.getElementById('srv-name')?.value||'').trim();
+    const faena = String(document.getElementById('srv-site')?.value||'').trim();
+    const fechaInicio = String(document.getElementById('srv-start')?.value||'');
+    const fechaFin = String(document.getElementById('srv-end')?.value||'');
+
+    if(!nombre){
+      alert('El nombre del servicio es obligatorio.');
+      return;
+    }
+    if(!faena){
+      alert('Selecciona una faena.');
+      return;
+    }
+    if(!fechaInicio || !fechaFin){
+      alert('Ingresa la fecha de inicio y término.');
+      return;
+    }
+    if(parseDate(fechaFin) < parseDate(fechaInicio)){
+      alert('La fecha de término no puede ser anterior a la fecha de inicio.');
+      return;
+    }
+
+    const rows = Array.from(document.querySelectorAll('.service-requirement-row'));
+    if(!rows.length){
+      alert('Agrega al menos un cargo requerido.');
+      return;
+    }
+
+    const requirements = [];
+    const cargosSeen = new Set();
+
+    for(const row of rows){
+      const cargo = String(row.querySelector('.service-req-cargo')?.value||'').trim();
+      const cantidad = Number(row.querySelector('.service-req-qty')?.value||0);
+      const nota = String(row.querySelector('.service-req-note')?.value||'').trim();
+
+      if(!cargo){
+        alert('Todos los requisitos deben tener un cargo.');
+        return;
+      }
+      if(!Number.isInteger(cantidad) || cantidad<1){
+        alert('La cantidad requerida debe ser un número entero mayor que cero.');
+        return;
+      }
+      if(cargosSeen.has(cargo.toLowerCase())){
+        alert('El cargo "'+cargo+'" está repetido. Déjalo una sola vez y ajusta su cantidad.');
+        return;
+      }
+
+      cargosSeen.add(cargo.toLowerCase());
+      requirements.push({
+        id: row.dataset.requirementId || uid('req'),
+        cargo,
+        cantidad,
+        nota
+      });
+    }
+
+    const id = el.dataset.id;
+    const existing = state.servicios.find(item=>item.id===id);
+    const service = {
+      id,
+      nombre,
+      faena,
+      cliente: String(document.getElementById('srv-client')?.value||'').trim(),
+      fechaInicio,
+      fechaFin,
+      turno: String(document.getElementById('srv-shift')?.value||'dia'),
+      supervisor: String(document.getElementById('srv-supervisor')?.value||'').trim(),
+      estado: String(document.getElementById('srv-status')?.value||'borrador'),
+      descripcion: String(document.getElementById('srv-description')?.value||'').trim(),
+      requerimientos: requirements,
+      createdAt: existing?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+
+    if(existing){
+      Object.assign(existing,service);
+    }else{
+      state.servicios.push(service);
+    }
+
+    state.ui.modal = null;
+    await persistNow();
+    render();
+  }
+  else if(action==='delete-service'){
+    const service = state.servicios.find(item=>item.id===el.dataset.id);
+    if(!service) return;
+
+    if(!confirm('¿Eliminar el servicio "'+service.nombre+'"? Esta acción no se puede deshacer.')){
+      return;
+    }
+
+    state.servicios = state.servicios.filter(item=>item.id!==service.id);
+    state.ui.modal = null;
+    await persistNow();
+    render();
+  }
+
+  else if(action==='new-worker'){ state.ui.modal = {type:'worker', workerId:null}; renderModal(); }
   else if(action==='open-worker'){ state.ui.modal = {type:'worker', workerId: el.dataset.id}; renderModal(); }
   else if(action==='toggle-worker-delete-mode'){
     workerDeleteMode = !workerDeleteMode;
@@ -3095,9 +3772,15 @@ document.addEventListener('click', async (e)=>{
   else if(action==='delete-cargo'){
     const cargo = el.dataset.cargo;
     const assigned = state.workers.filter(w=>w.cargo===cargo).length;
+    const serviceUse = (state.servicios||[]).filter(service=>
+      (service.requerimientos||[]).some(item=>item.cargo===cargo)
+    ).length;
 
-    if(assigned>0){
-      alert('No puedes eliminar este cargo porque tiene '+assigned+' trabajador(es) asignado(s). Reasígnalos primero.');
+    if(assigned>0 || serviceUse>0){
+      const details = [];
+      if(assigned) details.push(assigned+' trabajador(es) asignado(s)');
+      if(serviceUse) details.push(serviceUse+' servicio(s) que lo requieren');
+      alert('No puedes eliminar este cargo porque está en uso:\n\n• '+details.join('\n• ')+'\n\nReasigna o modifica esos registros primero.');
       return;
     }
 
@@ -3545,6 +4228,7 @@ document.addEventListener('click', async (e)=>{
       if(usage.acreditaciones) details.push(usage.acreditaciones+' acreditación(es)');
       if(usage.turnos) details.push(usage.turnos+' día(s) de turno');
       if(usage.pasajes) details.push(usage.pasajes+' pasaje(s)');
+      if(usage.servicios) details.push(usage.servicios+' servicio(s)');
 
       alert(
         'No puedes eliminar la faena "'+faena+'" porque tiene información asociada:\n\n• '+
@@ -3600,6 +4284,27 @@ function attachDynamicListeners(){
   if(certEquipo){ certEquipo.onchange = (e)=>{ state.ui.certEquipoFilter = e.target.value; render(); }; }
   const bulkSearch = document.getElementById('bulkSearch');
   if(bulkSearch){ bulkSearch.oninput = (e)=>{ document.getElementById('bulkWorkerList').innerHTML = bulkWorkerListHtml(e.target.value); }; }
+  const serviceSearchInput = document.getElementById('serviceSearchInput');
+  if(serviceSearchInput){
+    serviceSearchInput.oninput = (e)=>{
+      state.ui.servicioSearch = e.target.value;
+      renderContentOnly();
+    };
+  }
+  const serviceStatusFilter = document.getElementById('serviceStatusFilter');
+  if(serviceStatusFilter){
+    serviceStatusFilter.onchange = (e)=>{
+      state.ui.servicioFilter = e.target.value;
+      render();
+    };
+  }
+  const serviceSiteFilter = document.getElementById('serviceSiteFilter');
+  if(serviceSiteFilter){
+    serviceSiteFilter.onchange = (e)=>{
+      state.ui.servicioFaenaFilter = e.target.value;
+      render();
+    };
+  }
   const llamadaSearchInput = document.getElementById('llamadaSearchInput');
   if(llamadaSearchInput){ llamadaSearchInput.oninput = (e)=>{ state.ui.llamadaSearch = e.target.value; renderContentOnly(); }; }
   const llamadaFilterSelect = document.getElementById('llamadaFilterSelect');
@@ -3611,7 +4316,8 @@ function attachDynamicListeners(){
 }
 function renderContentOnly(){
   const c = document.getElementById('content');
-  if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
+  if(state.ui.tab==='servicios') c.innerHTML = viewServicios();
+  else if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
   else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
   else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
 }
