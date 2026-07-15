@@ -1,9 +1,8 @@
 # CHANGELOG
 
-## v3.7.5
+## v3.7.6
 
-- Se agregó importación de hasta cinco faenas por trabajador.
-- Se agregaron estados y vencimientos independientes por faena.
-- Se agregó actualización segura de acreditaciones existentes.
-- Se mantuvo compatibilidad con la plantilla anterior.
-- Se agregaron colores configurables por cargo.
+- Se dejó Exportar Excel solamente en el menú Resumen.
+- Se corrigió el ancho del buscador de Trabajadores.
+- Se mejoró la visibilidad del texto escrito.
+- Se agregó comportamiento adaptable para pantallas pequeñas.

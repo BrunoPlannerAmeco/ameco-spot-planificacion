@@ -1323,6 +1323,59 @@
     cursor:pointer;
   }
 
+
+  /* ============================= BARRA DE TRABAJADORES ============================= */
+  #topbar{
+    flex-wrap:wrap;
+  }
+  #topbar h1{
+    flex:0 0 auto;
+  }
+  .worker-search-box{
+    flex:1 1 300px;
+    width:clamp(270px,30vw,390px);
+    min-width:270px;
+    max-width:390px;
+  }
+  .worker-search-box input{
+    display:block;
+    min-width:0;
+    color:var(--ink);
+    background:var(--panel);
+    caret-color:var(--accent);
+    font-size:13px;
+  }
+  .worker-search-box input::placeholder{
+    color:#858b82;
+    opacity:1;
+  }
+  .worker-search-box input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(226,87,31,.12);
+  }
+  .worker-cargo-filter{
+    flex:0 1 210px;
+    width:210px;
+    min-width:180px;
+    max-width:210px;
+  }
+  @media(max-width:760px){
+    .worker-search-box{
+      order:20;
+      flex-basis:100%;
+      width:100%;
+      min-width:100%;
+      max-width:none;
+    }
+    .worker-cargo-filter{
+      order:21;
+      width:100%;
+      max-width:none;
+      flex-basis:100%;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2917,8 +2970,11 @@ function renderTopbar(){
 
   if(state.ui.tab==='trabajadores'){
     searchHtml =
-      '<div class="search-box"><span class="ic">\uD83D\uDD0E</span><input id="searchInput" placeholder="Buscar por nombre, RUT o cargo..." value="'+escAttr(state.ui.search)+'"></div>'+
-      '<select id="cargoFilter" style="max-width:190px;">'+
+      '<div class="worker-search-box search-box">'+
+        '<span class="ic">\uD83D\uDD0E</span>'+
+        '<input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre, RUT o cargo..." value="'+escAttr(state.ui.search)+'">'+
+      '</div>'+
+      '<select id="cargoFilter" class="worker-cargo-filter">'+
         '<option value="all" '+(state.ui.cargoFilter==='all'?'selected':'')+'>Todos los cargos</option>'+
         state.cargos.map(c=>'<option value="'+escAttr(c)+'" '+(state.ui.cargoFilter===c?'selected':'')+'>'+escHtml(c)+'</option>').join('')+
       '</select>';
@@ -2935,8 +2991,7 @@ function renderTopbar(){
       '<button class="btn btn-accent" data-action="new-worker">+ Nuevo trabajador</button>'+
       '<button class="btn btn-danger" data-action="toggle-worker-delete-mode">'+
         (workerDeleteMode ? 'Cancelar selección' : 'Eliminar varios')+
-      '</button>'+
-      '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>';
+      '</button>';
   }
   else if(state.ui.tab==='llamados'){
     actionButtons = '<button class="btn btn-accent" data-action="new-llamada">+ Registrar llamado</button>';
@@ -2951,8 +3006,12 @@ function renderTopbar(){
   }
 
   const showGlobalControls = state.ui.tab !== 'trabajadores';
+  const exportButton = state.ui.tab==='dashboard'
+    ? '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'
+    : '';
+
   const globalButtons = showGlobalControls
-    ? '<button class="btn btn-ghost" data-action="export-excel" title="Descarga un Excel con todos los datos actuales">\u2B07 Exportar Excel</button>'+
+    ? exportButton+
       '<button class="btn btn-ghost" data-action="save-now" id="saveNowBtn" title="Guarda todos los cambios inmediatamente">\uD83D\uDCBE Guardar</button>'+
       '<span class="cloud-pill"><span class="dot-live"></span> Firebase</span>'+
       '<span class="session-email" id="sessionEmail">'+escHtml((window.amecoCurrentUser&&window.amecoCurrentUser.email)||'Usuario')+'</span>'+
@@ -6371,7 +6430,22 @@ document.addEventListener('click', async (e)=>{
 
 function attachDynamicListeners(){
   const search = document.getElementById('searchInput');
-  if(search){ search.oninput = (e)=>{ state.ui.search = e.target.value; renderContentOnly(); }; }
+  if(search){
+    search.oninput = (e)=>{
+      state.ui.search = e.target.value;
+      renderContentOnly();
+
+      // El contenido se actualiza sin reconstruir la barra superior,
+      // por lo que el texto, foco y posición del cursor permanecen visibles.
+      requestAnimationFrame(()=>{
+        if(document.activeElement!==search){
+          search.focus({preventScroll:true});
+        }
+        const cursor = search.value.length;
+        try{ search.setSelectionRange(cursor,cursor); }catch(error){}
+      });
+    };
+  }
   const cargoFilterEl = document.getElementById('cargoFilter');
   if(cargoFilterEl){ cargoFilterEl.onchange = (e)=>{ state.ui.cargoFilter = e.target.value; renderContentOnly(); }; }
   const turnoCargoFilterEl = document.getElementById('turnoCargoFilter');

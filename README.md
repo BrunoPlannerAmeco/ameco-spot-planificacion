@@ -216,3 +216,13 @@ El menú lateral quedó ordenado así:
 - Se evita repetir la misma faena dentro de una misma fila.
 - La plantilla anterior de una sola faena sigue siendo compatible como Faena 1.
 - Se incorporaron colores automáticos y configurables por cargo.
+
+
+## v3.7.6 — Buscador visible y exportación en Resumen
+
+- El botón Exportar Excel se muestra únicamente en Resumen.
+- Se eliminó de Trabajadores, Servicios, Llamados, Pasajes y demás módulos.
+- El buscador de Trabajadores ya no se comprime hasta quedar como un botón pequeño.
+- El texto escrito permanece visible mientras se actualizan los resultados.
+- Se mejoró el foco, cursor, color del texto y visualización del placeholder.
+- En pantallas pequeñas, el buscador y el filtro por cargo ocupan una fila completa.
