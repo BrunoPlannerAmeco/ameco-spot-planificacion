@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.4.0 — validación de RUT en importación -->
+<!-- AMECO Spot Planner v3.5.0 — nombre, apellido y trabajadores de ejemplo -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -495,6 +495,43 @@
     }
   }
 
+
+  /* ============================= NOMBRE / APELLIDO Y EJEMPLOS ============================= */
+  .example-chip{
+    display:inline-flex;
+    vertical-align:2px;
+    margin-left:5px;
+    padding:2px 6px;
+    border-radius:999px;
+    background:#e8eef8;
+    color:#3a5c91;
+    font-family:'Inter',sans-serif;
+    font-size:9px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .example-settings-panel{
+    border-left:4px solid #5476aa;
+  }
+  .example-settings-body{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    padding:13px 18px;
+    color:var(--sub);
+    font-size:12px;
+  }
+  .import-validation-summary{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+  }
+  @media(max-width:850px){
+    .import-validation-summary{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -787,6 +824,7 @@ let state = {
   equipos: [...DEFAULT_EQUIPOS],
   llamados: [],
   pasajes: [],
+  examplesSeeded: false,
   ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'' },
   saving:false
 };
@@ -796,7 +834,8 @@ let workerDeleteMode = false;
 let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColumna}}
 
 const IMPORT_FIELDS = [
-  {key:'nombre', label:'Nombre completo', required:true},
+  {key:'nombre', label:'Nombre', required:true},
+  {key:'apellido', label:'Apellido', required:true},
   {key:'rut', label:'RUT', required:true},
   {key:'telefono', label:'Teléfono'},
   {key:'correo', label:'Correo'},
@@ -809,6 +848,26 @@ function normalizeRut(rut){
   return (rut||'').toString().replace(/\./g,'').replace(/\s/g,'').toUpperCase();
 }
 
+function composeWorkerName(nombre, apellido){
+  return [String(nombre||'').trim(), String(apellido||'').trim()]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function getWorkerFirstName(worker){
+  if(worker.nombres) return worker.nombres;
+  const parts = String(worker.nombre||'').trim().split(/\s+/);
+  return parts[0] || '';
+}
+
+function getWorkerLastName(worker){
+  if(worker.apellidos) return worker.apellidos;
+  const parts = String(worker.nombre||'').trim().split(/\s+/);
+  return parts.slice(1).join(' ');
+}
+
 function guessImportMapping(headers){
   const lc = headers.map(h=>(h||'').toString().toLowerCase());
   const find = (keywords)=>{
@@ -816,7 +875,8 @@ function guessImportMapping(headers){
     return -1;
   };
   return {
-    nombre: find(['nombre','trabajador']),
+    nombre: find(['nombres','nombre','trabajador']),
+    apellido: find(['apellidos','apellido']),
     rut: find(['rut']),
     telefono: find(['tel','fono','celular']),
     correo: find(['correo','email','mail']),
@@ -832,6 +892,127 @@ function examDocKey(workerId, tipo){ return 'doc__'+workerId+'__exam__'+slugify(
 function certDocKey(workerId, certId, fileId){ return fileId ? ('doc__'+workerId+'__cert__'+certId+'__'+fileId) : ('doc__'+workerId+'__cert__'+certId); }
 function examExtraDocKey(workerId, extraId){ return 'doc__'+workerId+'__examextra__'+extraId; }
 
+function exampleWorkersData(){
+  const now = new Date();
+
+  return [
+    {
+      id:'w_example_supervisor_001',
+      nombres:'Carlos Andrés',
+      apellidos:'Muñoz Rojas',
+      nombre:'Carlos Andrés Muñoz Rojas',
+      rut:'18.765.432-7',
+      telefono:'+56 9 8765 4101',
+      correo:'carlos.munoz@ejemplo.cl',
+      ciudad:'Antofagasta',
+      cargo:'Supervisor',
+      empresa:'AMECO — Ejemplo',
+      esEjemplo:true,
+      turno:{
+        fechaInicioCiclo:fmt(addDays(now,-4)),
+        diasTrabajo:14,
+        diasDescanso:14
+      },
+      overrides:{},
+      examenes:[
+        {tipo:'Preocupacional',fecha:fmt(addDays(now,-120)),vencimiento:fmt(addDays(now,245))},
+        {tipo:'Alcohol y Drogas',fecha:fmt(addDays(now,-330)),vencimiento:fmt(addDays(now,35))},
+        {tipo:'Psicosensotécnico',fecha:fmt(addDays(now,-200)),vencimiento:fmt(addDays(now,165))}
+      ],
+      examenesExtra:[],
+      acreditaciones:[
+        {faena:'Spence',estado:'Acreditado',vencimiento:fmt(addDays(now,180))}
+      ],
+      certificaciones:[]
+    },
+    {
+      id:'w_example_rigger_002',
+      nombres:'Daniela Andrea',
+      apellidos:'Soto Pérez',
+      nombre:'Daniela Andrea Soto Pérez',
+      rut:'17.432.109-4',
+      telefono:'+56 9 8765 4102',
+      correo:'daniela.soto@ejemplo.cl',
+      ciudad:'Calama',
+      cargo:'Rigger',
+      empresa:'AMECO — Ejemplo',
+      esEjemplo:true,
+      turno:{
+        fechaInicioCiclo:fmt(addDays(now,-11)),
+        diasTrabajo:14,
+        diasDescanso:14
+      },
+      overrides:{},
+      examenes:[
+        {tipo:'Preocupacional',fecha:fmt(addDays(now,-340)),vencimiento:fmt(addDays(now,25))},
+        {tipo:'Alcohol y Drogas',fecha:fmt(addDays(now,-100)),vencimiento:fmt(addDays(now,265))},
+        {tipo:'Psicosensotécnico',fecha:fmt(addDays(now,-80)),vencimiento:fmt(addDays(now,285))}
+      ],
+      examenesExtra:[],
+      acreditaciones:[
+        {faena:'Sierra Gorda',estado:'En trámite',vencimiento:''}
+      ],
+      certificaciones:[]
+    },
+    {
+      id:'w_example_operator_003',
+      nombres:'Miguel Ángel',
+      apellidos:'Contreras Díaz',
+      nombre:'Miguel Ángel Contreras Díaz',
+      rut:'19.987.654-6',
+      telefono:'+56 9 8765 4103',
+      correo:'miguel.contreras@ejemplo.cl',
+      ciudad:'Antofagasta',
+      cargo:'Operador Grúa Horquilla',
+      empresa:'AMECO — Ejemplo',
+      esEjemplo:true,
+      turno:{
+        fechaInicioCiclo:fmt(addDays(now,-18)),
+        diasTrabajo:14,
+        diasDescanso:14
+      },
+      overrides:{},
+      examenes:[
+        {tipo:'Preocupacional',fecha:fmt(addDays(now,-190)),vencimiento:fmt(addDays(now,175))},
+        {tipo:'Alcohol y Drogas',fecha:fmt(addDays(now,-365)),vencimiento:fmt(addDays(now,-1))},
+        {tipo:'Psicosensotécnico',fecha:fmt(addDays(now,-160)),vencimiento:fmt(addDays(now,205))}
+      ],
+      examenesExtra:[],
+      acreditaciones:[
+        {faena:'Centinela',estado:'Acreditado',vencimiento:fmt(addDays(now,90))}
+      ],
+      certificaciones:[
+        {
+          id:'c_example_forklift_001',
+          equipo:'Grúa Horquilla',
+          fecha:fmt(addDays(now,-90)),
+          vencimiento:fmt(addDays(now,275)),
+          archivos:[]
+        }
+      ]
+    }
+  ];
+}
+
+function addExampleWorkersToState(){
+  const examples = exampleWorkersData();
+  let added = 0;
+
+  examples.forEach(example=>{
+    const exists = state.workers.some(worker=>
+      worker.id===example.id ||
+      normalizeRut(worker.rut)===normalizeRut(example.rut)
+    );
+
+    if(!exists){
+      state.workers.push(example);
+      added++;
+    }
+  });
+
+  return added;
+}
+
 function seedData(){ return []; }
 
 async function loadData(){
@@ -845,6 +1026,7 @@ async function loadData(){
       state.equipos = parsed.equipos && parsed.equipos.length ? parsed.equipos : [...DEFAULT_EQUIPOS];
       state.llamados = parsed.llamados || [];
       state.pasajes = parsed.pasajes || [];
+      state.examplesSeeded = parsed.examplesSeeded === true;
       state.workers.forEach(w=>{
         if(!w.certificaciones) w.certificaciones = [];
         w.certificaciones.forEach(c=>{
@@ -865,6 +1047,13 @@ async function loadData(){
     state.llamados = []; state.pasajes = [];
     try{ await persist(); }catch(e2){}
   }
+
+  if(!state.examplesSeeded){
+    addExampleWorkersToState();
+    state.examplesSeeded = true;
+    try{ await persistNow(); }catch(error){ console.error(error); }
+  }
+
   render();
 }
 
@@ -875,7 +1064,7 @@ function persist(){
     saveTimeout = setTimeout(async ()=>{
       state.saving = true; renderSavePill();
       try{
-        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes}), true);
+        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, examplesSeeded:state.examplesSeeded}), true);
       }catch(e){ console.error('Error al guardar', e); }
       state.saving = false; renderSavePill();
       resolve();
@@ -888,7 +1077,7 @@ async function persistNow(){
   clearTimeout(saveTimeout);
   state.saving = true; renderSavePill();
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes}), true);
+    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, examplesSeeded:state.examplesSeeded}), true);
     state.saving = false; renderSavePill();
     return true;
   }catch(e){
@@ -1624,7 +1813,9 @@ function workerCardHtml(w){
     (workerDeleteMode
       ? '<input class="worker-select-box" type="checkbox" '+(selected?'checked':'')+' tabindex="-1" aria-label="Seleccionar '+escAttr(w.nombre)+'">'
       : '')+
-    '<div class="wcard-top"><div><div class="name">'+escHtml(w.nombre)+'</div><div class="cargo">'+escHtml(w.cargo||'—')+'</div></div>'+
+    '<div class="wcard-top"><div><div class="name">'+escHtml(w.nombre)+
+      (w.esEjemplo ? ' <span class="example-chip">Ejemplo</span>' : '')+
+    '</div><div class="cargo">'+escHtml(w.cargo||'—')+'</div></div>'+
     '<span class="status-dot" style="background:'+dotColor+'" title="Estado de documentos"></span></div>'+
     '<div class="rut mono">'+escHtml(w.rut||'Sin RUT')+'</div>'+
     '<div class="sticker-row">'+(stickers || '<span class="sticker-empty">Sin acreditaciones</span>')+'</div></div>';
@@ -2095,8 +2286,26 @@ function viewConfiguracion(){
     '</div>';
   }).join('');
 
+  const exampleCount = state.workers.filter(worker=>worker.esEjemplo).length;
+
   return '<div class="settings-layout">'+
     '<div class="settings-main-stack">'+
+      '<section class="panel example-settings-panel">'+
+        '<div class="panel-head">'+
+          '<div>'+
+            '<h2>Trabajadores de ejemplo</h2>'+
+            '<div class="settings-head-sub">Datos demostrativos para visualizar tarjetas, alertas, acreditaciones y turnos.</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+            '<button class="btn btn-ghost" data-action="add-example-workers">Agregar ejemplos</button>'+
+            '<button class="btn btn-danger" data-action="remove-example-workers" '+(!exampleCount?'disabled':'')+'>Eliminar ejemplos</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="example-settings-body">'+
+          '<span class="chip '+(exampleCount?'good':'grey')+'">'+exampleCount+' cargado'+(exampleCount===1?'':'s')+'</span>'+
+          '<span>Carlos Muñoz, Daniela Soto y Miguel Contreras están identificados como datos de ejemplo.</span>'+
+        '</div>'+
+      '</section>'+
       '<section class="panel">'+
         '<div class="panel-head">'+
           '<div>'+
@@ -2262,13 +2471,20 @@ function renderModal(){
 
 function analyzeImportRows(){
   if(!importState){
-    return {valid:0, missingName:0, missingRut:0, rows:[]};
+    return {
+      valid:0,
+      missingName:0,
+      missingLastName:0,
+      missingRut:0,
+      rows:[]
+    };
   }
 
   const mapping = importState.mapping || {};
   const result = {
     valid: 0,
     missingName: 0,
+    missingLastName: 0,
     missingRut: 0,
     rows: []
   };
@@ -2282,12 +2498,17 @@ function analyzeImportRows(){
     };
 
     const nombre = get('nombre');
+    const apellido = get('apellido');
     const rut = get('rut');
     const errors = [];
 
     if(!nombre){
       result.missingName++;
       errors.push('Sin nombre');
+    }
+    if(!apellido){
+      result.missingLastName++;
+      errors.push('Sin apellido');
     }
     if(!rut){
       result.missingRut++;
@@ -2300,6 +2521,7 @@ function analyzeImportRows(){
     result.rows.push({
       index,
       nombre,
+      apellido,
       rut,
       valid,
       errors
@@ -2314,7 +2536,7 @@ function importModalHtml(){
     return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
       '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
       '<div class="modal-body">'+
-        '<div class="helptext">Sube tu archivo Excel (.xlsx) o CSV. Para ingresar o actualizar un trabajador, cada fila debe contener obligatoriamente <b>Nombre completo y RUT</b>. Las demás columnas son opcionales.</div>'+
+        '<div class="helptext">Sube tu archivo Excel (.xlsx) o CSV. Para ingresar o actualizar un trabajador, cada fila debe contener obligatoriamente <b>Nombre, Apellido y RUT</b>. Las demás columnas son opcionales.</div>'+
         '<div class="field"><label>Archivo</label><input type="file" id="importFileInput" accept=".xlsx,.xls,.csv"></div>'+
       '</div>'+
       '<div class="modal-foot"><div></div><button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>'+
@@ -2362,17 +2584,18 @@ function importModalHtml(){
   return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="width:720px;">'+
     '<div class="modal-head"><h2>Importar desde Excel</h2><button class="modal-close" data-action="close-modal">✕</button></div>'+
     '<div class="modal-body">'+
-      '<div class="helptext">Detectamos '+importState.rows.length+' filas. Selecciona las columnas correspondientes. <b>Nombre completo y RUT son obligatorios</b>; las filas que no tengan ambos datos serán omitidas.</div>'+
+      '<div class="helptext">Detectamos '+importState.rows.length+' filas. Selecciona las columnas correspondientes. <b>Nombre, Apellido y RUT son obligatorios</b>; las filas que no tengan los tres datos serán omitidas.</div>'+
       fieldRows+
       '<div class="import-validation-summary">'+
         '<div class="import-stat valid"><strong>'+importAnalysis.valid+'</strong><span>Filas válidas</span></div>'+
         '<div class="import-stat invalid"><strong>'+(importState.rows.length-importAnalysis.valid)+'</strong><span>Filas omitidas</span></div>'+
         '<div class="import-stat"><strong>'+importAnalysis.missingName+'</strong><span>Sin nombre</span></div>'+
+        '<div class="import-stat"><strong>'+importAnalysis.missingLastName+'</strong><span>Sin apellido</span></div>'+
         '<div class="import-stat"><strong>'+importAnalysis.missingRut+'</strong><span>Sin RUT</span></div>'+
       '</div>'+
       '<div class="section-title">Vista previa (primeras 5 filas)</div>'+
       '<div class="table-wrap"><table><thead><tr>'+IMPORT_FIELDS.map(f=>'<th>'+f.label+(f.required?' *':'')+'</th>').join('')+'<th>Resultado</th></tr></thead><tbody>'+previewRows+'</tbody></table></div>'+
-      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre y RUT</b>. La coincidencia y actualización de trabajadores existentes se realizará únicamente mediante el RUT, nunca solamente por el nombre.</div>'+
+      '<div class="helptext import-rule-note">Regla de importación: el trabajador debe tener <b>Nombre, Apellido y RUT</b>. La coincidencia y actualización de trabajadores existentes se realizará únicamente mediante el RUT, nunca solamente por el nombre.</div>'+
     '</div>'+
     '<div class="modal-foot"><button class="btn btn-ghost" data-action="import-back">← Elegir otro archivo</button>'+
       '<div style="display:flex;gap:8px;"><button class="btn btn-ghost" data-action="close-modal">Cancelar</button><button class="btn btn-accent" data-action="import-confirm" '+(importAnalysis.valid===0?'disabled':'')+'>Importar '+importAnalysis.valid+' trabajador'+(importAnalysis.valid===1?'':'es')+'</button></div>'+
@@ -2805,6 +3028,41 @@ document.addEventListener('click', async (e)=>{
     render();
   }
 
+  else if(action==='add-example-workers'){
+    const added = addExampleWorkersToState();
+    state.examplesSeeded = true;
+    await persistNow();
+    render();
+
+    alert(
+      added
+        ? added+' trabajador(es) de ejemplo agregado(s).'
+        : 'Los tres trabajadores de ejemplo ya están cargados.'
+    );
+  }
+  else if(action==='remove-example-workers'){
+    const examples = state.workers.filter(worker=>worker.esEjemplo);
+
+    if(!examples.length){
+      alert('No hay trabajadores de ejemplo cargados.');
+      return;
+    }
+
+    if(!confirm('¿Eliminar los '+examples.length+' trabajadores de ejemplo?')){
+      return;
+    }
+
+    const ids = new Set(examples.map(worker=>worker.id));
+    state.workers = state.workers.filter(worker=>!worker.esEjemplo);
+    state.llamados = (state.llamados||[]).filter(item=>!ids.has(item.workerId));
+    state.pasajes = (state.pasajes||[]).filter(item=>!ids.has(item.workerId));
+
+    await removeWorkerDocuments(Array.from(ids));
+    await persistNow();
+    render();
+
+    alert('Trabajadores de ejemplo eliminados.');
+  }
   else if(action==='open-add-faena'){
     state.ui.modal = {type:'addFaena'};
     renderModal();
@@ -2940,7 +3198,12 @@ document.addEventListener('click', async (e)=>{
     const mapping = importState.mapping;
 
     if(mapping.nombre==null || mapping.nombre<0){
-      alert('Debes indicar qué columna corresponde al Nombre completo.');
+      alert('Debes indicar qué columna corresponde al Nombre.');
+      return;
+    }
+
+    if(mapping.apellido==null || mapping.apellido<0){
+      alert('Debes indicar qué columna corresponde al Apellido.');
       return;
     }
 
@@ -2951,7 +3214,9 @@ document.addEventListener('click', async (e)=>{
 
     let created = 0;
     let updated = 0;
+    let skippedRows = 0;
     let skippedMissingName = 0;
+    let skippedMissingLastName = 0;
     let skippedMissingRut = 0;
     let duplicatedRutInFile = 0;
 
@@ -2965,16 +3230,27 @@ document.addEventListener('click', async (e)=>{
           : '';
       };
 
-      const nombre = get('nombre');
+      const nombres = get('nombre');
+      const apellidos = get('apellido');
       const rut = get('rut');
 
-      if(!nombre){
-        skippedMissingName++;
-        return;
-      }
+      let invalid = false;
 
+      if(!nombres){
+        skippedMissingName++;
+        invalid = true;
+      }
+      if(!apellidos){
+        skippedMissingLastName++;
+        invalid = true;
+      }
       if(!rut){
         skippedMissingRut++;
+        invalid = true;
+      }
+
+      if(invalid){
+        skippedRows++;
         return;
       }
 
@@ -2982,6 +3258,7 @@ document.addEventListener('click', async (e)=>{
 
       if(processedRuts.has(rutNorm)){
         duplicatedRutInFile++;
+        skippedRows++;
         return;
       }
       processedRuts.add(rutNorm);
@@ -2995,8 +3272,12 @@ document.addEventListener('click', async (e)=>{
         state.cargos.push(cargo);
       }
 
+      const fullName = composeWorkerName(nombres, apellidos);
+
       if(existing){
-        existing.nombre = nombre;
+        existing.nombres = nombres;
+        existing.apellidos = apellidos;
+        existing.nombre = fullName;
         existing.rut = rut;
 
         const telefono = get('telefono');
@@ -3014,7 +3295,9 @@ document.addEventListener('click', async (e)=>{
       }else{
         state.workers.push({
           id: uid('w'),
-          nombre,
+          nombres,
+          apellidos,
+          nombre: fullName,
           rut,
           telefono: get('telefono'),
           correo: get('correo'),
@@ -3048,18 +3331,19 @@ document.addEventListener('click', async (e)=>{
     await persistNow();
     render();
 
-    const omitted = skippedMissingName + skippedMissingRut + duplicatedRutInFile;
     let message =
       'Importación completa:\n\n'+
       '• '+created+' trabajador(es) nuevo(s)\n'+
       '• '+updated+' trabajador(es) actualizado(s)';
 
-    if(omitted){
-      message +=
-        '\n• '+omitted+' fila(s) omitida(s)';
+    if(skippedRows){
+      message += '\n• '+skippedRows+' fila(s) omitida(s)';
 
       if(skippedMissingName){
         message += '\n   - '+skippedMissingName+' sin nombre';
+      }
+      if(skippedMissingLastName){
+        message += '\n   - '+skippedMissingLastName+' sin apellido';
       }
       if(skippedMissingRut){
         message += '\n   - '+skippedMissingRut+' sin RUT';

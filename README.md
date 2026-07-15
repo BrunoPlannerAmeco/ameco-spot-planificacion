@@ -91,3 +91,19 @@ sin cambiar el diseño ni perder funciones.
   - Filas sin nombre.
   - Filas sin RUT.
 - Al terminar se entrega un resumen detallado.
+
+
+## v3.5.0 — Nombre, apellido y datos de ejemplo
+
+- El importador ahora muestra columnas separadas para:
+  - Nombre.
+  - Apellido.
+  - RUT.
+- Los tres campos son obligatorios.
+- Nombre y apellido se guardan por separado y se combinan para mostrar el nombre completo.
+- Se agregan una sola vez tres trabajadores de ejemplo:
+  - Carlos Andrés Muñoz Rojas.
+  - Daniela Andrea Soto Pérez.
+  - Miguel Ángel Contreras Díaz.
+- Las tarjetas de demostración muestran la etiqueta “Ejemplo”.
+- En Configuración se pueden eliminar o volver a cargar los trabajadores de ejemplo.

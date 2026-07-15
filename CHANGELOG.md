@@ -1,10 +1,10 @@
 # CHANGELOG
 
-## v3.4.0
+## v3.5.0
 
-- Se hizo obligatorio mapear Nombre y RUT.
-- Se impidió importar filas sin Nombre o sin RUT.
-- Se eliminó la coincidencia de trabajadores únicamente por nombre.
-- Se agregó detección de RUT duplicados dentro del archivo.
-- Se agregó una vista previa con validaciones.
-- Se agregó un resumen de filas importadas y omitidas.
+- Se separó Nombre y Apellido en el mapeo de Excel.
+- Se hicieron obligatorios Nombre, Apellido y RUT.
+- Se conservaron nombres y apellidos como propiedades separadas.
+- Se corrigió el conteo de filas omitidas para no duplicar filas con varios errores.
+- Se agregaron tres trabajadores de ejemplo.
+- Se agregó administración de datos de ejemplo en Configuración.
