@@ -1,9 +1,9 @@
 # CHANGELOG
 
-## v3.2.0
+## v3.3.0
 
-- Se simplificó la barra superior de Trabajadores.
-- Se agregó filtro por cargo en Turnos 14×14.
-- Se agregó el menú Configuración.
-- Se agregó creación y eliminación segura de cargos.
-- Se impide eliminar cargos que estén asignados a trabajadores.
+- Se agregó administración de faenas en Configuración.
+- Se agregó creación de faenas.
+- Se agregó eliminación segura de faenas.
+- Se agregaron contadores de uso por acreditaciones, turnos y pasajes.
+- Se mejoró la validación para evitar faenas duplicadas.

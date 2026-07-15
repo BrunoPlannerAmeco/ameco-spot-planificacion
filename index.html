@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.2.0 — cargos y filtros de turnos -->
+<!-- AMECO Spot Planner v3.3.0 — gestión de faenas -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -411,6 +411,18 @@
   }
   @media(max-width:1050px){
     .settings-layout{grid-template-columns:1fr;}
+  }
+
+
+  .settings-main-stack{
+    min-width:0;
+  }
+  .faena-color-dot{
+    width:14px;
+    height:14px;
+    border-radius:4px;
+    flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.13);
   }
 
 </style>
@@ -1333,7 +1345,9 @@ function renderTopbar(){
     actionButtons = '<button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button>';
   }
   else if(state.ui.tab==='configuracion'){
-    actionButtons = '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>';
+    actionButtons =
+      '<button class="btn btn-ghost" data-action="open-add-faena">+ Nueva faena</button>'+
+      '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>';
   }
 
   const showGlobalControls = state.ui.tab !== 'trabajadores';
@@ -1948,10 +1962,30 @@ function pasajeModalHtml(pasajeId){
 
 
 /* ============================= VIEW: CONFIGURACIÓN ============================= */
+function faenaUsage(faena){
+  let acreditaciones = 0;
+  let turnos = 0;
+
+  state.workers.forEach(worker=>{
+    acreditaciones += (worker.acreditaciones||[]).filter(item=>item.faena===faena).length;
+    turnos += Object.values(worker.overrides||{}).filter(item=>item && item.faena===faena).length;
+  });
+
+  const pasajes = (state.pasajes||[]).filter(item=>item.faena===faena).length;
+
+  return {
+    acreditaciones,
+    turnos,
+    pasajes,
+    total: acreditaciones + turnos + pasajes
+  };
+}
+
 function viewConfiguracion(){
   const cargos = [...state.cargos].sort((a,b)=>a.localeCompare(b,'es'));
+  const faenas = [...state.faenas].sort((a,b)=>a.localeCompare(b,'es'));
 
-  const rows = cargos.map(cargo=>{
+  const cargoRows = cargos.map(cargo=>{
     const assigned = state.workers.filter(w=>w.cargo===cargo).length;
     const inUse = assigned > 0;
 
@@ -1969,23 +2003,60 @@ function viewConfiguracion(){
     '</div>';
   }).join('');
 
-  return '<div class="settings-layout">'+
-    '<section class="panel">'+
-      '<div class="panel-head">'+
-        '<div>'+
-          '<h2>Cargos de trabajadores</h2>'+
-          '<div class="settings-head-sub">Crea los cargos disponibles para las fichas, filtros y planificación de turnos.</div>'+
+  const faenaRows = faenas.map(faena=>{
+    const usage = faenaUsage(faena);
+    const inUse = usage.total > 0;
+    const details = [];
+
+    if(usage.acreditaciones) details.push(usage.acreditaciones+' acreditación'+(usage.acreditaciones===1?'':'es'));
+    if(usage.turnos) details.push(usage.turnos+' día'+(usage.turnos===1?'':'s')+' planificado'+(usage.turnos===1?'':'s'));
+    if(usage.pasajes) details.push(usage.pasajes+' pasaje'+(usage.pasajes===1?'':'s'));
+
+    return '<div class="settings-item">'+
+      '<span class="faena-color-dot" style="background:'+faenaColor(faena)+'"></span>'+
+      '<div class="settings-item-main">'+
+        '<div class="settings-item-title">'+escHtml(faena)+'</div>'+
+        '<div class="settings-item-sub">'+
+          (details.length ? details.join(' · ') : 'Sin información asociada')+
         '</div>'+
-        '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>'+
       '</div>'+
-      '<div class="settings-list">'+
-        (rows || '<div class="empty">No existen cargos registrados.</div>')+
-      '</div>'+
-    '</section>'+
+      '<span class="chip '+(inUse?'warn':'grey')+'">'+(inUse?'En uso':'Disponible')+'</span>'+
+      '<button class="btn btn-danger btn-sm" data-action="delete-faena" data-faena="'+escAttr(faena)+'" '+(inUse?'disabled title="Primero elimina o cambia las acreditaciones, pasajes y turnos asociados."':'')+'>Eliminar</button>'+
+    '</div>';
+  }).join('');
+
+  return '<div class="settings-layout">'+
+    '<div class="settings-main-stack">'+
+      '<section class="panel">'+
+        '<div class="panel-head">'+
+          '<div>'+
+            '<h2>Faenas</h2>'+
+            '<div class="settings-head-sub">Administra las faenas disponibles en acreditaciones, pasajes y turnos.</div>'+
+          '</div>'+
+          '<button class="btn btn-accent" data-action="open-add-faena">+ Nueva faena</button>'+
+        '</div>'+
+        '<div class="settings-list">'+
+          (faenaRows || '<div class="empty">No existen faenas registradas.</div>')+
+        '</div>'+
+      '</section>'+
+      '<section class="panel">'+
+        '<div class="panel-head">'+
+          '<div>'+
+            '<h2>Cargos de trabajadores</h2>'+
+            '<div class="settings-head-sub">Crea los cargos disponibles para las fichas, filtros y planificación de turnos.</div>'+
+          '</div>'+
+          '<button class="btn btn-accent" data-action="open-add-cargo">+ Nuevo cargo</button>'+
+        '</div>'+
+        '<div class="settings-list">'+
+          (cargoRows || '<div class="empty">No existen cargos registrados.</div>')+
+        '</div>'+
+      '</section>'+
+    '</div>'+
     '<section class="settings-note">'+
       '<strong>Protección de datos</strong>'+
-      '<p>No se puede eliminar un cargo mientras tenga trabajadores asignados. Primero debes editar esas fichas y escoger otro cargo.</p>'+
-      '<p>Los cambios se guardan en Firebase y aparecen automáticamente en Trabajadores y Turnos 14×14.</p>'+
+      '<p>No se puede eliminar una faena mientras esté utilizada en acreditaciones, pasajes o días de turno.</p>'+
+      '<p>Tampoco se puede eliminar un cargo mientras tenga trabajadores asignados.</p>'+
+      '<p>Los cambios se guardan en Firebase y aparecen en todos los formularios y filtros.</p>'+
     '</section>'+
   '</div>';
 }
@@ -2596,6 +2667,10 @@ document.addEventListener('click', async (e)=>{
     render();
   }
 
+  else if(action==='open-add-faena'){
+    state.ui.modal = {type:'addFaena'};
+    renderModal();
+  }
   else if(action==='open-add-cargo'){
     state.ui.modal = {type:'addCargo'};
     renderModal();
@@ -2924,9 +2999,59 @@ document.addEventListener('click', async (e)=>{
 
   else if(action==='add-faena'){ state.ui.modal = {type:'addFaena'}; renderModal(); }
   else if(action==='save-faena'){
-    const name = document.getElementById('new-faena-name').value.trim();
-    if(name && !state.faenas.includes(name)){ state.faenas.push(name); await persist(); }
-    state.ui.modal=null; render();
+    const input = document.getElementById('new-faena-name');
+    const name = String(input ? input.value : '').trim();
+
+    if(!name){
+      alert('Escribe el nombre de la faena.');
+      return;
+    }
+
+    const duplicate = state.faenas.some(f=>f.toLowerCase()===name.toLowerCase());
+    if(duplicate){
+      alert('Esa faena ya existe.');
+      return;
+    }
+
+    state.faenas.push(name);
+    state.faenas.sort((a,b)=>a.localeCompare(b,'es'));
+    state.ui.modal = null;
+    await persistNow();
+    render();
+  }
+  else if(action==='delete-faena'){
+    const faena = el.dataset.faena;
+    const usage = faenaUsage(faena);
+
+    if(usage.total>0){
+      const details = [];
+      if(usage.acreditaciones) details.push(usage.acreditaciones+' acreditación(es)');
+      if(usage.turnos) details.push(usage.turnos+' día(s) de turno');
+      if(usage.pasajes) details.push(usage.pasajes+' pasaje(s)');
+
+      alert(
+        'No puedes eliminar la faena "'+faena+'" porque tiene información asociada:\n\n• '+
+        details.join('\n• ')+
+        '\n\nPrimero cambia o elimina esos registros.'
+      );
+      return;
+    }
+
+    if(state.faenas.length<=1){
+      alert('Debe existir al menos una faena.');
+      return;
+    }
+
+    if(!confirm('¿Eliminar la faena "'+faena+'"?')){
+      return;
+    }
+
+    state.faenas = state.faenas.filter(f=>f!==faena);
+    if(state.ui.turnoFaenaFilter===faena) state.ui.turnoFaenaFilter=null;
+    if(state.ui.acredFaenaFilter===faena) state.ui.acredFaenaFilter='all';
+
+    await persistNow();
+    render();
   }
   else if(action==='add-equipo'){ state.ui.modal = {type:'addEquipo'}; renderModal(); }
   else if(action==='save-equipo'){

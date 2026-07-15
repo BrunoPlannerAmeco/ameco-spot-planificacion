@@ -66,3 +66,13 @@ sin cambiar el diseño ni perder funciones.
 - Se agregó el menú Configuración.
 - Configuración permite crear cargos y eliminar cargos sin trabajadores asignados.
 - Los cargos nuevos aparecen automáticamente en fichas y filtros.
+
+
+## v3.3.0 — Gestión de faenas
+
+- Se agregó la sección Faenas dentro de Configuración.
+- Se pueden crear nuevas faenas.
+- Se pueden eliminar faenas sin información asociada.
+- Se muestra el uso de cada faena en acreditaciones, turnos y pasajes.
+- Se impide eliminar una faena que esté siendo utilizada.
+- Las faenas creadas aparecen en fichas, acreditaciones, pasajes y turnos.
