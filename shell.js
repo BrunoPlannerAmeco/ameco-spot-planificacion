@@ -4,6 +4,7 @@ import { logout } from "./firebase-service.js";
 import { renderDashboard } from "./dashboard.js";
 import { initWorkersModule, renderWorkers, bindWorkersEvents } from "./workers.js";
 import { initSitesModule, renderSites, bindSitesEvents } from "./sites.js";
+import { initAccreditationsModule, renderAccreditations, bindAccreditationsEvents } from "./accreditations.js";
 
 const titles = Object.fromEntries(routes.map(route => [route.id, route.label]));
 
@@ -18,6 +19,7 @@ function placeholder(route){
 
 let workersInitialized = false;
 let sitesInitialized = false;
+let accreditationsInitialized = false;
 
 export function renderApp(){
   if(!workersInitialized){
@@ -31,6 +33,12 @@ export function renderApp(){
     sitesInitialized = true;
     initSitesModule(() => {
       if(state.route === "sites") renderApp();
+    });
+  }
+  if(!accreditationsInitialized){
+    accreditationsInitialized = true;
+    initAccreditationsModule(() => {
+      if(state.route === "accreditations") renderApp();
     });
   }
   const app = document.getElementById("app");
@@ -77,6 +85,9 @@ export function renderApp(){
   }else if(state.route === "sites"){
     content.innerHTML = renderSites();
     bindSitesEvents();
+  }else if(state.route === "accreditations"){
+    content.innerHTML = renderAccreditations();
+    bindAccreditationsEvents();
   }else{
     content.innerHTML = placeholder(state.route);
   }

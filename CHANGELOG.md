@@ -1,9 +1,7 @@
 # CHANGELOG
 
-## v2.2.0-faenas-flat
+## v2.3.0-acreditaciones-flat
 
-- Se implementó el módulo Faenas.
-- Se agregó gestión de plataformas externas.
-- Se agregaron requisitos configurables.
-- Se conectó Faenas con Firebase.
-- Se mantuvo la estructura plana compatible con GitHub Pages.
+- Módulo Acreditaciones.
+- Estados, avance, pendientes y observaciones.
+- Integración Personal + Faenas.

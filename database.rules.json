@@ -12,6 +12,11 @@
         "$siteId": {
           ".validate": "newData.hasChildren(['id','nombre','activa'])"
         }
+      },
+      "accreditations": {
+        "$accreditationId": {
+          ".validate": "newData.hasChildren(['id','trabajadorId','faenaId','estado'])"
+        }
       }
     }
   }
