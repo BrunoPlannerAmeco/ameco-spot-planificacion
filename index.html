@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.7.0 — asignación de personal -->
+<!-- AMECO Spot Planner v3.7.1 — línea de tiempo de candidatos -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1045,6 +1045,176 @@
     .assignment-controls{grid-template-columns:1fr 30px;}
     .assignment-controls .assignment-note-input{grid-column:1 / -1;grid-row:2;}
     .candidate-check-grid{grid-template-columns:1fr;}
+  }
+
+
+  /* ============================= LÍNEA DE TIEMPO DE CANDIDATOS ============================= */
+  .candidate-timeline{
+    margin-top:12px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:#fafaf8;
+    padding:10px;
+    min-width:0;
+  }
+  .candidate-timeline-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:8px;
+  }
+  .candidate-timeline-head > div:first-child strong{
+    display:block;
+    color:var(--steel);
+    font-size:11px;
+  }
+  .candidate-timeline-head > div:first-child span{
+    display:block;
+    color:var(--sub);
+    font-size:9.5px;
+    margin-top:2px;
+  }
+  .candidate-timeline-summary{
+    display:flex;
+    gap:4px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .candidate-timeline-summary span{
+    background:var(--grey-bg);
+    color:var(--sub);
+    border-radius:999px;
+    padding:2px 6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:8.5px;
+    font-weight:700;
+  }
+  .candidate-timeline-scroll{
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:5px;
+    scrollbar-width:thin;
+  }
+  .candidate-timeline-grid{
+    display:flex;
+    gap:4px;
+    width:max-content;
+    min-width:100%;
+  }
+  .candidate-day{
+    width:38px;
+    height:58px;
+    flex:0 0 38px;
+    border-radius:7px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+    cursor:help;
+  }
+  .candidate-day.st-descanso{
+    color:#464a41;
+  }
+  .candidate-day-week{
+    position:absolute;
+    top:3px;
+    left:5px;
+    font-size:7.5px;
+    font-weight:800;
+    opacity:.78;
+  }
+  .candidate-day strong{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:18px;
+    line-height:1;
+  }
+  .candidate-day small{
+    display:block;
+    margin-top:2px;
+    max-width:34px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:8px;
+    font-weight:800;
+  }
+  .candidate-day-month{
+    position:absolute;
+    bottom:2px;
+    right:4px;
+    font-size:6.5px;
+    font-weight:700;
+    opacity:.7;
+  }
+  .candidate-day.has-conflict{
+    outline:2px solid var(--bad);
+    outline-offset:-2px;
+  }
+  .candidate-day.has-conflict i{
+    position:absolute;
+    top:-5px;
+    right:-4px;
+    width:15px;
+    height:15px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    background:var(--bad);
+    color:#fff;
+    border:2px solid #fff;
+    font-style:normal;
+    font-size:8px;
+    font-weight:900;
+  }
+  .candidate-timeline-empty{
+    margin-top:10px;
+    color:var(--sub);
+    font-size:10.5px;
+    padding:8px;
+    border:1px dashed var(--line);
+    border-radius:7px;
+  }
+  .candidate-timeline-legend{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+    color:var(--sub);
+    font-size:9.5px;
+  }
+  .candidate-timeline-legend span{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .candidate-timeline-legend i{
+    width:12px;
+    height:12px;
+    border-radius:3px;
+    display:inline-grid;
+    place-items:center;
+    font-style:normal;
+    font-size:8px;
+    font-weight:900;
+  }
+  .legend-work{background:var(--steel-2);}
+  .legend-rest{background:#e7e8e3;border:1px solid #d3d5ce;}
+  .legend-extra{background:var(--accent);}
+  .legend-leave{background:rgba(200,52,47,.22);border:1px solid var(--bad);}
+  .legend-site{background:#2f6f9e;}
+  .legend-conflict{background:var(--bad);color:#fff;border-radius:50% !important;}
+  @media(max-width:520px){
+    .candidate-timeline-head{
+      flex-direction:column;
+    }
+    .candidate-timeline-summary{
+      justify-content:flex-start;
+    }
   }
 
 </style>
@@ -3083,6 +3253,122 @@ function assignmentRowHtml(assignment,service,requirement){
   '</div>';
 }
 
+
+function workerConflictsOnDate(workerId,currentService,dateStr){
+  return (state.servicios||[]).filter(service=>{
+    if(service.id===currentService.id) return false;
+    if(['finalizado','cancelado'].includes(service.estado)) return false;
+    if(!service.fechaInicio || !service.fechaFin) return false;
+    if(dateStr<service.fechaInicio || dateStr>service.fechaFin) return false;
+
+    return serviceAssignments(service).some(assignment=>
+      assignment.workerId===workerId && assignmentIsActive(assignment)
+    );
+  });
+}
+
+function timelineStatusLabel(info){
+  if(info.faena) return info.faena;
+  if(info.tipo==='trabajo') return 'Trabajo';
+  if(info.tipo==='descanso') return 'Descanso';
+  if(info.tipo==='extra') return 'Hora extra';
+  if(info.tipo==='permiso') return 'Permiso / licencia';
+  return 'Sin información';
+}
+
+function timelineStatusCode(info){
+  if(info.faena) return faenaAbbrev(info.faena);
+  if(info.tipo==='trabajo') return 'T';
+  if(info.tipo==='descanso') return 'D';
+  if(info.tipo==='extra') return 'HE';
+  if(info.tipo==='permiso') return 'P';
+  return '—';
+}
+
+function timelineDateText(dateStr){
+  const date = parseDate(dateStr);
+  if(!date) return dateStr;
+
+  const weekdays = ['D','L','M','X','J','V','S'];
+  const months = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  return {
+    weekday: weekdays[date.getDay()],
+    day: String(date.getDate()).padStart(2,'0'),
+    month: months[date.getMonth()]
+  };
+}
+
+function workerServiceTimelineHtml(worker,service){
+  const dates = serviceDateRange(service);
+  if(!dates.length){
+    return '<div class="candidate-timeline-empty">No hay fechas válidas para mostrar la línea de tiempo.</div>';
+  }
+
+  const startLabel = dates[0].split('-').reverse().join('/');
+  const endLabel = dates[dates.length-1].split('-').reverse().join('/');
+
+  const cells = dates.map(dateStr=>{
+    const info = dayStatus(worker,dateStr);
+    const dateText = timelineDateText(dateStr);
+    const conflicts = workerConflictsOnDate(worker.id,service,dateStr);
+    const code = timelineStatusCode(info);
+    const label = timelineStatusLabel(info);
+    const notes = [];
+
+    notes.push(dateStr+' — '+label);
+    if(info.faena) notes.push('Faena: '+info.faena);
+    if(info.nota) notes.push('Nota: '+info.nota);
+    if(conflicts.length){
+      notes.push('Cruce con servicio: '+conflicts.map(item=>item.nombre).join(', '));
+    }
+
+    const inlineStyle = info.faena
+      ? ' style="background:'+faenaColor(info.faena)+';"'
+      : '';
+
+    const classes = [
+      'candidate-day',
+      'st-'+info.tipo,
+      info.tipo==='extra' ? 'ring-extra' : '',
+      info.tipo==='permiso' ? 'ring-permiso' : '',
+      conflicts.length ? 'has-conflict' : ''
+    ].filter(Boolean).join(' ');
+
+    return '<div class="'+classes+'"'+inlineStyle+' title="'+escAttr(notes.join(' · '))+'">'+
+      '<span class="candidate-day-week">'+dateText.weekday+'</span>'+
+      '<strong>'+dateText.day+'</strong>'+
+      '<small>'+escHtml(code)+'</small>'+
+      '<span class="candidate-day-month">'+dateText.month+'</span>'+
+      (conflicts.length ? '<i>!</i>' : '')+
+    '</div>';
+  }).join('');
+
+  const summary = dates.reduce((acc,dateStr)=>{
+    const info = dayStatus(worker,dateStr);
+    acc[info.tipo] = (acc[info.tipo]||0)+1;
+    return acc;
+  },{trabajo:0,descanso:0,extra:0,permiso:0});
+
+  return '<div class="candidate-timeline">'+
+    '<div class="candidate-timeline-head">'+
+      '<div>'+
+        '<strong>Línea de tiempo del servicio</strong>'+
+        '<span>'+startLabel+' al '+endLabel+'</span>'+
+      '</div>'+
+      '<div class="candidate-timeline-summary">'+
+        '<span>T '+summary.trabajo+'</span>'+
+        '<span>D '+summary.descanso+'</span>'+
+        '<span>HE '+summary.extra+'</span>'+
+        '<span>P '+summary.permiso+'</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="candidate-timeline-scroll">'+
+      '<div class="candidate-timeline-grid">'+cells+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
 function candidateCardHtml(worker,service,requirement){
   const assessment = candidateAssessment(worker,service,requirement);
   const disabled = assessment.alreadyAssigned;
@@ -3107,6 +3393,7 @@ function candidateCardHtml(worker,service,requirement){
       '<div class="'+assessment.exams.level+'"><span>Documentos</span><strong>'+escHtml(assessment.exams.label)+'</strong><small>'+escHtml(assessment.exams.detail)+'</small></div>'+
       '<div class="'+(assessment.conflicts.length?'bad':'good')+'"><span>Otros servicios</span><strong>'+escHtml(conflictText)+'</strong></div>'+
     '</div>'+
+    workerServiceTimelineHtml(worker,service)+
     '<div class="candidate-card-actions">'+
       '<button class="btn '+(assessment.recommended?'btn-accent':'btn-ghost')+'" data-action="assign-worker" data-service-id="'+service.id+'" data-requirement-id="'+requirement.id+'" data-worker-id="'+worker.id+'" '+(disabled?'disabled':'')+'>'+
         (disabled?'Ya asignado':'Asignar trabajador')+
@@ -3558,7 +3845,15 @@ function assignmentPickerModalHtml(serviceId,requirementId){
             '<option value="all" '+(state.ui.assignmentCandidateFilter==='all'?'selected':'')+'>Todos los trabajadores</option>'+
           '</select>'+
         '</div>'+
-        '<div class="candidate-help">Las advertencias no bloquean la asignación. Esto permite usar personal en descanso u otras excepciones cuando la operación lo requiera.</div>'+
+        '<div class="candidate-help">Las advertencias no bloquean la asignación. La línea de tiempo muestra únicamente los días comprendidos entre el inicio y término del servicio.</div>'+
+        '<div class="candidate-timeline-legend">'+
+          '<span><i class="legend-work"></i>T = Trabajo</span>'+
+          '<span><i class="legend-rest"></i>D = Descanso</span>'+
+          '<span><i class="legend-extra"></i>HE = Hora extra</span>'+
+          '<span><i class="legend-leave"></i>P = Permiso</span>'+
+          '<span><i class="legend-site"></i>Iniciales = Faena</span>'+
+          '<span><i class="legend-conflict">!</i>Cruce con otro servicio</span>'+
+        '</div>'+
         '<div class="candidate-list" id="assignmentCandidateList">'+assignmentCandidateListHtml(service,requirement)+'</div>'+
       '</div>'+
       '<div class="modal-foot">'+

@@ -1,11 +1,9 @@
 # CHANGELOG
 
-## v3.7.0
+## v3.7.1
 
-- Se implementó la asignación de trabajadores a servicios.
-- Se agregó cálculo de cobertura por cargo y por servicio.
-- Se agregó buscador y ranking de candidatos.
-- Se agregaron alertas de turno, conflictos, acreditación y documentos.
-- Se agregaron estados de asignación.
-- Se integró la cobertura al Dashboard y a la exportación Excel.
-- Se agregó limpieza de asignaciones al eliminar trabajadores.
+- Se agregó una línea de tiempo diaria para los candidatos.
+- Se limita la visualización al rango exacto del servicio.
+- Se muestran trabajo, descanso, hora extra, permiso y faena.
+- Se identifican cruces diarios con otros servicios.
+- Se agregó leyenda y resumen de días.

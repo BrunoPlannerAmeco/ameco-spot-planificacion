@@ -155,3 +155,19 @@ sin cambiar el diseño ni perder funciones.
 - Solo Confirmado y Listo cubren el cupo requerido.
 - La exportación Excel incluye asignados, confirmados, pendientes y detalle de personal.
 - Al eliminar trabajadores se limpian también sus asignaciones.
+
+
+## v3.7.1 — Línea de tiempo de candidatos
+
+- Cada trabajador candidato muestra una línea de tiempo limitada a las fechas del servicio.
+- Cada día indica:
+  - T: trabajo.
+  - D: descanso.
+  - HE: hora extra.
+  - P: permiso o licencia.
+  - Iniciales de la faena cuando existe una asignación diaria.
+- La línea de tiempo muestra día, número y mes.
+- Los cruces con otros servicios se marcan con un borde rojo y un signo de exclamación.
+- Al dejar el cursor sobre un día se muestra la fecha, estado, faena, nota y servicio en conflicto.
+- Se agregó un resumen con la cantidad de días de trabajo, descanso, hora extra y permiso.
+- La vista se desplaza horizontalmente cuando el servicio abarca muchos días.
