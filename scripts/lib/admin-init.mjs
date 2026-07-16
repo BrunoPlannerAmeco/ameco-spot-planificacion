@@ -25,7 +25,7 @@ let appInstance = null;
 export function getAdminApp() {
   if (appInstance) return appInstance;
 
-  const projectId = process.env.FIREBASE_PROJECT_ID || DEFAULT_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || DEFAULT_PROJECT_ID;
   const databaseURL =
     process.env.FIREBASE_DATABASE_URL ||
     `https://${projectId}-default-rtdb.firebaseio.com`;

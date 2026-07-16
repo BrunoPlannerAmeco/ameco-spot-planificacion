@@ -8,7 +8,7 @@
     "backup": "node scripts/backup-rtdb.mjs",
     "restore": "node scripts/restore-rtdb.mjs",
     "drill": "node scripts/restore-drill.mjs",
-    "drill:emulator": "firebase emulators:exec --project ameco-spot-planificacion --only database \"node scripts/restore-drill.mjs\""
+    "drill:emulator": "firebase emulators:exec --project demo-ameco-spot-planificacion --only database --non-interactive \"node scripts/restore-drill.mjs\""
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"
