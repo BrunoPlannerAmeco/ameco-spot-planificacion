@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.8.0 — respaldos completos e integridad -->
+<!-- AMECO Spot Planner v3.9.1 — hotfix de roles y permisos -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1899,6 +1899,176 @@
     }
   }
 
+
+  /* ============================= ROLES, PERMISOS Y AUDITORÍA ============================= */
+  .role-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    padding:4px 8px;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .role-badge.role-admin{
+    background:#efe7fb;
+    color:#7046a4;
+  }
+  .role-badge.role-planner{
+    background:#e8f1fb;
+    color:#2f6f9e;
+  }
+  .role-badge.role-viewer{
+    background:var(--grey-bg);
+    color:var(--sub);
+  }
+  .role-badge.role-none{
+    background:var(--bad-bg);
+    color:var(--bad);
+  }
+  .access-summary-panel{
+    border-left:4px solid #2f6f9e;
+  }
+  .access-summary-body{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 18px;
+    color:var(--sub);
+    font-size:11px;
+  }
+  .access-summary-body strong{
+    color:var(--steel);
+    font-size:13px;
+  }
+  .access-management-panel{
+    border-left:4px solid #7046a4;
+  }
+  .access-management-body{
+    padding:15px;
+  }
+  .access-limit-note{
+    padding:10px 12px;
+    border-left:4px solid var(--warn);
+    border-radius:8px;
+    background:var(--warn-bg);
+    color:#6f5317;
+    font-size:10px;
+    line-height:1.45;
+    margin-bottom:14px;
+  }
+  .access-user-list,
+  .access-audit-list{
+    border:1px solid var(--line);
+    border-radius:9px;
+    overflow:hidden;
+  }
+  .access-user-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 110px 95px 70px;
+    gap:9px;
+    align-items:center;
+    padding:10px 12px;
+    border-bottom:1px solid #eff0eb;
+  }
+  .access-user-row:last-child{
+    border-bottom:0;
+  }
+  .access-user-name{
+    color:var(--steel);
+    font-size:11.5px;
+    font-weight:700;
+  }
+  .access-user-meta{
+    margin-top:2px;
+    color:var(--sub);
+    font-size:9px;
+    overflow-wrap:anywhere;
+  }
+  .access-audit-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 230px;
+    gap:12px;
+    padding:9px 12px;
+    border-bottom:1px solid #eff0eb;
+  }
+  .access-audit-row:last-child{
+    border-bottom:0;
+  }
+  .access-audit-row strong{
+    display:block;
+    color:var(--steel);
+    font-size:10px;
+  }
+  .access-audit-row span{
+    color:var(--sub);
+    font-size:9px;
+  }
+  .access-audit-meta{
+    color:var(--sub);
+    font-size:9px;
+    text-align:right;
+  }
+  .access-user-modal{
+    width:min(620px,94vw);
+  }
+  .access-setup-guide{
+    padding:9px 11px;
+    margin-bottom:12px;
+    border-left:4px solid #2f6f9e;
+    border-radius:7px;
+    background:#f2f7fc;
+    color:#496275;
+    font-size:10px;
+  }
+  .access-role-explanation{
+    padding:10px 11px;
+    border-radius:8px;
+    background:#fafaf8;
+    color:var(--sub);
+    font-size:9.8px;
+    line-height:1.5;
+  }
+  body.role-readonly .daycell{
+    cursor:default;
+  }
+  body.role-readonly .daycell:hover{
+    outline:none;
+  }
+  body.role-readonly .settings-list .settings-item{
+    opacity:.96;
+  }
+  @media(max-width:760px){
+    .access-user-row{
+      grid-template-columns:1fr 1fr;
+    }
+    .access-user-main{
+      grid-column:1 / -1;
+    }
+    .access-audit-row{
+      grid-template-columns:1fr;
+    }
+    .access-audit-meta{
+      text-align:left;
+    }
+  }
+
+
+  .version-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    padding:4px 7px;
+    background:#fff1e9;
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:8.5px;
+    font-weight:800;
+    white-space:nowrap;
+  }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1917,23 +2087,61 @@
   };
 
   firebase.initializeApp(firebaseConfig);
+
   const auth = firebase.auth();
   const db = firebase.database();
-  const storageRoot = "amecoSpotPlanner/legacyStorage";
+
+  const appRoot = "amecoSpotPlanner";
+  const storageRoot = appRoot + "/legacyStorage";
+  const usersRoot = appRoot + "/users";
+  const auditRoot = appRoot + "/auditLogs";
+  const accessMetaRoot = appRoot + "/accessMeta";
+
+  const VALID_ROLES = ["admin","planner","viewer"];
 
   let resolveAuth;
   const authReady = new Promise(resolve => { resolveAuth = resolve; });
   let authResolved = false;
+  let currentAccessProfile = null;
+
+  function nowIso(){
+    return new Date().toISOString();
+  }
+
+  function normalizeRole(role){
+    return VALID_ROLES.includes(role) ? role : "viewer";
+  }
+
+  function isActiveRole(profile){
+    return !!(
+      profile &&
+      profile.active === true &&
+      VALID_ROLES.includes(profile.role)
+    );
+  }
+
+  function roleCanWrite(profile){
+    return isActiveRole(profile) &&
+      ["admin","planner"].includes(profile.role);
+  }
+
+  function roleIsAdmin(profile){
+    return isActiveRole(profile) && profile.role === "admin";
+  }
 
   function encodeKey(key){
     return btoa(unescape(encodeURIComponent(String(key))))
-      .replaceAll("/", "_").replaceAll("+", "-").replaceAll("=", "");
+      .replaceAll("/", "_")
+      .replaceAll("+", "-")
+      .replaceAll("=", "");
   }
+
   function decodeKey(value){
     let encoded = value.replaceAll("_", "/").replaceAll("-", "+");
     while(encoded.length % 4) encoded += "=";
     return decodeURIComponent(escape(atob(encoded)));
   }
+
   function keyRef(key){
     return db.ref(storageRoot + "/" + encodeKey(key));
   }
@@ -2035,68 +2243,389 @@
     };
   }
 
+  function buildAccessProfile(user, role="viewer", active=true, displayName=""){
+    return {
+      uid:user.uid,
+      email:String(user.email||"").trim().toLowerCase(),
+      displayName:String(displayName||user.displayName||"").trim(),
+      role:normalizeRole(role),
+      active:active === true,
+      createdAt:nowIso(),
+      updatedAt:nowIso(),
+      createdBy:user.uid
+    };
+  }
+
+  async function appendAuditDirect(event){
+    const user = auth.currentUser;
+    const profile = currentAccessProfile || window.amecoAccessProfile;
+
+    if(!user || !roleCanWrite(profile)) return null;
+
+    const ref = db.ref(auditRoot).push();
+    const payload = {
+      id:ref.key,
+      uid:user.uid,
+      email:user.email||"",
+      role:profile.role,
+      action:String(event.action||"UNKNOWN"),
+      entity:String(event.entity||"system"),
+      entityId:String(event.entityId||""),
+      summary:String(event.summary||""),
+      details:event.details && typeof event.details==="object"
+        ? event.details
+        : {},
+      createdAt:nowIso()
+    };
+
+    await ref.set(payload);
+    return payload;
+  }
+
+  async function initializeAccessProfile(user){
+    const initializedSnapshot = await db
+      .ref(accessMetaRoot + "/initialized")
+      .once("value");
+
+    if(!initializedSnapshot.exists()){
+      const profile = buildAccessProfile(
+        user,
+        "admin",
+        true,
+        user.displayName||"Administrador inicial"
+      );
+
+      const updates = {};
+      updates["accessMeta/initialized"] = true;
+      updates["accessMeta/initializedAt"] = nowIso();
+      updates["accessMeta/initializedBy"] = user.uid;
+      updates["users/" + user.uid] = profile;
+
+      try{
+        await db.ref(appRoot).update(updates);
+        currentAccessProfile = profile;
+        window.amecoAccessProfile = profile;
+
+        try{
+          await appendAuditDirect({
+            action:"ACCESS_BOOTSTRAP",
+            entity:"access",
+            entityId:user.uid,
+            summary:"Se creó el primer Administrador de la plataforma."
+          });
+        }catch(auditError){
+          console.warn("No se pudo registrar el bootstrap.",auditError);
+        }
+
+        return profile;
+      }catch(error){
+        console.warn("El acceso ya pudo haber sido inicializado por otro usuario.",error);
+      }
+    }
+
+    const snapshot = await db.ref(usersRoot + "/" + user.uid).once("value");
+
+    if(!snapshot.exists()){
+      return {
+        uid:user.uid,
+        email:user.email||"",
+        displayName:"",
+        role:"none",
+        active:false,
+        accessError:
+          "Tu cuenta existe en Firebase Authentication, pero todavía no tiene un perfil de acceso en AMECO Spot Planner. Solicita al Administrador que registre tu UID."
+      };
+    }
+
+    const stored = snapshot.val() || {};
+    const profile = {
+      uid:user.uid,
+      email:String(stored.email||user.email||"").trim().toLowerCase(),
+      displayName:String(stored.displayName||"").trim(),
+      role:normalizeRole(stored.role),
+      active:stored.active === true,
+      createdAt:stored.createdAt||"",
+      updatedAt:stored.updatedAt||""
+    };
+
+    if(
+      stored.email &&
+      user.email &&
+      String(stored.email).trim().toLowerCase() !==
+        String(user.email).trim().toLowerCase()
+    ){
+      return {
+        ...profile,
+        active:false,
+        accessError:
+          "El correo del perfil de acceso no coincide con la cuenta autenticada. Solicita una corrección al Administrador."
+      };
+    }
+
+    if(!profile.active){
+      return {
+        ...profile,
+        accessError:"Tu acceso a AMECO Spot Planner está desactivado."
+      };
+    }
+
+    return profile;
+  }
+
+  function requireActiveAccess(){
+    const profile = currentAccessProfile || window.amecoAccessProfile;
+
+    if(!isActiveRole(profile)){
+      throw new Error("La cuenta no tiene acceso activo.");
+    }
+
+    return profile;
+  }
+
+  function requireWriterAccess(){
+    const profile = requireActiveAccess();
+
+    if(!roleCanWrite(profile)){
+      throw new Error("Tu rol es de solo lectura.");
+    }
+
+    return profile;
+  }
+
+  function requireAdminAccess(){
+    const profile = requireActiveAccess();
+
+    if(!roleIsAdmin(profile)){
+      throw new Error("Esta acción requiere el rol Administrador.");
+    }
+
+    return profile;
+  }
+
   window.storage = {
     async get(key, shared){
       await authReady;
+      requireActiveAccess();
+
       const snapshot = await keyRef(key).once("value");
-      if(snapshot.exists()) return {key, value:snapshot.val(), shared:true};
+      if(snapshot.exists()){
+        return {key,value:snapshot.val(),shared:true};
+      }
 
       if(key === "faena_personal_db_v1"){
         const migrated = await migrateExistingCloudData();
+
         if(migrated){
+          requireWriterAccess();
           const value = JSON.stringify(migrated);
           await keyRef(key).set(value);
-          return {key, value, shared:true};
+          return {key,value,shared:true};
         }
       }
+
       throw new Error("not found");
     },
+
     async set(key, value, shared){
       await authReady;
+      requireWriterAccess();
       await keyRef(key).set(value);
-      return {key, value, shared:true};
+      return {key,value,shared:true};
     },
+
     async delete(key, shared){
       await authReady;
+      requireWriterAccess();
       await keyRef(key).remove();
-      return {key, deleted:true, shared:true};
+      return {key,deleted:true,shared:true};
     },
+
     async list(prefix, shared){
       await authReady;
+      requireActiveAccess();
+
       const snapshot = await db.ref(storageRoot).once("value");
       const values = snapshot.val() || {};
-      const keys = Object.keys(values).map(decodeKey)
+      const keys = Object.keys(values)
+        .map(decodeKey)
         .filter(key => !prefix || key.startsWith(prefix));
-      return {keys, prefix, shared:true};
+
+      return {keys,prefix,shared:true};
     }
   };
 
-  function setAuthScreen(user){
-    const gate = document.getElementById("authGate");
-    const shell = document.getElementById("shell");
-    const email = document.getElementById("sessionEmail");
+  window.amecoAccessApi = {
+    getProfile(){
+      return currentAccessProfile || null;
+    },
 
-    if(!gate || !shell) return;
-    if(user){
-      gate.hidden = true;
-      shell.style.display = "flex";
-      if(email) email.textContent = user.email || "Usuario";
-    }else{
-      gate.hidden = false;
-      shell.style.display = "none";
+    async listUsers(){
+      await authReady;
+      requireAdminAccess();
+
+      const snapshot = await db.ref(usersRoot).once("value");
+      return Object.values(snapshot.val()||{});
+    },
+
+    async listAuditLogs(limit=40){
+      await authReady;
+      requireAdminAccess();
+
+      const snapshot = await db
+        .ref(auditRoot)
+        .limitToLast(Math.max(1,Math.min(Number(limit)||40,100)))
+        .once("value");
+
+      return Object.values(snapshot.val()||{})
+        .sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+    },
+
+    async saveUserProfile(input){
+      await authReady;
+      const admin = requireAdminAccess();
+
+      const uid = String(input.uid||"").trim();
+      const email = String(input.email||"").trim().toLowerCase();
+      const displayName = String(input.displayName||"").trim();
+      const role = normalizeRole(input.role);
+      const active = input.active === true;
+
+      if(!uid){
+        throw new Error("El UID es obligatorio.");
+      }
+      if(!email || !email.includes("@")){
+        throw new Error("Ingresa un correo válido.");
+      }
+
+      const ref = db.ref(usersRoot + "/" + uid);
+      const previousSnapshot = await ref.once("value");
+      const previous = previousSnapshot.val() || null;
+
+      const profile = {
+        uid,
+        email,
+        displayName,
+        role,
+        active,
+        createdAt:previous?.createdAt || nowIso(),
+        updatedAt:nowIso(),
+        createdBy:previous?.createdBy || admin.uid
+      };
+
+      await ref.set(profile);
+
+      await appendAuditDirect({
+        action:previous ? "ACCESS_PROFILE_UPDATED" : "ACCESS_PROFILE_CREATED",
+        entity:"userAccess",
+        entityId:uid,
+        summary:
+          (previous ? "Se actualizó" : "Se creó")+
+          " el perfil de acceso de "+email+".",
+        details:{
+          previousRole:previous?.role||"",
+          newRole:role,
+          previousActive:previous?.active,
+          newActive:active
+        }
+      });
+
+      return profile;
+    },
+
+    async writeAudit(event){
+      await authReady;
+      return appendAuditDirect(event);
+    }
+  };
+
+  function resetLoginButton(){
+    const button = document.getElementById("authSubmit");
+    if(button){
+      button.disabled = false;
+      button.textContent = "Iniciar sesión";
     }
   }
 
-  auth.onAuthStateChanged(user => {
-    window.amecoCurrentUser = user || null;
-    if(user && !authResolved){
-      authResolved = true;
-      resolveAuth(user);
-    }
-    if(document.readyState === "loading"){
-      document.addEventListener("DOMContentLoaded", () => setAuthScreen(user), {once:true});
+  function setAuthScreen(user, profile){
+    const gate = document.getElementById("authGate");
+    const shell = document.getElementById("shell");
+    const email = document.getElementById("sessionEmail");
+    const error = document.getElementById("authError");
+
+    if(!gate || !shell) return;
+
+    if(user && isActiveRole(profile)){
+      gate.hidden = true;
+      shell.style.display = "flex";
+      if(email) email.textContent = user.email || "Usuario";
+      if(error) error.textContent = "";
     }else{
-      setAuthScreen(user);
+      gate.hidden = false;
+      shell.style.display = "none";
+      resetLoginButton();
+
+      if(error && window.amecoAccessError){
+        error.textContent = window.amecoAccessError;
+      }
+    }
+  }
+
+  auth.onAuthStateChanged(async user => {
+    window.amecoCurrentUser = user || null;
+
+    if(!user){
+      currentAccessProfile = null;
+      window.amecoAccessProfile = null;
+
+      if(document.readyState === "loading"){
+        document.addEventListener(
+          "DOMContentLoaded",
+          () => setAuthScreen(null,null),
+          {once:true}
+        );
+      }else{
+        setAuthScreen(null,null);
+      }
+
+      return;
+    }
+
+    try{
+      const profile = await initializeAccessProfile(user);
+
+      if(!isActiveRole(profile)){
+        window.amecoAccessError =
+          profile.accessError ||
+          "Tu cuenta no tiene acceso activo a la plataforma.";
+
+        await auth.signOut();
+        return;
+      }
+
+      currentAccessProfile = profile;
+      window.amecoAccessProfile = profile;
+      window.amecoAccessError = "";
+
+      if(!authResolved){
+        authResolved = true;
+        resolveAuth(user);
+      }
+
+      if(document.readyState === "loading"){
+        document.addEventListener(
+          "DOMContentLoaded",
+          () => setAuthScreen(user,profile),
+          {once:true}
+        );
+      }else{
+        setAuthScreen(user,profile);
+      }
+    }catch(error){
+      console.error("No fue posible cargar el perfil de acceso.",error);
+      window.amecoAccessError =
+        "No fue posible validar tu acceso. Verifica las reglas de Firebase o contacta al Administrador.";
+
+      await auth.signOut();
     }
   });
 
@@ -2106,8 +2635,11 @@
 
     form.addEventListener("submit", async event => {
       event.preventDefault();
+
       const error = document.getElementById("authError");
       const button = document.getElementById("authSubmit");
+
+      window.amecoAccessError = "";
       error.textContent = "";
       button.disabled = true;
       button.textContent = "Ingresando...";
@@ -2122,13 +2654,14 @@
           err.code === "auth/invalid-credential"
             ? "Correo o contraseña incorrectos."
             : "No fue posible iniciar sesión.";
-        button.disabled = false;
-        button.textContent = "Iniciar sesión";
+
+        resetLoginButton();
       }
     });
   });
 
-  window.amecoLogout = () => auth.signOut().then(() => location.reload());
+  window.amecoLogout = () =>
+    auth.signOut().then(() => location.reload());
 })();
 </script>
 
@@ -2178,7 +2711,7 @@
 <script>
 /* ============================= DATA LAYER ============================= */
 const STORAGE_KEY = 'faena_personal_db_v1';
-const APP_VERSION = 'v3.8.0';
+const APP_VERSION = 'v3.9.1';
 const BACKUP_FORMAT = 'AMECO_SPOT_PLANNER_BACKUP';
 const BACKUP_SCHEMA_VERSION = 1;
 const LAST_BACKUP_META_KEY = 'ameco_spot_last_backup_meta_v1';
@@ -2204,13 +2737,407 @@ let state = {
   pasajes: [],
   servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended', integrityReport:null },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended', integrityReport:null, accessUsers:[], accessAuditLogs:[], accessDirectoryLoaded:false },
   saving:false
 };
 let bulkSelected = new Set();
 let workerDeleteSelected = new Set();
 let workerDeleteMode = false;
 let importState = null; // {headers:[], rows:[[...]], mapping:{campo: indiceColumna}}
+
+
+const ROLE_LABELS = {
+  admin:'Administrador',
+  planner:'Planificador',
+  viewer:'Lector',
+  none:'Sin acceso'
+};
+
+const ROLE_DESCRIPTIONS = {
+  admin:'Acceso completo, restauración, configuración y administración de usuarios.',
+  planner:'Puede gestionar la operación, importar, respaldar y editar información.',
+  viewer:'Acceso de consulta. No puede guardar, importar, exportar ni modificar datos.'
+};
+
+const ROLE_PERMISSIONS = {
+  admin:new Set([
+    'view','write','delete','settings','backup',
+    'restore','export','integrity','manageUsers','viewAudit'
+  ]),
+  planner:new Set([
+    'view','write','backup','export','integrity'
+  ]),
+  viewer:new Set(['view'])
+};
+
+const ADMIN_ONLY_ACTIONS = new Set([
+  'trigger-restore-backup',
+  'toggle-worker-delete-mode',
+  'toggle-worker-delete',
+  'select-visible-workers',
+  'clear-worker-selection',
+  'delete-selected-workers',
+  'delete-worker',
+  'delete-service',
+  'open-add-cargo',
+  'save-cargo',
+  'delete-cargo',
+  'open-add-faena',
+  'save-faena',
+  'delete-faena',
+  'add-equipo',
+  'save-equipo',
+  'add-example-workers',
+  'remove-example-workers',
+  'open-add-access-user',
+  'open-edit-access-user',
+  'save-access-user',
+  'refresh-access-users'
+]);
+
+const WRITE_ACTIONS = new Set([
+  'save-now',
+  'new-service',
+  'save-service',
+  'add-service-requirement',
+  'remove-service-requirement',
+  'manage-service-assignments',
+  'open-assignment-picker',
+  'assign-worker',
+  'remove-assignment',
+  'new-worker',
+  'save-worker',
+  'import-worker',
+  'import-confirm',
+  'new-llamada',
+  'save-llamada',
+  'delete-llamada',
+  'new-pasaje',
+  'save-pasaje',
+  'delete-pasaje',
+  'add-acred-row',
+  'remove-acred',
+  'add-cert-row',
+  'remove-cert',
+  'remove-cert-file',
+  'remove-pending-cert-file',
+  'add-exam-extra',
+  'remove-exam-extra',
+  'remove-doc',
+  'edit-day',
+  'save-day',
+  'clear-day',
+  'open-bulk',
+  'apply-bulk',
+  'undo-last'
+]);
+
+const BACKUP_ACTIONS = new Set([
+  'download-backup'
+]);
+
+const INTEGRITY_ACTIONS = new Set([
+  'run-integrity-audit',
+  'download-integrity-report'
+]);
+
+const EXPORT_ACTIONS = new Set([
+  'export-excel'
+]);
+
+function currentAccessProfile(){
+  return window.amecoAccessProfile || {
+    uid:'',
+    email:'',
+    displayName:'',
+    role:'none',
+    active:false
+  };
+}
+
+function currentRole(){
+  return currentAccessProfile().role || 'none';
+}
+
+function roleLabel(role=currentRole()){
+  return ROLE_LABELS[role] || ROLE_LABELS.none;
+}
+
+function hasPermission(permission){
+  const profile = currentAccessProfile();
+  if(profile.active !== true) return false;
+
+  const permissions = ROLE_PERMISSIONS[profile.role];
+  return !!permissions && permissions.has(permission);
+}
+
+function requiredPermissionForAction(action){
+  if(ADMIN_ONLY_ACTIONS.has(action)) return 'settings';
+  if(action==='trigger-restore-backup') return 'restore';
+  if(BACKUP_ACTIONS.has(action)) return 'backup';
+  if(INTEGRITY_ACTIONS.has(action)) return 'integrity';
+  if(EXPORT_ACTIONS.has(action)) return 'export';
+  if(WRITE_ACTIONS.has(action)) return 'write';
+  return null;
+}
+
+function guardPermission(permission,message){
+  if(!permission || hasPermission(permission)) return true;
+
+  alert(
+    message ||
+    'Tu rol '+roleLabel()+' no tiene permiso para realizar esta acción.'
+  );
+  return false;
+}
+
+function guardAction(action){
+  return guardPermission(requiredPermissionForAction(action));
+}
+
+function roleBadgeHtml(){
+  const profile = currentAccessProfile();
+  const role = profile.role || 'none';
+
+  return '<span class="role-badge role-'+escAttr(role)+'" title="'+
+    escAttr(ROLE_DESCRIPTIONS[role]||'')+
+  '">'+escHtml(roleLabel(role))+'</span>';
+}
+
+function applyRoleUi(){
+  const role = currentRole();
+  document.body.dataset.accessRole = role;
+
+  document.querySelectorAll('[data-action]').forEach(element=>{
+    const permission = requiredPermissionForAction(element.dataset.action);
+
+    if(permission && !hasPermission(permission)){
+      element.hidden = true;
+      element.setAttribute('aria-hidden','true');
+    }
+  });
+
+  document.querySelectorAll('[data-admin-only]').forEach(element=>{
+    element.hidden = !hasPermission('manageUsers');
+  });
+
+  const readonly = !hasPermission('write');
+  document.body.classList.toggle('role-readonly',readonly);
+
+  if(readonly){
+    document.querySelectorAll(
+      '#modalRoot input[type="file"], #modalRoot input[type="date"], '+
+      '#modalRoot input[type="number"], #modalRoot textarea'
+    ).forEach(input=>{
+      input.disabled = true;
+    });
+  }
+}
+
+async function recordAudit(action,entity,entityId,summary,details={}){
+  try{
+    if(!window.amecoAccessApi || !hasPermission('write')) return null;
+
+    return await window.amecoAccessApi.writeAudit({
+      action,
+      entity,
+      entityId,
+      summary,
+      details
+    });
+  }catch(error){
+    console.warn('No fue posible registrar la auditoría.',error);
+    return null;
+  }
+}
+
+async function refreshAccessDirectory(){
+  state.ui.accessDirectoryLoaded = true;
+
+  if(!hasPermission('manageUsers')){
+    state.ui.accessUsers = [];
+    state.ui.accessAuditLogs = [];
+    return;
+  }
+
+  try{
+    const [users,logs] = await Promise.all([
+      window.amecoAccessApi.listUsers(),
+      window.amecoAccessApi.listAuditLogs(40)
+    ]);
+
+    state.ui.accessUsers = users.sort((a,b)=>
+      String(a.email||'').localeCompare(String(b.email||''),'es')
+    );
+    state.ui.accessAuditLogs = logs;
+  }catch(error){
+    console.error('No se pudo cargar la administración de accesos.',error);
+    state.ui.accessUsers = [];
+    state.ui.accessAuditLogs = [];
+  }
+}
+
+function accessRoleSummaryHtml(){
+  const profile = currentAccessProfile();
+  const description = ROLE_DESCRIPTIONS[profile.role] || '';
+
+  return '<section class="panel access-summary-panel">'+
+    '<div class="panel-head">'+
+      '<div>'+
+        '<h2>Tu acceso</h2>'+
+        '<div class="settings-head-sub">'+escHtml(profile.email||'Usuario autenticado')+'</div>'+
+      '</div>'+
+      roleBadgeHtml()+
+    '</div>'+
+    '<div class="access-summary-body">'+
+      '<strong>'+escHtml(roleLabel(profile.role))+'</strong>'+
+      '<span>'+escHtml(description)+'</span>'+
+    '</div>'+
+  '</section>';
+}
+
+function accessManagementPanelHtml(){
+  if(!hasPermission('manageUsers')){
+    return accessRoleSummaryHtml();
+  }
+
+  const users = state.ui.accessUsers || [];
+  const currentUid = currentAccessProfile().uid;
+
+  const rows = users.map(profile=>
+    '<div class="access-user-row">'+
+      '<div class="access-user-main">'+
+        '<div class="access-user-name">'+
+          escHtml(profile.displayName||profile.email||'Usuario sin nombre')+
+          (profile.uid===currentUid
+            ? ' <span class="chip good">Tu cuenta</span>'
+            : '')+
+        '</div>'+
+        '<div class="access-user-meta">'+
+          escHtml(profile.email||'Sin correo')+
+          ' · UID: <span class="mono">'+escHtml(profile.uid||'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<span class="role-badge role-'+escAttr(profile.role||'viewer')+'">'+
+        escHtml(roleLabel(profile.role))+
+      '</span>'+
+      '<span class="chip '+(profile.active?'good':'bad')+'">'+
+        (profile.active?'Activo':'Desactivado')+
+      '</span>'+
+      '<button class="btn btn-ghost btn-sm" data-action="open-edit-access-user" data-uid="'+
+        escAttr(profile.uid||'')+
+      '">Editar</button>'+
+    '</div>'
+  ).join('');
+
+  const auditRows = (state.ui.accessAuditLogs||[]).slice(0,15).map(log=>
+    '<div class="access-audit-row">'+
+      '<div>'+
+        '<strong>'+escHtml(log.action||'ACCIÓN')+'</strong>'+
+        '<span>'+escHtml(log.summary||'Sin resumen')+'</span>'+
+      '</div>'+
+      '<div class="access-audit-meta">'+
+        escHtml(log.email||log.uid||'Usuario')+
+        '<br><span class="mono">'+escHtml(
+          log.createdAt
+            ? new Date(log.createdAt).toLocaleString('es-CL')
+            : ''
+        )+'</span>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+
+  return '<section class="panel access-management-panel" data-admin-only>'+
+    '<div class="panel-head">'+
+      '<div>'+
+        '<h2>Usuarios, roles y auditoría</h2>'+
+        '<div class="settings-head-sub">Registra previamente la cuenta en Firebase Authentication y luego agrega aquí su UID.</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+        '<button class="btn btn-ghost" data-action="refresh-access-users">Actualizar</button>'+
+        '<button class="btn btn-accent" data-action="open-add-access-user">+ Agregar acceso</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="access-management-body">'+
+      '<div class="access-limit-note">'+
+        '<strong>Protección implementada:</strong> Lector no puede escribir y las cuentas desactivadas no pueden abrir la plataforma. '+
+        '<strong>Limitación heredada:</strong> mientras los datos sigan dentro de un único JSON, Firebase no puede diferenciar una edición normal de una eliminación realizada por un Planificador. La interfaz reserva las acciones destructivas al Administrador; la protección fina se completará al normalizar la base.'+
+      '</div>'+
+      '<div class="section-title">Perfiles de acceso</div>'+
+      '<div class="access-user-list">'+
+        (rows || '<div class="empty">No se encontraron perfiles de acceso.</div>')+
+      '</div>'+
+      '<div class="section-title">Últimas acciones críticas</div>'+
+      '<div class="access-audit-list">'+
+        (auditRows || '<div class="empty">Todavía no hay registros de auditoría.</div>')+
+      '</div>'+
+    '</div>'+
+  '</section>';
+}
+
+function accessUserModalHtml(uid){
+  const existing = (state.ui.accessUsers||[]).find(user=>user.uid===uid);
+  const isNew = !existing;
+  const profile = existing || {
+    uid:'',
+    email:'',
+    displayName:'',
+    role:'viewer',
+    active:true
+  };
+
+  return '<div class="modal-overlay" data-action="close-modal-overlay">'+
+    '<div class="modal access-user-modal">'+
+      '<div class="modal-head">'+
+        '<div>'+
+          '<h2>'+(isNew?'Agregar perfil de acceso':'Editar perfil de acceso')+'</h2>'+
+          '<div class="service-modal-sub">El usuario debe existir primero en Firebase Authentication.</div>'+
+        '</div>'+
+        '<button class="modal-close" data-action="close-modal">✕</button>'+
+      '</div>'+
+      '<div class="modal-body">'+
+        '<div class="access-setup-guide">'+
+          'Firebase Console → Authentication → Users → selecciona el usuario → copia su UID.'+
+        '</div>'+
+        '<div class="field"><label>UID de Firebase *</label>'+
+          '<input id="access-user-uid" value="'+escAttr(profile.uid||'')+'" '+
+            (isNew?'':'readonly')+
+            ' placeholder="Ej: AbC123...">'+
+        '</div>'+
+        '<div class="field"><label>Nombre visible</label>'+
+          '<input id="access-user-name" value="'+escAttr(profile.displayName||'')+'" placeholder="Nombre del usuario">'+
+        '</div>'+
+        '<div class="field"><label>Correo de la cuenta *</label>'+
+          '<input id="access-user-email" type="email" value="'+escAttr(profile.email||'')+'" placeholder="usuario@empresa.cl">'+
+        '</div>'+
+        '<div class="field-row">'+
+          '<div class="field"><label>Rol</label>'+
+            '<select id="access-user-role">'+
+              '<option value="admin" '+(profile.role==='admin'?'selected':'')+'>Administrador</option>'+
+              '<option value="planner" '+(profile.role==='planner'?'selected':'')+'>Planificador</option>'+
+              '<option value="viewer" '+(profile.role==='viewer'?'selected':'')+'>Lector</option>'+
+            '</select>'+
+          '</div>'+
+          '<div class="field"><label>Estado</label>'+
+            '<select id="access-user-active">'+
+              '<option value="true" '+(profile.active?'selected':'')+'>Activo</option>'+
+              '<option value="false" '+(!profile.active?'selected':'')+'>Desactivado</option>'+
+            '</select>'+
+          '</div>'+
+        '</div>'+
+        '<div class="access-role-explanation">'+
+          '<b>Administrador:</b> acceso completo. '+
+          '<b>Planificador:</b> operación, importación y respaldos. '+
+          '<b>Lector:</b> consulta sin escritura.'+
+        '</div>'+
+      '</div>'+
+      '<div class="modal-foot">'+
+        '<button class="btn btn-ghost" data-action="close-modal">Cancelar</button>'+
+        '<button class="btn btn-accent" data-action="save-access-user" data-is-new="'+isNew+'">Guardar acceso</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
 
 const IMPORT_ACCREDITATION_SLOTS = 5;
 
@@ -3431,6 +4358,21 @@ async function restoreBackupFile(file){
     await writeStorageEntries(parsed.entries,parsed.isFull);
     applyPersistentPayload(parsed.data);
     state.ui.integrityReport = audit;
+
+    await recordAudit(
+      'BACKUP_RESTORED',
+      'backup',
+      file.name,
+      'Se restauró un respaldo de la plataforma.',
+      {
+        sourceVersion:parsed.metadata.appVersion||'desconocida',
+        workers:audit.counts.workers,
+        services:audit.counts.services,
+        errors:audit.errors,
+        warnings:audit.warnings
+      }
+    );
+
     render();
 
     alert(
@@ -3610,11 +4552,16 @@ async function loadData(){
     try{ await persistNow(); }catch(error){ console.error(error); }
   }
 
+  await refreshAccessDirectory();
   render();
 }
 
 let saveTimeout=null;
 function persist(){
+  if(!guardPermission('write')){
+    return Promise.resolve(false);
+  }
+
   return new Promise((resolve)=>{
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async ()=>{
@@ -3631,6 +4578,8 @@ function persist(){
 
 // Guardado inmediato (botón Guardar): salta el debounce y confirma o avisa el error
 async function persistNow(){
+  if(!guardPermission('write')) return false;
+
   clearTimeout(saveTimeout);
   state.saving = true; renderSavePill();
   try{
@@ -4081,6 +5030,7 @@ async function performUndo(){
 document.addEventListener('keydown', (e)=>{
   const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key==='z' || e.key==='Z');
   if(!isUndo) return;
+  if(!hasPermission('write')) return;
   const tag = document.activeElement && document.activeElement.tagName;
   if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT') return; // deja el undo nativo del campo de texto
   e.preventDefault();
@@ -4088,6 +5038,7 @@ document.addEventListener('keydown', (e)=>{
 });
 
 document.addEventListener('mousedown', (e)=>{
+  if(!hasPermission('write')) return;
   if(e.button !== 0) return;
   const cell = e.target.closest('.daycell');
   if(!cell) return;
@@ -4286,7 +5237,9 @@ function renderSidebar(){
   }).join('');
   const foot = document.getElementById('sidebarFoot');
   if(foot){
-    foot.textContent = 'Información sincronizada en Firebase para los usuarios autorizados.';
+    foot.textContent =
+      roleLabel()+
+      ' · Información sincronizada en Firebase.';
   }
 
   const toggle = document.getElementById('sidebarToggle');
@@ -4351,6 +5304,8 @@ function renderTopbar(){
     ? exportButton+
       '<button class="btn btn-ghost" data-action="save-now" id="saveNowBtn" title="Guarda todos los cambios inmediatamente">\uD83D\uDCBE Guardar</button>'+
       '<span class="cloud-pill"><span class="dot-live"></span> Firebase</span>'+
+      '<span class="version-badge" title="Versión publicada">v3.9.1</span>'+
+      roleBadgeHtml()+
       '<span class="session-email" id="sessionEmail">'+escHtml((window.amecoCurrentUser&&window.amecoCurrentUser.email)||'Usuario')+'</span>'+
       '<button class="btn btn-ghost" data-action="logout">Cerrar sesión</button>'
     : '';
@@ -4392,6 +5347,7 @@ function render(){
   else if(state.ui.tab==='configuracion') c.innerHTML = viewConfiguracion();
   renderModal();
   attachDynamicListeners();
+  applyRoleUi();
 }
 
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
@@ -4691,6 +5647,20 @@ async function deleteWorkersInBulk(){
 
   await removeWorkerDocuments(ids);
   await persistNow();
+
+  await recordAudit(
+    'WORKERS_BULK_DELETED',
+    'worker',
+    ids.join(','),
+    'Se eliminaron '+selectedWorkers.length+' trabajadores.',
+    {
+      workers:selectedWorkers.map(worker=>({
+        id:worker.id,
+        nombre:worker.nombre,
+        rut:worker.rut
+      }))
+    }
+  );
 
   workerDeleteSelected.clear();
   workerDeleteMode = false;
@@ -6093,6 +7063,7 @@ function viewConfiguracion(){
 
   return '<div class="settings-layout">'+
     '<div class="settings-main-stack">'+
+      accessManagementPanelHtml()+
       integrityReportPanelHtml()+
       '<section class="panel example-settings-panel">'+
         '<div class="panel-head">'+
@@ -6398,6 +7369,8 @@ function renderModal(){
   else if(state.ui.modal.type==='serviceAssignments') root.innerHTML = serviceAssignmentsModalHtml(state.ui.modal.serviceId);
   else if(state.ui.modal.type==='assignmentPicker') root.innerHTML = assignmentPickerModalHtml(state.ui.modal.serviceId,state.ui.modal.requirementId);
   else if(state.ui.modal.type==='addCargo') root.innerHTML = addSimpleListModalHtml('Agregar cargo','new-cargo-name','save-cargo');
+  else if(state.ui.modal.type==='accessUser') root.innerHTML = accessUserModalHtml(state.ui.modal.uid);
+  applyRoleUi();
 }
 
 function analyzeImportRows(){
@@ -6840,6 +7813,10 @@ document.addEventListener('change', async (e)=>{
   const input = e.target;
 
   if(input.id === 'restoreBackupInput'){
+    if(!guardPermission('restore')){
+      input.value = '';
+      return;
+    }
     const file = input.files&&input.files[0];
     if(!file) return;
 
@@ -6855,6 +7832,11 @@ document.addEventListener('change', async (e)=>{
   }
 
   if(input.id === 'importFileInput'){
+    if(!guardPermission('write')){
+      input.value = '';
+      return;
+    }
+
     const file = input.files[0];
     if(!file) return;
     try{
@@ -6909,6 +7891,7 @@ document.addEventListener('change', async (e)=>{
     return;
   }
   if(input.classList && input.classList.contains('cargo-color-input')){
+    if(!guardPermission('settings')) return;
     if(!state.cargoColores) state.cargoColores = {};
     state.cargoColores[input.dataset.cargo] = input.value;
     await persistNow();
@@ -6992,6 +7975,7 @@ document.addEventListener('change', async event=>{
   }
 
   if(target && target.classList.contains('assignment-status-select')){
+    if(!guardPermission('write')) return;
     const service = state.servicios.find(item=>item.id===target.dataset.serviceId);
     const assignment = serviceAssignments(service).find(item=>item.id===target.dataset.assignmentId);
     if(!service || !assignment) return;
@@ -7006,6 +7990,7 @@ document.addEventListener('change', async event=>{
   }
 
   if(target && target.classList.contains('assignment-note-input')){
+    if(!guardPermission('write')) return;
     const service = state.servicios.find(item=>item.id===target.dataset.serviceId);
     const assignment = serviceAssignments(service).find(item=>item.id===target.dataset.assignmentId);
     if(!service || !assignment) return;
@@ -7080,6 +8065,8 @@ document.addEventListener('click', async (e)=>{
   }
   const action = el.dataset.action;
 
+  if(!guardAction(action)) return;
+
   if(action==='logout'){ await window.amecoLogout(); return; }
 
   if(action==='toggle-sidebar'){
@@ -7103,13 +8090,104 @@ document.addEventListener('click', async (e)=>{
     return;
   }
 
+  if(action==='open-add-access-user'){
+    state.ui.modal = {type:'accessUser',uid:null};
+    renderModal();
+    return;
+  }
+
+  if(action==='open-edit-access-user'){
+    state.ui.modal = {type:'accessUser',uid:el.dataset.uid};
+    renderModal();
+    return;
+  }
+
+  if(action==='refresh-access-users'){
+    await refreshAccessDirectory();
+    render();
+    return;
+  }
+
+  if(action==='save-access-user'){
+    const uid = String(document.getElementById('access-user-uid')?.value||'').trim();
+    const email = String(document.getElementById('access-user-email')?.value||'').trim();
+    const displayName = String(document.getElementById('access-user-name')?.value||'').trim();
+    const role = String(document.getElementById('access-user-role')?.value||'viewer');
+    const active = String(document.getElementById('access-user-active')?.value||'true')==='true';
+    const current = currentAccessProfile();
+    const existing = (state.ui.accessUsers||[]).find(user=>user.uid===uid);
+    const activeAdmins = (state.ui.accessUsers||[]).filter(
+      user=>user.active && user.role==='admin'
+    );
+
+    if(!uid){
+      alert('El UID de Firebase es obligatorio.');
+      return;
+    }
+    if(!email || !email.includes('@')){
+      alert('Ingresa el correo exacto utilizado en Firebase Authentication.');
+      return;
+    }
+    if(
+      existing &&
+      existing.uid===current.uid &&
+      existing.role==='admin' &&
+      existing.active &&
+      activeAdmins.length<=1 &&
+      (!active || role!=='admin')
+    ){
+      alert('No puedes desactivar o quitar el rol al único Administrador activo.');
+      return;
+    }
+
+    const saveButton = el;
+    saveButton.disabled = true;
+    saveButton.textContent = 'Guardando...';
+
+    try{
+      await window.amecoAccessApi.saveUserProfile({
+        uid,
+        email,
+        displayName,
+        role,
+        active
+      });
+
+      state.ui.modal = null;
+      await refreshAccessDirectory();
+      render();
+
+      alert('Perfil de acceso guardado correctamente.');
+    }catch(error){
+      console.error(error);
+      alert(error.message||'No fue posible guardar el perfil de acceso.');
+      saveButton.disabled = false;
+      saveButton.textContent = 'Guardar acceso';
+    }
+
+    return;
+  }
+
   if(action==='download-backup'){
     const originalText = el.innerHTML;
     el.disabled = true;
     el.innerHTML = '<strong>Preparando respaldo...</strong><small>Espera mientras se recopilan los archivos.</small>';
 
     try{
-      await createAndDownloadBackup('manual');
+      const backupResult = await createAndDownloadBackup('manual');
+
+      await recordAudit(
+        'BACKUP_DOWNLOADED',
+        'backup',
+        backupResult.meta.filename,
+        'Se descargó un respaldo completo.',
+        {
+          entryCount:backupResult.meta.entryCount,
+          documentCount:backupResult.meta.documentCount,
+          sizeBytes:backupResult.meta.sizeBytes
+        }
+      );
+
       state.ui.integrityReport = await runFullIntegrityAudit();
       render();
     }catch(error){
@@ -7318,6 +8396,19 @@ document.addEventListener('click', async (e)=>{
     state.servicios = state.servicios.filter(item=>item.id!==service.id);
     state.ui.modal = null;
     await persistNow();
+
+    await recordAudit(
+      'SERVICE_DELETED',
+      'service',
+      service.id,
+      'Se eliminó el servicio '+service.nombre+'.',
+      {
+        faena:service.faena,
+        fechaInicio:service.fechaInicio,
+        fechaFin:service.fechaFin
+      }
+    );
+
     render();
   }
 
@@ -7561,6 +8652,14 @@ document.addEventListener('click', async (e)=>{
     if(state.ui.cargoFilter===cargo) state.ui.cargoFilter='all';
     if(state.ui.turnoCargoFilter===cargo) state.ui.turnoCargoFilter='all';
     await persistNow();
+
+    await recordAudit(
+      'ROLE_CATALOG_DELETED',
+      'cargo',
+      cargo,
+      'Se eliminó el cargo '+cargo+'.'
+    );
+
     render();
   }
 
@@ -7783,6 +8882,22 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = null;
 
     await persistNow();
+
+    await recordAudit(
+      'WORKERS_IMPORTED',
+      'import',
+      importState?.fileName||'excel',
+      'Se completó una importación de trabajadores.',
+      {
+        created,
+        updated,
+        cargoUpdated,
+        accreditationsCreated,
+        accreditationsUpdated,
+        skippedRows
+      }
+    );
+
     render();
 
     let message =
@@ -7880,6 +8995,7 @@ document.addEventListener('click', async (e)=>{
   else if(action==='delete-worker'){
     if(confirm('¿Eliminar a este trabajador? También se eliminarán sus llamados, pasajes, asignaciones a servicios y archivos asociados. Esta acción no se puede deshacer.')){
       const workerId = el.dataset.id;
+      const deletedWorker = state.workers.find(worker=>worker.id===workerId);
       state.workers = state.workers.filter(w=>w.id!==workerId);
       state.llamados = (state.llamados||[]).filter(item=>item.workerId!==workerId);
       state.pasajes = (state.pasajes||[]).filter(item=>item.workerId!==workerId);
@@ -7892,6 +9008,17 @@ document.addEventListener('click', async (e)=>{
       state.ui.modal = null;
       render();
       await persistNow();
+
+      await recordAudit(
+        'WORKER_DELETED',
+        'worker',
+        workerId,
+        'Se eliminó el trabajador '+(deletedWorker?.nombre||workerId)+'.',
+        {
+          rut:deletedWorker?.rut||'',
+          cargo:deletedWorker?.cargo||''
+        }
+      );
     }
   }
 
@@ -8043,6 +9170,14 @@ document.addEventListener('click', async (e)=>{
     if(state.ui.acredFaenaFilter===faena) state.ui.acredFaenaFilter='all';
 
     await persistNow();
+
+    await recordAudit(
+      'SITE_CATALOG_DELETED',
+      'faena',
+      faena,
+      'Se eliminó la faena '+faena+'.'
+    );
+
     render();
   }
   else if(action==='add-equipo'){ state.ui.modal = {type:'addEquipo'}; renderModal(); }
@@ -8126,6 +9261,7 @@ function renderContentOnly(){
   else if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
   else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
   else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
+  applyRoleUi();
 }
 
 async function saveWorkerFromForm(){

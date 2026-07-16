@@ -343,3 +343,12 @@ Se registran acciones críticas como:
 La regla de Firebase bloquea completamente la escritura del rol Lector y de cuentas desactivadas. Administrador y Planificador pueden escribir en `legacyStorage`.
 
 Como la información operacional todavía está guardada dentro de un único JSON, las reglas de Firebase no pueden distinguir en el servidor una edición normal de una eliminación realizada por un Planificador. La interfaz reserva las acciones destructivas al Administrador, pero la protección fina entre Administrador y Planificador requiere la futura normalización de la base por módulos.
+
+
+## v3.9.1 — Hotfix de publicación
+
+- Se corrigió el error de empaquetado de la v3.9.0.
+- El `index.html` ahora incluye realmente los roles, permisos y auditoría.
+- Se agregó una etiqueta visible `v3.9.1` en la barra superior.
+- Se agregó una guía de recuperación.
+- Se agregó un archivo de reglas temporales para recuperar el guardado cuando las reglas nuevas fueron publicadas antes del frontend.

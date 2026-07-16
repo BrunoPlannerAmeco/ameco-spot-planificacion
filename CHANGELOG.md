@@ -1,14 +1,15 @@
 # CHANGELOG
 
+## v3.9.1
+
+- Se corrigió el ZIP v3.9.0, que conservaba accidentalmente el index.html de v3.8.0.
+- Se publicó el frontend real de roles, permisos y auditoría.
+- Se agregó un indicador visible de versión.
+- Se agregó una secuencia segura de recuperación de reglas.
+
 ## v3.9.0
 
-- Se implementaron perfiles Administrador, Planificador y Lector.
-- Se agregó bootstrap seguro del primer Administrador.
-- Se agregó bloqueo de cuentas desactivadas.
-- Se agregó administración de perfiles mediante UID de Firebase.
-- Se adaptó la interfaz según permisos.
-- Se bloqueó la escritura de Lectores en el cliente y en Realtime Database.
-- Se agregaron reglas de acceso por rol.
-- Se agregó auditoría append-only de acciones críticas.
-- Se agregó visualización de registros de auditoría para Administradores.
-- Se documentó la limitación de permisos finos mientras exista un único JSON.
+- Roles Administrador, Planificador y Lector.
+- Perfiles activos e inactivos.
+- Reglas Firebase por rol.
+- Auditoría de acciones críticas.
