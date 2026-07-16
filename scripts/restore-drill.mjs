@@ -71,6 +71,21 @@ function deepCountsEqual(a, b) {
   return true;
 }
 
+// RTDB no conserva el orden de inserción de claves de un objeto (las
+// reordena, típicamente alfabéticamente) al guardar y volver a leer, así que
+// comparar con JSON.stringify da falsos negativos. Se necesita una
+// comparación estructural real, indiferente al orden de las claves.
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b || a === null || b === null) return a === b;
+  if (typeof a !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every(key => deepEqual(a[key], b[key]));
+}
+
 async function main() {
   assertEmulator();
 
@@ -118,7 +133,7 @@ async function main() {
   const restoredCounts = countEntities(restored);
 
   const countsMatch = deepCountsEqual(seedCounts, restoredCounts);
-  const dataMatches = JSON.stringify(restored) === JSON.stringify(seedData);
+  const dataMatches = deepEqual(restored, seedData);
 
   console.log('[drill] 6/6 Limpiando...');
   rmSync(tmpDir, { recursive: true, force: true });
