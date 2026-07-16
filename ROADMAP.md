@@ -23,3 +23,10 @@ Roles, permisos y auditoría.
 
 ## v4.0.0
 Primera versión integral para operación real.
+
+
+## v3.8.0 — completada
+Centro de respaldos completos, restauración e integridad de datos.
+
+## Próxima prioridad
+v3.9.0 — Roles y permisos diferenciados en Firebase.

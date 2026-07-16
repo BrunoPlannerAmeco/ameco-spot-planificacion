@@ -1,10 +1,11 @@
 # CHANGELOG
 
-## v3.7.8
+## v3.8.0
 
-- Se implementó menú lateral plegable.
-- Se agregó vista compacta con íconos.
-- Se agregó persistencia local de preferencias visuales.
-- Se implementó columna de nombres redimensionable en Turnos.
-- Se agregaron controles de reducir, ampliar y restablecer.
-- Se agregó arrastre tipo Excel.
+- Se agregó el Centro de respaldos e integridad.
+- Se implementó respaldo JSON completo de datos y archivos.
+- Se implementó restauración validada con copia previa automática.
+- Se agregó compatibilidad con respaldos antiguos de datos.
+- Se agregó auditoría de RUT, IDs, fechas, referencias y documentos.
+- Se agregó descarga de informe técnico de integridad.
+- Se centralizó la construcción y aplicación del estado persistente.

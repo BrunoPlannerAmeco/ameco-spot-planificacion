@@ -253,3 +253,43 @@ El menú lateral quedó ordenado así:
   - Botón restablecer.
   - Arrastre del borde derecho, como una columna de Excel.
 - El ancho elegido queda guardado en el navegador.
+
+
+## v3.8.0 — Centro de respaldos e integridad
+
+La sección Configuración incorpora un Centro de respaldos e integridad.
+
+### Respaldo completo
+
+- Descarga un archivo JSON versionado.
+- Incluye el estado principal y todas las claves almacenadas por la aplicación.
+- Incluye los archivos adjuntos guardados en Realtime Database.
+- Registra versión, fecha, usuario, conteos e informe de integridad.
+- Advierte que el archivo contiene información confidencial.
+
+### Restauración
+
+- Acepta respaldos completos v3.8.0.
+- Mantiene compatibilidad con JSON antiguos que solo contienen los datos principales.
+- Muestra una vista previa con cantidades y hallazgos.
+- Solicita confirmación antes de reemplazar los datos.
+- Descarga automáticamente un respaldo previo.
+- Intenta volver al estado anterior si la restauración falla.
+
+### Auditoría de integridad
+
+Revisa:
+
+- RUT e identificadores duplicados.
+- Trabajadores sin RUT, nombre o cargo.
+- Fechas inválidas.
+- Faenas y cargos no configurados.
+- Asignaciones huérfanas.
+- Llamados y pasajes asociados a trabajadores eliminados.
+- Metadata de archivos sin contenido.
+- Archivos almacenados sin referencia.
+- Servicios con fechas o cantidades inválidas.
+
+### Seguridad
+
+Los respaldos pueden contener datos personales, exámenes y documentos. Deben guardarse en una ubicación protegida.

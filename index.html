@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- AMECO Spot Planner v3.7.8 — menú plegable y columna ajustable -->
+<!-- AMECO Spot Planner v3.8.0 — respaldos completos e integridad -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -1675,6 +1675,230 @@
     }
   }
 
+
+  /* ============================= RESPALDOS E INTEGRIDAD ============================= */
+  .backup-center-panel{
+    overflow:hidden;
+  }
+  .backup-center-body{
+    padding:15px;
+  }
+  .backup-action-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+  }
+  .backup-action-card{
+    min-height:118px;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:5px;
+    padding:13px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--panel);
+    color:var(--ink);
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+  }
+  .backup-action-card:hover{
+    border-color:#bec3bc;
+    box-shadow:var(--shadow);
+    transform:translateY(-1px);
+  }
+  .backup-action-card:disabled{
+    opacity:.62;
+    cursor:wait;
+    transform:none;
+  }
+  .backup-action-icon{
+    width:30px;
+    height:30px;
+    display:grid;
+    place-items:center;
+    border-radius:8px;
+    background:#fff1e9;
+    color:var(--accent);
+    font-size:16px;
+    font-weight:800;
+  }
+  .backup-action-card strong{
+    color:var(--steel);
+    font-size:12px;
+  }
+  .backup-action-card small{
+    color:var(--sub);
+    font-size:9.8px;
+    line-height:1.35;
+  }
+  .backup-last-meta{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:12px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:#fafaf8;
+  }
+  .backup-last-meta strong{
+    color:var(--steel);
+    font-size:11px;
+  }
+  .backup-last-meta span{
+    color:var(--sub);
+    font-size:9.8px;
+    text-align:right;
+  }
+  .backup-last-meta.empty-meta{
+    border-style:dashed;
+  }
+  .integrity-summary-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:9px;
+    margin-top:12px;
+  }
+  .integrity-summary-grid > div{
+    padding:10px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:var(--grey-bg);
+    text-align:center;
+  }
+  .integrity-summary-grid > div.good{
+    background:var(--good-bg);
+    border-color:#b9ddc3;
+  }
+  .integrity-summary-grid > div.warn{
+    background:var(--warn-bg);
+    border-color:#ead4a9;
+  }
+  .integrity-summary-grid > div.bad{
+    background:var(--bad-bg);
+    border-color:#ebc4c2;
+  }
+  .integrity-summary-grid strong{
+    display:block;
+    font-family:'Barlow Condensed',sans-serif;
+    color:var(--steel);
+    font-size:25px;
+    line-height:1;
+  }
+  .integrity-summary-grid span{
+    display:block;
+    margin-top:4px;
+    color:var(--sub);
+    font-size:9px;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .integrity-report-head{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:15px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .integrity-report-head strong{
+    display:block;
+    color:var(--steel);
+    font-size:12px;
+  }
+  .integrity-report-head span{
+    color:var(--sub);
+    font-size:9.5px;
+  }
+  .integrity-issues{
+    margin-top:6px;
+  }
+  .integrity-issue{
+    display:grid;
+    grid-template-columns:85px minmax(0,1fr);
+    gap:9px;
+    align-items:start;
+    padding:9px 0;
+    border-bottom:1px solid #eff0eb;
+  }
+  .integrity-issue:last-child{
+    border-bottom:0;
+  }
+  .integrity-issue-badge{
+    display:inline-flex;
+    justify-content:center;
+    border-radius:999px;
+    padding:3px 7px;
+    background:var(--grey-bg);
+    color:var(--sub);
+    font-size:8.5px;
+    font-weight:800;
+  }
+  .integrity-issue.error .integrity-issue-badge{
+    background:var(--bad-bg);
+    color:var(--bad);
+  }
+  .integrity-issue.warning .integrity-issue-badge{
+    background:var(--warn-bg);
+    color:var(--warn);
+  }
+  .integrity-issue strong{
+    display:block;
+    color:var(--steel);
+    font-size:10px;
+  }
+  .integrity-issue p{
+    margin:2px 0 0;
+    color:var(--sub);
+    font-size:9.8px;
+    line-height:1.35;
+  }
+  .integrity-ok{
+    padding:18px;
+    border-radius:9px;
+    background:var(--good-bg);
+    color:var(--good);
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+  }
+  .backup-security-warning{
+    margin-top:12px;
+    padding:10px 12px;
+    border-left:4px solid var(--bad);
+    border-radius:7px;
+    background:var(--bad-bg);
+    color:#7a2825;
+    font-size:10px;
+    line-height:1.4;
+  }
+  @media(max-width:1050px){
+    .backup-action-grid{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+  }
+  @media(max-width:650px){
+    .backup-action-grid,
+    .integrity-summary-grid{
+      grid-template-columns:1fr;
+    }
+    .backup-last-meta,
+    .integrity-report-head{
+      align-items:flex-start;
+      flex-direction:column;
+    }
+    .backup-last-meta span{
+      text-align:left;
+    }
+    .integrity-issue{
+      grid-template-columns:1fr;
+    }
+  }
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1954,6 +2178,10 @@
 <script>
 /* ============================= DATA LAYER ============================= */
 const STORAGE_KEY = 'faena_personal_db_v1';
+const APP_VERSION = 'v3.8.0';
+const BACKUP_FORMAT = 'AMECO_SPOT_PLANNER_BACKUP';
+const BACKUP_SCHEMA_VERSION = 1;
+const LAST_BACKUP_META_KEY = 'ameco_spot_last_backup_meta_v1';
 const UI_PREFS_KEY = 'ameco_spot_ui_preferences_v1';
 
 /* Persistencia cloud: Firebase Realtime Database mediante window.storage. */
@@ -1976,7 +2204,7 @@ let state = {
   pasajes: [],
   servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended' },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended', integrityReport:null },
   saving:false
 };
 let bulkSelected = new Set();
@@ -2606,6 +2834,756 @@ function addExampleWorkersToState(){
 
 function seedData(){ return []; }
 
+function buildPersistentPayload(){
+  return {
+    workers:state.workers,
+    faenas:state.faenas,
+    cargos:state.cargos,
+    cargoColores:state.cargoColores,
+    equipos:state.equipos,
+    llamados:state.llamados,
+    pasajes:state.pasajes,
+    servicios:state.servicios,
+    examplesSeeded:state.examplesSeeded
+  };
+}
+
+function normalizeServiceData(service){
+  if(!service || typeof service!=='object') return;
+
+  if(!Array.isArray(service.requerimientos)){
+    service.requerimientos = [];
+  }
+  if(!Array.isArray(service.asignaciones)){
+    service.asignaciones = [];
+  }
+
+  service.requerimientos.forEach(requirement=>{
+    if(!requirement.id) requirement.id = uid('req');
+  });
+
+  service.asignaciones.forEach(assignment=>{
+    if(!assignment.id) assignment.id = uid('asg');
+    if(!assignment.estado) assignment.estado = 'propuesto';
+    if(!assignment.createdAt) assignment.createdAt = Date.now();
+    if(!assignment.updatedAt) assignment.updatedAt = assignment.createdAt;
+  });
+}
+
+function normalizeWorkerData(worker){
+  if(!worker || typeof worker!=='object') return;
+
+  if(!worker.id) worker.id = uid('w');
+  if(!Array.isArray(worker.certificaciones)) worker.certificaciones = [];
+  if(!Array.isArray(worker.examenes)) worker.examenes = [];
+  if(!Array.isArray(worker.examenesExtra)) worker.examenesExtra = [];
+  if(!Array.isArray(worker.acreditaciones)) worker.acreditaciones = [];
+  if(!worker.overrides || typeof worker.overrides!=='object') worker.overrides = {};
+
+  worker.certificaciones.forEach(certification=>{
+    if(!certification.id) certification.id = uid('c');
+    if(!certification.archivos){
+      certification.archivos = certification.archivoNombre
+        ? [{
+            id:'',
+            nombre:certification.archivoNombre,
+            mime:certification.archivoTipo||''
+          }]
+        : [];
+
+      delete certification.archivoNombre;
+      delete certification.archivoTipo;
+    }
+  });
+}
+
+function applyPersistentPayload(payload){
+  const parsed = payload && typeof payload==='object' ? payload : {};
+
+  state.workers = Array.isArray(parsed.workers) ? parsed.workers : [];
+  state.faenas = Array.isArray(parsed.faenas) && parsed.faenas.length
+    ? parsed.faenas
+    : [...DEFAULT_FAENAS];
+  state.cargos = Array.isArray(parsed.cargos) && parsed.cargos.length
+    ? parsed.cargos
+    : [...DEFAULT_CARGOS];
+  state.cargoColores = parsed.cargoColores && typeof parsed.cargoColores==='object'
+    ? parsed.cargoColores
+    : {};
+  state.equipos = Array.isArray(parsed.equipos) && parsed.equipos.length
+    ? parsed.equipos
+    : [...DEFAULT_EQUIPOS];
+  state.llamados = Array.isArray(parsed.llamados) ? parsed.llamados : [];
+  state.pasajes = Array.isArray(parsed.pasajes) ? parsed.pasajes : [];
+  state.servicios = Array.isArray(parsed.servicios) ? parsed.servicios : [];
+  state.examplesSeeded = parsed.examplesSeeded === true;
+
+  ensureCargoColors();
+  state.workers.forEach(normalizeWorkerData);
+  state.servicios.forEach(normalizeServiceData);
+}
+
+function isValidIsoDate(value){
+  if(!value) return true;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return false;
+
+  const date = parseDate(value);
+  return !!date && fmt(date)===String(value);
+}
+
+function auditAppData(payload=buildPersistentPayload(),storageKeys=null){
+  const data = payload && typeof payload==='object' ? payload : {};
+  const issues = [];
+  const addIssue = (severity,code,message,entity='')=>{
+    issues.push({severity,code,message,entity});
+  };
+
+  const workers = Array.isArray(data.workers) ? data.workers : [];
+  const services = Array.isArray(data.servicios) ? data.servicios : [];
+  const calls = Array.isArray(data.llamados) ? data.llamados : [];
+  const tickets = Array.isArray(data.pasajes) ? data.pasajes : [];
+  const cargos = new Set(Array.isArray(data.cargos) ? data.cargos : []);
+  const sites = new Set(Array.isArray(data.faenas) ? data.faenas : []);
+  const workerIds = new Set();
+  const normalizedRuts = new Map();
+  const expectedDocumentKeys = new Set();
+
+  workers.forEach((worker,index)=>{
+    const entity = worker.nombre || worker.rut || ('Trabajador '+(index+1));
+
+    if(!worker.id){
+      addIssue('error','WORKER_WITHOUT_ID','El trabajador no tiene identificador.',entity);
+    }else if(workerIds.has(worker.id)){
+      addIssue('error','DUPLICATE_WORKER_ID','El identificador del trabajador está duplicado.',entity);
+    }else{
+      workerIds.add(worker.id);
+    }
+
+    const normalizedRut = normalizeRut(worker.rut);
+    if(!normalizedRut){
+      addIssue('error','WORKER_WITHOUT_RUT','El trabajador no tiene un RUT válido.',entity);
+    }else if(normalizedRuts.has(normalizedRut)){
+      addIssue(
+        'error',
+        'DUPLICATE_RUT',
+        'El RUT también pertenece a '+normalizedRuts.get(normalizedRut)+'.',
+        entity
+      );
+    }else{
+      normalizedRuts.set(normalizedRut,entity);
+    }
+
+    if(!String(worker.nombre||'').trim()){
+      addIssue('warning','WORKER_WITHOUT_NAME','El trabajador no tiene nombre visible.',entity);
+    }
+
+    if(!String(worker.cargo||'').trim()){
+      addIssue('warning','WORKER_WITHOUT_ROLE','El trabajador no tiene cargo.',entity);
+    }else if(cargos.size && !cargos.has(worker.cargo)){
+      addIssue('warning','UNKNOWN_ROLE','El cargo no existe en Configuración: '+worker.cargo+'.',entity);
+    }
+
+    (worker.examenes||[]).forEach(exam=>{
+      if(exam.fecha && !isValidIsoDate(exam.fecha)){
+        addIssue('warning','INVALID_EXAM_DATE','Fecha de examen inválida: '+exam.fecha+'.',entity);
+      }
+      if(exam.vencimiento && !isValidIsoDate(exam.vencimiento)){
+        addIssue('warning','INVALID_EXAM_EXPIRY','Vencimiento de examen inválido: '+exam.vencimiento+'.',entity);
+      }
+      if(exam.archivoNombre && worker.id && exam.tipo){
+        expectedDocumentKeys.add(examDocKey(worker.id,exam.tipo));
+      }
+    });
+
+    (worker.examenesExtra||[]).forEach(exam=>{
+      if(exam.fecha && !isValidIsoDate(exam.fecha)){
+        addIssue('warning','INVALID_EXTRA_EXAM_DATE','Fecha de examen adicional inválida: '+exam.fecha+'.',entity);
+      }
+      if(exam.vencimiento && !isValidIsoDate(exam.vencimiento)){
+        addIssue('warning','INVALID_EXTRA_EXAM_EXPIRY','Vencimiento de examen adicional inválido: '+exam.vencimiento+'.',entity);
+      }
+      if(exam.archivoNombre && worker.id && exam.id){
+        expectedDocumentKeys.add(examExtraDocKey(worker.id,exam.id));
+      }
+    });
+
+    (worker.acreditaciones||[]).forEach(accreditation=>{
+      if(!accreditation.faena){
+        addIssue('warning','ACCREDITATION_WITHOUT_SITE','Existe una acreditación sin faena.',entity);
+      }else if(sites.size && !sites.has(accreditation.faena)){
+        addIssue(
+          'warning',
+          'UNKNOWN_ACCREDITATION_SITE',
+          'La faena de acreditación no existe en Configuración: '+accreditation.faena+'.',
+          entity
+        );
+      }
+
+      if(accreditation.vencimiento && !isValidIsoDate(accreditation.vencimiento)){
+        addIssue(
+          'warning',
+          'INVALID_ACCREDITATION_EXPIRY',
+          'Vencimiento de acreditación inválido: '+accreditation.vencimiento+'.',
+          entity
+        );
+      }
+    });
+
+    Object.entries(worker.overrides||{}).forEach(([date,override])=>{
+      if(!isValidIsoDate(date)){
+        addIssue('warning','INVALID_SHIFT_DATE','La fecha de turno es inválida: '+date+'.',entity);
+      }
+      if(override?.faena && sites.size && !sites.has(override.faena)){
+        addIssue(
+          'warning',
+          'UNKNOWN_SHIFT_SITE',
+          'El turno utiliza una faena no configurada: '+override.faena+'.',
+          entity
+        );
+      }
+    });
+
+    (worker.certificaciones||[]).forEach(certification=>{
+      if(certification.fecha && !isValidIsoDate(certification.fecha)){
+        addIssue('warning','INVALID_CERTIFICATION_DATE','Fecha de certificación inválida: '+certification.fecha+'.',entity);
+      }
+      if(certification.vencimiento && !isValidIsoDate(certification.vencimiento)){
+        addIssue(
+          'warning',
+          'INVALID_CERTIFICATION_EXPIRY',
+          'Vencimiento de certificación inválido: '+certification.vencimiento+'.',
+          entity
+        );
+      }
+
+      (certification.archivos||[]).forEach(file=>{
+        if(worker.id && certification.id && file.id){
+          expectedDocumentKeys.add(
+            certDocKey(worker.id,certification.id,file.id)
+          );
+        }
+      });
+    });
+  });
+
+  services.forEach((service,index)=>{
+    const entity = service.nombre || ('Servicio '+(index+1));
+    const requirementIds = new Set();
+    const activeWorkers = new Set();
+
+    if(!service.id){
+      addIssue('error','SERVICE_WITHOUT_ID','El servicio no tiene identificador.',entity);
+    }
+    if(service.fechaInicio && !isValidIsoDate(service.fechaInicio)){
+      addIssue('warning','INVALID_SERVICE_START','Fecha de inicio inválida: '+service.fechaInicio+'.',entity);
+    }
+    if(service.fechaFin && !isValidIsoDate(service.fechaFin)){
+      addIssue('warning','INVALID_SERVICE_END','Fecha de término inválida: '+service.fechaFin+'.',entity);
+    }
+    if(service.fechaInicio && service.fechaFin && service.fechaFin<service.fechaInicio){
+      addIssue('error','SERVICE_DATE_ORDER','La fecha de término es anterior al inicio.',entity);
+    }
+    if(service.faena && sites.size && !sites.has(service.faena)){
+      addIssue('warning','UNKNOWN_SERVICE_SITE','La faena del servicio no existe en Configuración.',entity);
+    }
+
+    (service.requerimientos||[]).forEach(requirement=>{
+      if(!requirement.id){
+        addIssue('error','REQUIREMENT_WITHOUT_ID','Existe un cargo requerido sin identificador.',entity);
+      }else if(requirementIds.has(requirement.id)){
+        addIssue('error','DUPLICATE_REQUIREMENT_ID','Existe un identificador de requisito duplicado.',entity);
+      }else{
+        requirementIds.add(requirement.id);
+      }
+
+      if(!requirement.cargo){
+        addIssue('warning','REQUIREMENT_WITHOUT_ROLE','Existe un requisito sin cargo.',entity);
+      }else if(cargos.size && !cargos.has(requirement.cargo)){
+        addIssue('warning','UNKNOWN_REQUIREMENT_ROLE','El requisito usa un cargo no configurado: '+requirement.cargo+'.',entity);
+      }
+
+      if(!Number.isInteger(Number(requirement.cantidad)) || Number(requirement.cantidad)<1){
+        addIssue('error','INVALID_REQUIREMENT_QUANTITY','La cantidad requerida debe ser mayor que cero.',entity);
+      }
+    });
+
+    (service.asignaciones||[]).forEach(assignment=>{
+      if(!assignment.id){
+        addIssue('error','ASSIGNMENT_WITHOUT_ID','Existe una asignación sin identificador.',entity);
+      }
+      if(!workerIds.has(assignment.workerId)){
+        addIssue('error','ORPHAN_ASSIGNMENT_WORKER','La asignación apunta a un trabajador inexistente.',entity);
+      }
+      if(!requirementIds.has(assignment.requisitoId)){
+        addIssue('error','ORPHAN_ASSIGNMENT_REQUIREMENT','La asignación apunta a un requisito inexistente.',entity);
+      }
+
+      if(assignmentIsActive(assignment)){
+        if(activeWorkers.has(assignment.workerId)){
+          addIssue('warning','DUPLICATE_ACTIVE_ASSIGNMENT','El mismo trabajador está asignado más de una vez al servicio.',entity);
+        }
+        activeWorkers.add(assignment.workerId);
+      }
+    });
+  });
+
+  calls.forEach(call=>{
+    if(call.workerId && !workerIds.has(call.workerId)){
+      addIssue('error','ORPHAN_CALL','Existe un llamado asociado a un trabajador eliminado.',call.id||'Llamado');
+    }
+    if(call.fecha && !isValidIsoDate(call.fecha)){
+      addIssue('warning','INVALID_CALL_DATE','El llamado tiene una fecha inválida: '+call.fecha+'.',call.id||'Llamado');
+    }
+  });
+
+  tickets.forEach(ticket=>{
+    if(ticket.workerId && !workerIds.has(ticket.workerId)){
+      addIssue('error','ORPHAN_TICKET','Existe un pasaje asociado a un trabajador eliminado.',ticket.id||'Pasaje');
+    }
+    if(ticket.fechaViaje && !isValidIsoDate(ticket.fechaViaje)){
+      addIssue('warning','INVALID_TICKET_DATE','El pasaje tiene una fecha inválida: '+ticket.fechaViaje+'.',ticket.id||'Pasaje');
+    }
+  });
+
+  if(Array.isArray(storageKeys)){
+    const storedDocuments = new Set(
+      storageKeys.filter(key=>key.startsWith('doc__'))
+    );
+
+    expectedDocumentKeys.forEach(key=>{
+      if(!storedDocuments.has(key)){
+        addIssue('warning','MISSING_DOCUMENT_DATA','Existe metadata de archivo, pero no se encontró su contenido.',key);
+      }
+    });
+
+    storedDocuments.forEach(key=>{
+      if(!expectedDocumentKeys.has(key)){
+        addIssue('warning','ORPHAN_DOCUMENT_DATA','Existe un archivo sin referencia en las fichas.',key);
+      }
+    });
+  }
+
+  const severityOrder = {error:0,warning:1,info:2};
+  issues.sort((a,b)=>
+    severityOrder[a.severity]-severityOrder[b.severity] ||
+    a.code.localeCompare(b.code)
+  );
+
+  const errors = issues.filter(issue=>issue.severity==='error').length;
+  const warnings = issues.filter(issue=>issue.severity==='warning').length;
+
+  return {
+    checkedAt:new Date().toISOString(),
+    scope:Array.isArray(storageKeys) ? 'full' : 'quick',
+    errors,
+    warnings,
+    healthy:errors===0,
+    issues,
+    counts:{
+      workers:workers.length,
+      services:services.length,
+      calls:calls.length,
+      tickets:tickets.length,
+      cargos:Array.isArray(data.cargos) ? data.cargos.length : 0,
+      sites:Array.isArray(data.faenas) ? data.faenas.length : 0,
+      storageEntries:Array.isArray(storageKeys) ? storageKeys.length : null,
+      documents:Array.isArray(storageKeys)
+        ? storageKeys.filter(key=>key.startsWith('doc__')).length
+        : null
+    }
+  };
+}
+
+function formatBytes(bytes){
+  const value = Number(bytes)||0;
+  if(value<1024) return value+' B';
+  if(value<1024*1024) return (value/1024).toFixed(1)+' KB';
+  if(value<1024*1024*1024) return (value/(1024*1024)).toFixed(1)+' MB';
+  return (value/(1024*1024*1024)).toFixed(2)+' GB';
+}
+
+function safeFileTimestamp(value=new Date()){
+  return value.toISOString()
+    .replace(/\.\d{3}Z$/,'Z')
+    .replace(/:/g,'-');
+}
+
+function downloadJsonFile(filename,value){
+  const json = typeof value==='string'
+    ? value
+    : JSON.stringify(value,null,2);
+  const blob = new Blob([json],{type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  return blob.size;
+}
+
+function readLastBackupMeta(){
+  try{
+    return JSON.parse(localStorage.getItem(LAST_BACKUP_META_KEY)||'null');
+  }catch(error){
+    return null;
+  }
+}
+
+function writeLastBackupMeta(meta){
+  try{
+    localStorage.setItem(LAST_BACKUP_META_KEY,JSON.stringify(meta));
+  }catch(error){}
+}
+
+async function collectStorageEntries(){
+  const listResult = await window.storage.list('',true);
+  const keys = Array.from(new Set(
+    ((listResult&&listResult.keys)||[]).concat([STORAGE_KEY])
+  ));
+  const entries = {};
+  const failedKeys = [];
+
+  for(const key of keys){
+    try{
+      const result = await window.storage.get(key,true);
+      entries[key] = result.value;
+    }catch(error){
+      if(key===STORAGE_KEY){
+        entries[key] = JSON.stringify(buildPersistentPayload());
+      }else{
+        failedKeys.push(key);
+      }
+    }
+  }
+
+  return {entries,failedKeys};
+}
+
+async function buildBackupEnvelope(reason='manual'){
+  const storageSnapshot = await collectStorageEntries();
+  const dataText = storageSnapshot.entries[STORAGE_KEY] ||
+    JSON.stringify(buildPersistentPayload());
+  const data = JSON.parse(dataText);
+  const storageKeys = Object.keys(storageSnapshot.entries);
+  const integrity = auditAppData(data,storageKeys);
+
+  return {
+    format:BACKUP_FORMAT,
+    schemaVersion:BACKUP_SCHEMA_VERSION,
+    appVersion:APP_VERSION,
+    exportedAt:new Date().toISOString(),
+    reason,
+    projectId:'ameco-spot-planificacion',
+    sourceUrl:location.href,
+    userEmail:(window.amecoCurrentUser&&window.amecoCurrentUser.email)||'',
+    integrity,
+    failedKeys:storageSnapshot.failedKeys,
+    storageEntries:storageSnapshot.entries
+  };
+}
+
+function downloadBackupEnvelope(envelope){
+  const filename =
+    'AMECO-Spot-Planner_'+
+    APP_VERSION+'_respaldo_'+
+    safeFileTimestamp(new Date(envelope.exportedAt))+
+    '.json';
+
+  const sizeBytes = downloadJsonFile(filename,envelope);
+  const entryCount = Object.keys(envelope.storageEntries||{}).length;
+  const documentCount = Object.keys(envelope.storageEntries||{})
+    .filter(key=>key.startsWith('doc__')).length;
+
+  const meta = {
+    createdAt:envelope.exportedAt,
+    filename,
+    sizeBytes,
+    entryCount,
+    documentCount,
+    reason:envelope.reason
+  };
+  writeLastBackupMeta(meta);
+  return meta;
+}
+
+async function createAndDownloadBackup(reason='manual'){
+  const envelope = await buildBackupEnvelope(reason);
+  const meta = downloadBackupEnvelope(envelope);
+
+  if(envelope.failedKeys.length){
+    alert(
+      'El respaldo se descargó, pero '+envelope.failedKeys.length+
+      ' elemento(s) no pudieron leerse. Revisa el informe de integridad.'
+    );
+  }
+
+  return {envelope,meta};
+}
+
+function parseBackupDocument(raw){
+  if(!raw || typeof raw!=='object'){
+    throw new Error('El archivo no contiene un objeto JSON válido.');
+  }
+
+  if(raw.format===BACKUP_FORMAT && raw.storageEntries){
+    const mainValue = raw.storageEntries[STORAGE_KEY];
+    if(typeof mainValue!=='string'){
+      throw new Error('El respaldo no contiene la base principal.');
+    }
+
+    return {
+      isFull:true,
+      entries:raw.storageEntries,
+      data:JSON.parse(mainValue),
+      metadata:raw
+    };
+  }
+
+  if(Array.isArray(raw.workers)){
+    return {
+      isFull:false,
+      entries:{
+        [STORAGE_KEY]:JSON.stringify(raw)
+      },
+      data:raw,
+      metadata:{
+        format:'LEGACY_DATA_ONLY',
+        appVersion:'desconocida',
+        exportedAt:''
+      }
+    };
+  }
+
+  if(raw.data && Array.isArray(raw.data.workers)){
+    return {
+      isFull:false,
+      entries:{
+        [STORAGE_KEY]:JSON.stringify(raw.data)
+      },
+      data:raw.data,
+      metadata:raw
+    };
+  }
+
+  throw new Error(
+    'El archivo no corresponde a un respaldo compatible de AMECO Spot Planner.'
+  );
+}
+
+async function writeStorageEntries(entries,replaceAll){
+  const targetEntries = entries && typeof entries==='object'
+    ? entries
+    : {};
+
+  if(replaceAll){
+    const listResult = await window.storage.list('',true);
+    const currentKeys = (listResult&&listResult.keys)||[];
+    const targetKeys = new Set(Object.keys(targetEntries));
+
+    for(const key of currentKeys){
+      if(!targetKeys.has(key)){
+        await window.storage.delete(key,true);
+      }
+    }
+  }
+
+  for(const [key,value] of Object.entries(targetEntries)){
+    await window.storage.set(key,value,true);
+  }
+}
+
+async function restoreBackupFile(file){
+  const text = await file.text();
+  const raw = JSON.parse(text);
+  const parsed = parseBackupDocument(raw);
+  const audit = auditAppData(
+    parsed.data,
+    parsed.isFull ? Object.keys(parsed.entries) : null
+  );
+
+  const counts = audit.counts;
+  const sourceVersion = parsed.metadata.appVersion || 'desconocida';
+  const confirmation =
+    'Se restaurará este respaldo:\n\n'+
+    'Versión de origen: '+sourceVersion+'\n'+
+    'Trabajadores: '+counts.workers+'\n'+
+    'Servicios: '+counts.services+'\n'+
+    'Llamados: '+counts.calls+'\n'+
+    'Pasajes: '+counts.tickets+'\n'+
+    'Errores de integridad: '+audit.errors+'\n'+
+    'Advertencias: '+audit.warnings+'\n\n'+
+    (parsed.isFull
+      ? 'La restauración reemplazará la base principal y todos los archivos guardados.'
+      : 'Este respaldo contiene solo datos principales; los archivos actuales se conservarán.')+
+    '\n\nAntes de restaurar se descargará automáticamente una copia del estado actual. ¿Continuar?';
+
+  if(!confirm(confirmation)) return false;
+
+  const rollback = await buildBackupEnvelope('pre-restauracion');
+  downloadBackupEnvelope(rollback);
+
+  try{
+    await writeStorageEntries(parsed.entries,parsed.isFull);
+    applyPersistentPayload(parsed.data);
+    state.ui.integrityReport = audit;
+    render();
+
+    alert(
+      'Respaldo restaurado correctamente.\n\n'+
+      'Se creó una copia previa por seguridad.'
+    );
+    return true;
+  }catch(error){
+    console.error('Error al restaurar',error);
+
+    try{
+      await writeStorageEntries(rollback.storageEntries,true);
+      const rollbackData = JSON.parse(rollback.storageEntries[STORAGE_KEY]);
+      applyPersistentPayload(rollbackData);
+      render();
+    }catch(rollbackError){
+      console.error('Error al revertir la restauración',rollbackError);
+    }
+
+    throw new Error(
+      'No fue posible completar la restauración. Se intentó volver al estado anterior.'
+    );
+  }
+}
+
+async function runFullIntegrityAudit(){
+  let storageKeys = null;
+
+  try{
+    const result = await window.storage.list('',true);
+    storageKeys = (result&&result.keys)||[];
+  }catch(error){
+    console.warn('No se pudieron listar los archivos.',error);
+  }
+
+  const report = auditAppData(buildPersistentPayload(),storageKeys);
+  state.ui.integrityReport = report;
+  return report;
+}
+
+function integritySeverityLabel(severity){
+  if(severity==='error') return 'Error';
+  if(severity==='warning') return 'Advertencia';
+  return 'Información';
+}
+
+function integrityReportPanelHtml(){
+  const report = state.ui.integrityReport ||
+    auditAppData(buildPersistentPayload(),null);
+  const meta = readLastBackupMeta();
+  const statusClass = report.errors
+    ? 'bad'
+    : report.warnings
+      ? 'warn'
+      : 'good';
+  const statusLabel = report.errors
+    ? 'Requiere revisión'
+    : report.warnings
+      ? 'Con advertencias'
+      : 'Sin problemas detectados';
+
+  const issues = report.issues.slice(0,12).map(issue=>
+    '<div class="integrity-issue '+issue.severity+'">'+
+      '<span class="integrity-issue-badge">'+
+        escHtml(integritySeverityLabel(issue.severity))+
+      '</span>'+
+      '<div>'+
+        '<strong>'+escHtml(issue.code)+'</strong>'+
+        '<p>'+escHtml(issue.message)+
+          (issue.entity ? ' · '+escHtml(issue.entity) : '')+
+        '</p>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+
+  const moreIssues = report.issues.length>12
+    ? '<div class="helptext">Hay '+(report.issues.length-12)+
+      ' hallazgo(s) adicionales. Descarga el reporte completo para revisarlos.</div>'
+    : '';
+
+  const lastBackup = meta
+    ? '<div class="backup-last-meta">'+
+        '<strong>Último respaldo descargado</strong>'+
+        '<span>'+escHtml(new Date(meta.createdAt).toLocaleString('es-CL'))+
+          ' · '+escHtml(formatBytes(meta.sizeBytes))+
+          ' · '+meta.entryCount+' elemento(s)'+
+          ' · '+meta.documentCount+' archivo(s)</span>'+
+      '</div>'
+    : '<div class="backup-last-meta empty-meta">'+
+        '<strong>Sin respaldos registrados en este navegador</strong>'+
+        '<span>Descarga el primer respaldo antes de realizar cambios importantes.</span>'+
+      '</div>';
+
+  return '<section class="panel backup-center-panel">'+
+    '<div class="panel-head">'+
+      '<div>'+
+        '<h2>Centro de respaldos e integridad</h2>'+
+        '<div class="settings-head-sub">Crea puntos de recuperación completos, restaura datos y detecta referencias dañadas.</div>'+
+      '</div>'+
+      '<span class="chip '+statusClass+'">'+statusLabel+'</span>'+
+    '</div>'+
+    '<div class="backup-center-body">'+
+      '<div class="backup-action-grid">'+
+        '<button class="backup-action-card" data-action="download-backup">'+
+          '<span class="backup-action-icon">⬇</span>'+
+          '<strong>Descargar respaldo completo</strong>'+
+          '<small>Incluye trabajadores, servicios, turnos y archivos adjuntos.</small>'+
+        '</button>'+
+        '<button class="backup-action-card" data-action="trigger-restore-backup">'+
+          '<span class="backup-action-icon">↺</span>'+
+          '<strong>Restaurar respaldo</strong>'+
+          '<small>Valida el archivo y crea una copia previa automática.</small>'+
+        '</button>'+
+        '<button class="backup-action-card" data-action="run-integrity-audit">'+
+          '<span class="backup-action-icon">✓</span>'+
+          '<strong>Revisar integridad</strong>'+
+          '<small>Busca RUT duplicados, referencias huérfanas y fechas inválidas.</small>'+
+        '</button>'+
+        '<button class="backup-action-card" data-action="download-integrity-report">'+
+          '<span class="backup-action-icon">▤</span>'+
+          '<strong>Descargar informe</strong>'+
+          '<small>Genera un JSON con todos los hallazgos técnicos.</small>'+
+        '</button>'+
+      '</div>'+
+      '<input id="restoreBackupInput" type="file" accept=".json,application/json" hidden>'+
+      lastBackup+
+      '<div class="integrity-summary-grid">'+
+        '<div><strong>'+report.counts.workers+'</strong><span>Trabajadores</span></div>'+
+        '<div><strong>'+report.counts.services+'</strong><span>Servicios</span></div>'+
+        '<div class="'+(report.errors?'bad':'good')+'"><strong>'+report.errors+'</strong><span>Errores</span></div>'+
+        '<div class="'+(report.warnings?'warn':'good')+'"><strong>'+report.warnings+'</strong><span>Advertencias</span></div>'+
+      '</div>'+
+      '<div class="integrity-report-head">'+
+        '<div>'+
+          '<strong>Resultado de la revisión</strong>'+
+          '<span>'+(report.scope==='full'
+            ? 'Revisión completa de datos y archivos'
+            : 'Revisión rápida de datos; usa “Revisar integridad” para comprobar archivos')+'</span>'+
+        '</div>'+
+        '<span class="mono">'+escHtml(new Date(report.checkedAt).toLocaleString('es-CL'))+'</span>'+
+      '</div>'+
+      '<div class="integrity-issues">'+
+        (issues || '<div class="integrity-ok">No se detectaron problemas en la revisión actual.</div>')+
+        moreIssues+
+      '</div>'+
+      '<div class="backup-security-warning">'+
+        '<strong>Información confidencial:</strong> el archivo de respaldo puede contener RUT, teléfonos, correos, exámenes y documentos. Guárdalo en una ubicación protegida.'+
+      '</div>'+
+    '</div>'+
+  '</section>';
+}
+
+
 async function loadData(){
   loadUiPreferences();
   applyLayoutPreferences();
@@ -2614,41 +3592,7 @@ async function loadData(){
     const res = await window.storage.get(STORAGE_KEY, true);
     if(res && res.value){
       const parsed = JSON.parse(res.value);
-      state.workers = parsed.workers || [];
-      state.faenas = parsed.faenas && parsed.faenas.length ? parsed.faenas : [...DEFAULT_FAENAS];
-      state.cargos = parsed.cargos && parsed.cargos.length ? parsed.cargos : [...DEFAULT_CARGOS];
-      state.cargoColores = parsed.cargoColores || {};
-      ensureCargoColors();
-      state.equipos = parsed.equipos && parsed.equipos.length ? parsed.equipos : [...DEFAULT_EQUIPOS];
-      state.llamados = parsed.llamados || [];
-      state.pasajes = parsed.pasajes || [];
-      state.servicios = parsed.servicios || [];
-      state.servicios.forEach(service=>{
-        if(!Array.isArray(service.requerimientos)) service.requerimientos = [];
-        if(!Array.isArray(service.asignaciones)) service.asignaciones = [];
-
-        service.requerimientos.forEach(requirement=>{
-          if(!requirement.id) requirement.id = uid('req');
-        });
-
-        service.asignaciones.forEach(assignment=>{
-          if(!assignment.id) assignment.id = uid('asg');
-          if(!assignment.estado) assignment.estado = 'propuesto';
-          if(!assignment.createdAt) assignment.createdAt = Date.now();
-          if(!assignment.updatedAt) assignment.updatedAt = assignment.createdAt;
-        });
-      });
-      state.examplesSeeded = parsed.examplesSeeded === true;
-      state.workers.forEach(w=>{
-        if(!w.certificaciones) w.certificaciones = [];
-        w.certificaciones.forEach(c=>{
-          if(!c.archivos){
-            c.archivos = c.archivoNombre ? [{id:'', nombre:c.archivoNombre, mime:c.archivoTipo||''}] : [];
-            delete c.archivoNombre; delete c.archivoTipo;
-          }
-        });
-        if(!w.examenesExtra) w.examenesExtra = [];
-      });
+      applyPersistentPayload(parsed);
     } else {
       state.workers = seedData();
       state.llamados = []; state.pasajes = []; state.servicios = [];
@@ -2676,7 +3620,8 @@ function persist(){
     saveTimeout = setTimeout(async ()=>{
       state.saving = true; renderSavePill();
       try{
-        await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, cargoColores:state.cargoColores, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, servicios:state.servicios, examplesSeeded:state.examplesSeeded}), true);
+        await window.storage.set(STORAGE_KEY, JSON.stringify(buildPersistentPayload()), true);
+        state.ui.integrityReport = null;
       }catch(e){ console.error('Error al guardar', e); }
       state.saving = false; renderSavePill();
       resolve();
@@ -2689,7 +3634,8 @@ async function persistNow(){
   clearTimeout(saveTimeout);
   state.saving = true; renderSavePill();
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify({workers:state.workers, faenas:state.faenas, cargos:state.cargos, cargoColores:state.cargoColores, equipos:state.equipos, llamados:state.llamados, pasajes:state.pasajes, servicios:state.servicios, examplesSeeded:state.examplesSeeded}), true);
+    await window.storage.set(STORAGE_KEY, JSON.stringify(buildPersistentPayload()), true);
+    state.ui.integrityReport = null;
     state.saving = false; renderSavePill();
     return true;
   }catch(e){
@@ -5147,6 +6093,7 @@ function viewConfiguracion(){
 
   return '<div class="settings-layout">'+
     '<div class="settings-main-stack">'+
+      integrityReportPanelHtml()+
       '<section class="panel example-settings-panel">'+
         '<div class="panel-head">'+
           '<div>'+
@@ -5193,6 +6140,8 @@ function viewConfiguracion(){
       '<p>No se puede eliminar una faena mientras esté utilizada en servicios, acreditaciones, pasajes o días de turno.</p>'+
       '<p>Tampoco se puede eliminar un cargo mientras tenga trabajadores asignados.</p>'+
       '<p>Los cambios se guardan en Firebase y aparecen en todos los formularios y filtros.</p>'+
+      '<p>Antes de importaciones masivas o eliminaciones, descarga un respaldo completo.</p>'+
+      '<p>La restauración reemplaza la información compartida para todos los usuarios.</p>'+
     '</section>'+
   '</div>';
 }
@@ -5889,6 +6838,22 @@ function addSimpleListModalHtml(title, inputId, saveAction){
 /* ============================= FILE INPUT CHANGE HANDLER ============================= */
 document.addEventListener('change', async (e)=>{
   const input = e.target;
+
+  if(input.id === 'restoreBackupInput'){
+    const file = input.files&&input.files[0];
+    if(!file) return;
+
+    try{
+      await restoreBackupFile(file);
+    }catch(error){
+      console.error(error);
+      alert(error.message||'No fue posible restaurar el respaldo.');
+    }finally{
+      input.value = '';
+    }
+    return;
+  }
+
   if(input.id === 'importFileInput'){
     const file = input.files[0];
     if(!file) return;
@@ -6135,6 +7100,69 @@ document.addEventListener('click', async (e)=>{
   }
   if(action==='turno-name-reset'){
     setTurnoNameWidth(190);
+    return;
+  }
+
+  if(action==='download-backup'){
+    const originalText = el.innerHTML;
+    el.disabled = true;
+    el.innerHTML = '<strong>Preparando respaldo...</strong><small>Espera mientras se recopilan los archivos.</small>';
+
+    try{
+      await createAndDownloadBackup('manual');
+      state.ui.integrityReport = await runFullIntegrityAudit();
+      render();
+    }catch(error){
+      console.error(error);
+      alert('No fue posible crear el respaldo completo. Revisa tu conexión e inténtalo nuevamente.');
+      el.disabled = false;
+      el.innerHTML = originalText;
+    }
+    return;
+  }
+
+  if(action==='trigger-restore-backup'){
+    document.getElementById('restoreBackupInput')?.click();
+    return;
+  }
+
+  if(action==='run-integrity-audit'){
+    el.disabled = true;
+    const originalText = el.innerHTML;
+    el.innerHTML = '<strong>Revisando...</strong><small>Analizando datos y archivos.</small>';
+
+    try{
+      await runFullIntegrityAudit();
+      render();
+    }catch(error){
+      console.error(error);
+      alert('No fue posible completar la revisión de integridad.');
+      el.disabled = false;
+      el.innerHTML = originalText;
+    }
+    return;
+  }
+
+  if(action==='download-integrity-report'){
+    try{
+      const report = await runFullIntegrityAudit();
+      const filename =
+        'AMECO-Spot-Planner_informe-integridad_'+
+        safeFileTimestamp(new Date())+
+        '.json';
+
+      downloadJsonFile(filename,{
+        format:'AMECO_SPOT_INTEGRITY_REPORT',
+        appVersion:APP_VERSION,
+        generatedAt:new Date().toISOString(),
+        userEmail:(window.amecoCurrentUser&&window.amecoCurrentUser.email)||'',
+        report
+      });
+      render();
+    }catch(error){
+      console.error(error);
+      alert('No fue posible generar el informe de integridad.');
+    }
     return;
   }
 
