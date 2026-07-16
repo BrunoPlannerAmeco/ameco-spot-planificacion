@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## [Sin versión] — Corrección de estado real: CHK-01 y CHK-04
+
+Auditoría del código real (no solo de la wiki) de roles/permisos y auditoría.
+`backlog-riesgos.md` estaba desactualizado:
+
+- CHK-01 pasa de "Solo login general" a "Implementado desde v3.9.0/v3.9.1,
+  con gap real": el split admin/planner/viewer es server-side (RTDB rechaza
+  escritura de Lector), pero la matriz fina (ej. eliminar trabajadores
+  reservado a Admin) solo se aplica en el cliente — las reglas no pueden
+  restringirlo porque `legacyStorage` es un blob JSON único. Depende de
+  CHK-06. Tampoco hay custom claims ni desactivación de usuario en tiempo
+  real (sigue con sesión activa hasta refresh de token).
+- CHK-04 pasa de "No existe" a "Parcial": 9 tipos de acción se auditan
+  (backups, eliminaciones, importación Excel, altas de usuario), pero no se
+  audita crear/editar trabajadores, servicios, turnos ni asignaciones.
+
 ## [Sin versión] — Automatización de respaldos RTDB (CHK-07)
 
 - Script `scripts/backup-rtdb.mjs`: respaldo diario de la RTDB completa vía
