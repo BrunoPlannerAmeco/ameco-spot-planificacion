@@ -89,7 +89,9 @@ async function main() {
   console.log(`[restore] Restauración completada. Snapshot pre-restauración disponible en ${preRestore.filePath}.`);
 }
 
-main().catch(error => {
-  console.error('[restore] ERROR:', error.message);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0)) // el Admin SDK mantiene el socket de RTDB abierto; sin esto el proceso nunca termina.
+  .catch(error => {
+    console.error('[restore] ERROR:', error.message);
+    process.exit(1);
+  });

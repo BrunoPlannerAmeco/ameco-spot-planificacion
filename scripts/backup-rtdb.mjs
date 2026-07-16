@@ -98,7 +98,9 @@ async function main() {
   console.log(`[backup] Respaldos conservados tras rotación: ${kept.length}.`);
 }
 
-main().catch(error => {
-  console.error('[backup] ERROR:', error.message);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0)) // el Admin SDK mantiene el socket de RTDB abierto; sin esto el proceso nunca termina.
+  .catch(error => {
+    console.error('[backup] ERROR:', error.message);
+    process.exit(1);
+  });

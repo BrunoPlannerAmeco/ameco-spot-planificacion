@@ -135,7 +135,9 @@ async function main() {
   console.log('[drill] ÉXITO: ciclo completo de backup + restore verificado contra el emulador.');
 }
 
-main().catch(error => {
-  console.error('[drill] ERROR:', error.message);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0)) // el Admin SDK mantiene el socket de RTDB abierto; sin esto el proceso nunca termina.
+  .catch(error => {
+    console.error('[drill] ERROR:', error.message);
+    process.exit(1);
+  });
