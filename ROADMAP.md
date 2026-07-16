@@ -30,3 +30,10 @@ Centro de respaldos completos, restauración e integridad de datos.
 
 ## Próxima prioridad
 v3.9.0 — Roles y permisos diferenciados en Firebase.
+
+
+## v3.9.0 — completada
+Roles, perfiles de acceso, cuentas activas/inactivas, reglas de Realtime Database y auditoría básica.
+
+## Próxima prioridad
+v4.0.0 — Normalización de Realtime Database por módulos para aplicar permisos finos y sincronización concurrente.

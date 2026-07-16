@@ -1,11 +1,14 @@
 # CHANGELOG
 
-## v3.8.0
+## v3.9.0
 
-- Se agregó el Centro de respaldos e integridad.
-- Se implementó respaldo JSON completo de datos y archivos.
-- Se implementó restauración validada con copia previa automática.
-- Se agregó compatibilidad con respaldos antiguos de datos.
-- Se agregó auditoría de RUT, IDs, fechas, referencias y documentos.
-- Se agregó descarga de informe técnico de integridad.
-- Se centralizó la construcción y aplicación del estado persistente.
+- Se implementaron perfiles Administrador, Planificador y Lector.
+- Se agregó bootstrap seguro del primer Administrador.
+- Se agregó bloqueo de cuentas desactivadas.
+- Se agregó administración de perfiles mediante UID de Firebase.
+- Se adaptó la interfaz según permisos.
+- Se bloqueó la escritura de Lectores en el cliente y en Realtime Database.
+- Se agregaron reglas de acceso por rol.
+- Se agregó auditoría append-only de acciones críticas.
+- Se agregó visualización de registros de auditoría para Administradores.
+- Se documentó la limitación de permisos finos mientras exista un único JSON.

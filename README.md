@@ -293,3 +293,53 @@ Revisa:
 ### Seguridad
 
 Los respaldos pueden contener datos personales, exámenes y documentos. Deben guardarse en una ubicación protegida.
+
+
+## v3.9.0 — Roles, permisos y auditoría
+
+### Roles
+
+- Administrador:
+  - Acceso completo.
+  - Administración de perfiles.
+  - Restauración de respaldos.
+  - Eliminación de trabajadores, servicios, cargos y faenas.
+  - Configuración crítica.
+  - Lectura de auditoría.
+- Planificador:
+  - Gestión operacional.
+  - Importación y edición de trabajadores.
+  - Servicios, asignaciones, turnos, llamados y pasajes.
+  - Exportación, respaldos e integridad.
+  - Sin administración de accesos ni restauración.
+- Lector:
+  - Consulta de todos los módulos.
+  - Sin escritura, importación, exportación ni respaldos.
+
+### Primer Administrador
+
+La primera cuenta que inicia sesión después de publicar la versión crea automáticamente el perfil Administrador inicial.
+
+### Agregar otros usuarios
+
+1. Crea primero la cuenta en Firebase Authentication.
+2. Copia el UID de la cuenta.
+3. Entra como Administrador.
+4. Abre Configuración → Usuarios, roles y auditoría.
+5. Registra UID, correo exacto, rol y estado.
+
+### Auditoría
+
+Se registran acciones críticas como:
+
+- Creación o modificación de perfiles.
+- Descarga y restauración de respaldos.
+- Importación de trabajadores.
+- Eliminación de trabajadores y servicios.
+- Eliminación de cargos y faenas.
+
+### Limitación de la arquitectura actual
+
+La regla de Firebase bloquea completamente la escritura del rol Lector y de cuentas desactivadas. Administrador y Planificador pueden escribir en `legacyStorage`.
+
+Como la información operacional todavía está guardada dentro de un único JSON, las reglas de Firebase no pueden distinguir en el servidor una edición normal de una eliminación realizada por un Planificador. La interfaz reserva las acciones destructivas al Administrador, pero la protección fina entre Administrador y Planificador requiere la futura normalización de la base por módulos.
