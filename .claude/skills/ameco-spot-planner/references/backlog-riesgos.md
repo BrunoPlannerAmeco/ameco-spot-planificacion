@@ -10,7 +10,7 @@
 | CHK-04 | Audit logs | No existe | Registro append-only por escritura | Turnos, servicios y eliminaciones generan evidencia | Alta |
 | CHK-05 | Regresión Excel | Manual | Fixtures y pruebas de integración | Plantillas válidas e inválidas no corrompen producción | Alta |
 | CHK-06 | Normalizar RTDB | JSON unificado | Separar workers, services, shifts y settings | Ediciones concurrentes no sobrescriben módulos | Crítica |
-| CHK-07 | Backups y restore | No automatizado | Respaldo diario y runbook | Restauración probada con RPO/RTO documentado | Crítica |
+| CHK-07 | Backups y restore | Automatizado (rama `feature/backup-automatizado`): backup diario + restore con Admin SDK, drill de restauración probado en CI. Pendiente: detección de incidentes (depende de CHK-09) y segundo responsable de guardia (R-10) | Cerrar CHK-09 y definir guardia para RTO 24/7 | Restauración probada con RPO/RTO documentado — ver `RPO_RTO_PROPUESTA.md` | Crítica |
 | CHK-08 | Ambientes | Producción directa | Dev, test y prod separados | Pruebas no usan datos reales | Alta |
 | CHK-09 | Monitoreo | Sin telemetría | Captura de errores y métricas | Errores críticos generan alerta y contexto | Media |
 | CHK-10 | CI de release | ZIP y carga manual | Validar sintaxis, pruebas y artefactos | No se publica si falla el pipeline | Media |
@@ -50,10 +50,10 @@
 
 | Objetivo | Meta |
 |---|---|
-| RPO | Máximo 24 horas de pérdida aceptable mientras no exista respaldo continuo |
-| RTO | Restauración de servicio crítico en menos de 4 horas |
-| Backups | Diarios automáticos, 30 diarios y 12 mensuales |
-| Prueba de restauración | Trimestral y antes de migraciones mayores |
+| RPO | Máximo 24 horas de pérdida aceptable — **cumplido** con el backup diario automatizado (`backup-rtdb.yml`) |
+| RTO | 4 horas hábiles (horario de oficina). Fuera de horario, meta interina: antes del siguiente día hábil, hasta cerrar CHK-09 y definir guardia — ver `RPO_RTO_PROPUESTA.md` |
+| Backups | Diarios automáticos, 30 diarios y 12 mensuales — implementado |
+| Prueba de restauración | Trimestral y antes de migraciones mayores — automatizada mensualmente vía `restore-drill.yml` (excede el mínimo) |
 | Rollback release | Volver a la versión anterior en menos de 30 minutos |
 
 ## Roadmap de estabilización

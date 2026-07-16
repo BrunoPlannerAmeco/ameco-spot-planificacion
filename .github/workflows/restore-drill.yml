@@ -1,0 +1,40 @@
+name: Simulacro de restauración (CHK-07)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'package.json'
+      - 'firebase.json'
+      - '.github/workflows/restore-drill.yml'
+  schedule:
+    # Simulacro mensual: excede el mínimo trimestral que pide la wiki (CHK-07 / gobierno.md).
+    - cron: '0 8 1 * *'
+  workflow_dispatch: {}
+
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configurar Java (requerido por el emulador de RTDB)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Ejecutar simulacro de backup + restore contra el emulador
+        run: npm run drill:emulator

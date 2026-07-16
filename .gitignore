@@ -1,0 +1,16 @@
+node_modules/
+
+# Credenciales de service account: nunca deben commitearse.
+*serviceAccount*.json
+*service-account*.json
+firebase-adminsdk-*.json
+
+# Respaldos generados localmente (los respaldos "oficiales" viven en la rama
+# dedicada que escribe el workflow de CI, no en el árbol de main).
+/backups/
+
+# Firebase emulator
+firebase-debug.log
+database-debug.log
+ui-debug.log
+.firebase/
