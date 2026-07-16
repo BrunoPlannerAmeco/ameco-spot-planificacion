@@ -28,8 +28,10 @@ jobs:
       - name: Preparar rama data-backups
         run: |
           set -euo pipefail
-          git config user.name "ameco-backup-bot"
-          git config user.email "actions@users.noreply.github.com"
+          # --global: data-backups-wt es un checkout separado con su propio
+          # .git; una config local en el repo externo no se hereda ahí.
+          git config --global user.name "ameco-backup-bot"
+          git config --global user.email "actions@users.noreply.github.com"
           REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           if git ls-remote --exit-code --heads "$REPO_URL" data-backups >/dev/null 2>&1; then
