@@ -1,0 +1,51 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "amecoSpotPlanner": {
+      "accessMeta": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.child('initialized').exists() && newData.child('initialized').val() === true && newData.child('initializedBy').val() === auth.uid",
+        ".validate": "newData.hasChildren(['initialized','initializedAt','initializedBy'])"
+      },
+      "users": {
+        "$uid": {
+          ".read": "auth != null && ($uid === auth.uid || (root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'))",
+          ".write": "auth != null && ((root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin') || ($uid === auth.uid && !root.child('amecoSpotPlanner/accessMeta/initialized').exists() && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('email').val() === auth.token.email && newData.child('role').val() === 'admin' && newData.child('active').val() === true))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['uid','email','role','active','createdAt','updatedAt']) && newData.child('uid').val() === $uid && newData.child('email').isString() && (newData.child('role').val() === 'admin' || newData.child('role').val() === 'planner' || newData.child('role').val() === 'viewer') && newData.child('active').isBoolean())"
+        }
+      },
+      "legacyStorage": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' || root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'viewer')",
+        ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner')"
+      },
+      "auditLogs": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
+        "$logId": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner') && !data.exists() && newData.child('uid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['id','uid','email','role','action','entity','summary','createdAt']) && newData.child('id').val() === $logId && newData.child('action').isString() && newData.child('createdAt').isString()"
+        }
+      },
+      "workers": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        ".write": false
+      },
+      "sites": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        ".write": false
+      },
+      "accreditations": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        ".write": false
+      },
+      "contacts": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        ".write": false
+      },
+      "tickets": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        ".write": false
+      }
+    }
+  }
+}
