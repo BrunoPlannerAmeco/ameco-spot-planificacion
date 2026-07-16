@@ -4,12 +4,28 @@
     "ignore": [
       "firebase.json",
       "database.rules.json",
+      "database.rules.recovery.json",
       "README.md",
       "CHANGELOG.md",
+      "package.json",
+      "package-lock.json",
+      "node_modules/**",
+      "scripts/**",
+      "backups/**",
+      ".github/**",
+      "docs/**",
       "**/.*"
     ]
   },
   "database": {
     "rules": "database.rules.json"
+  },
+  "emulators": {
+    "database": {
+      "port": 9000
+    },
+    "ui": {
+      "enabled": false
+    }
   }
 }

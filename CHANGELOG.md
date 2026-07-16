@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [Sin versión] — Automatización de respaldos RTDB (CHK-07)
+
+- Script `scripts/backup-rtdb.mjs`: respaldo diario de la RTDB completa vía
+  Admin SDK, con rotación 30 diarios + 12 mensuales.
+- Script `scripts/restore-rtdb.mjs`: restauración con snapshot de seguridad
+  previo y verificación automática de conteos post-restauración.
+- Script `scripts/restore-drill.mjs` + workflow `restore-drill.yml`: simulacro
+  automático de backup+restore contra el emulador de RTDB, en cada Pull
+  Request relevante y mensualmente.
+- Workflow `backup-rtdb.yml`: respaldo diario programado, publicado en la
+  rama `data-backups`.
+- Documentación: `docs/CONFIGURAR_SERVICE_ACCOUNT.md` y
+  `docs/RPO_RTO_PROPUESTA.md`.
+- CHK-07 pasa de "no automatizado" a "automatizado"; queda pendiente la
+  detección de incidentes (CHK-09) y un segundo responsable de guardia
+  (R-10) para garantizar RTO 24/7 en vez de solo en horario hábil.
+
 ## v3.9.1
 
 - Se corrigió el ZIP v3.9.0, que conservaba accidentalmente el index.html de v3.8.0.

@@ -1,0 +1,65 @@
+name: Respaldo diario de RTDB
+
+on:
+  schedule:
+    # 09:00 UTC ~ 05:00-06:00 Chile continental (fuera de horario operativo).
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Preparar rama data-backups
+        run: |
+          set -euo pipefail
+          git config user.name "ameco-backup-bot"
+          git config user.email "actions@users.noreply.github.com"
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git ls-remote --exit-code --heads "$REPO_URL" data-backups >/dev/null 2>&1; then
+            git clone --branch data-backups --single-branch "$REPO_URL" data-backups-wt
+          else
+            git clone --single-branch "$REPO_URL" data-backups-wt
+            cd data-backups-wt
+            git checkout --orphan data-backups
+            git rm -rf . >/dev/null 2>&1 || true
+            git commit --allow-empty -m "Inicializar rama de respaldos"
+            cd ..
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ejecutar respaldo (Admin SDK)
+        run: node scripts/backup-rtdb.mjs --out-dir=data-backups-wt/rtdb --reason=scheduled
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ameco-spot-planificacion
+
+      - name: Publicar respaldo
+        run: |
+          set -euo pipefail
+          cd data-backups-wt
+          git add rtdb
+          if git diff --cached --quiet; then
+            echo "Sin cambios (nodo vacío o respaldo idéntico); no se crea commit."
+          else
+            git commit -m "Respaldo automático $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push origin HEAD:data-backups
+          fi

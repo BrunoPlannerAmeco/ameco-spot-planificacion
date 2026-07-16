@@ -1,0 +1,19 @@
+{
+  "name": "ameco-spot-planner-ops",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Scripts de operación (backup y restauración de RTDB) para AMECO Spot Planner. No es el frontend, que sigue siendo index.html estático.",
+  "type": "module",
+  "scripts": {
+    "backup": "node scripts/backup-rtdb.mjs",
+    "restore": "node scripts/restore-rtdb.mjs",
+    "drill": "node scripts/restore-drill.mjs",
+    "drill:emulator": "firebase emulators:exec --project ameco-spot-planificacion --only database \"node scripts/restore-drill.mjs\""
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.29.0"
+  }
+}

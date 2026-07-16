@@ -1,0 +1,46 @@
+import { readFileSync } from 'node:fs';
+import admin from 'firebase-admin';
+
+const DEFAULT_PROJECT_ID = 'ameco-spot-planificacion';
+
+function loadCredential() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+    const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+    return admin.credential.cert(JSON.parse(json));
+  }
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const json = readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8');
+    return admin.credential.cert(JSON.parse(json));
+  }
+
+  throw new Error(
+    'No se encontró credencial de service account. Define FIREBASE_SERVICE_ACCOUNT_BASE64 ' +
+    'o GOOGLE_APPLICATION_CREDENTIALS (ver docs/CONFIGURAR_SERVICE_ACCOUNT.md).'
+  );
+}
+
+let appInstance = null;
+
+export function getAdminApp() {
+  if (appInstance) return appInstance;
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || DEFAULT_PROJECT_ID;
+  const databaseURL =
+    process.env.FIREBASE_DATABASE_URL ||
+    `https://${projectId}-default-rtdb.firebaseio.com`;
+
+  // Contra el emulador (FIREBASE_DATABASE_EMULATOR_HOST) el Admin SDK no
+  // valida credenciales reales: se omite el campo `credential` a propósito.
+  const config = process.env.FIREBASE_DATABASE_EMULATOR_HOST
+    ? { databaseURL, projectId }
+    : { credential: loadCredential(), databaseURL, projectId };
+
+  appInstance = admin.initializeApp(config);
+
+  return appInstance;
+}
+
+export function getDb() {
+  return getAdminApp().database();
+}
