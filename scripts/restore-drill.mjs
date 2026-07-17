@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getDb } from './lib/admin-init.mjs';
 import { countEntities } from './lib/snapshot.mjs';
+import { deepEqual } from './lib/deep-equal.mjs';
 
 const ROOT = 'amecoSpotPlanner';
 
@@ -69,21 +70,6 @@ function deepCountsEqual(a, b) {
     if ((a[key] ?? 0) !== (b[key] ?? 0)) return false;
   }
   return true;
-}
-
-// RTDB no conserva el orden de inserción de claves de un objeto (las
-// reordena, típicamente alfabéticamente) al guardar y volver a leer, así que
-// comparar con JSON.stringify da falsos negativos. Se necesita una
-// comparación estructural real, indiferente al orden de las claves.
-function deepEqual(a, b) {
-  if (a === b) return true;
-  if (typeof a !== typeof b || a === null || b === null) return a === b;
-  if (typeof a !== 'object') return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-  if (aKeys.length !== bKeys.length) return false;
-  return aKeys.every(key => deepEqual(a[key], b[key]));
 }
 
 async function main() {
