@@ -5195,6 +5195,17 @@ async function viewDocument(key, fallbackName){
     const res = await window.storage.get(key, true);
     if(!res || !res.value){ alert('No se encontró el archivo guardado. Vuelve a subirlo desde la ficha del trabajador.'); return; }
     const parsed = JSON.parse(res.value);
+
+    // CHK-02: los documentos nuevos guardan storagePath (metadata, bytes en
+    // Storage). Los que quedaron del formato anterior (o no migrados
+    // todavía) traen los bytes en base64 directo en "data" — se siguen
+    // abriendo igual que siempre hasta que se migren.
+    if(parsed.storagePath){
+      const url = await window.amecoAccessApi.getWorkerDocumentUrl(parsed.storagePath);
+      window.open(url, '_blank', 'noopener');
+      return;
+    }
+
     const byteChars = atob(parsed.data);
     const bytes = new Uint8Array(byteChars.length);
     for(let i=0;i<byteChars.length;i++) bytes[i]=byteChars.charCodeAt(i);
@@ -5687,7 +5698,16 @@ async function removeWorkerDocuments(workerIds){
     const keys = (result && result.keys) || [];
     const prefixes = workerIds.map(id=>'doc__'+id+'__');
     const toDelete = keys.filter(key=>prefixes.some(prefix=>key.startsWith(prefix)));
-    await Promise.all(toDelete.map(key=>window.storage.delete(key, true)));
+    await Promise.all(toDelete.map(async key=>{
+      // La ruta de Storage es determinística a partir de la misma clave
+      // (ver examDocStoragePath y afines), así que se intenta borrar ahí
+      // también sin necesidad de leer el valor primero. Si el documento
+      // era del formato viejo (Base64 en RTDB, sin objeto en Storage), el
+      // borrado en Storage simplemente no encuentra nada y se ignora
+      // (ver deleteWorkerDocument).
+      try{ await window.amecoAccessApi.deleteWorkerDocument('workerDocuments/'+key); }catch(e){ /* puede no existir */ }
+      await window.storage.delete(key, true);
+    }));
   }catch(error){
     console.warn('No fue posible limpiar todos los archivos asociados.', error);
   }
@@ -9386,12 +9406,24 @@ async function saveWorkerFromForm(){
     let archivoTipo = existing.archivoTipo || '';
 
     if(fileInput && fileInput._pendingRemove){
+      try{ await window.amecoAccessApi.deleteWorkerDocument(examDocStoragePath(id, tipo)); }catch(e){ /* puede no existir */ }
       try{ await window.storage.delete(examDocKey(id, tipo), true); }catch(e){ /* puede no existir, no es grave */ }
       archivoNombre = ''; archivoTipo = '';
     } else if(fileInput && fileInput._pendingFile){
       const key = examDocKey(id, tipo);
       try{
-        await window.storage.set(key, JSON.stringify(fileInput._pendingFile), true);
+        const uploaded = await window.amecoAccessApi.uploadWorkerDocument(
+          examDocStoragePath(id, tipo),
+          fileInput._pendingFile.data,
+          fileInput._pendingFile.mime
+        );
+        await window.storage.set(key, JSON.stringify({
+          nombre: fileInput._pendingFile.nombre,
+          mime: fileInput._pendingFile.mime,
+          storagePath: uploaded.storagePath,
+          sizeBytes: uploaded.sizeBytes,
+          uploadedAt: nowIso()
+        }), true);
         archivoNombre = fileInput._pendingFile.nombre;
         archivoTipo = fileInput._pendingFile.mime;
       }catch(err){
@@ -9425,13 +9457,25 @@ async function saveWorkerFromForm(){
     const pendingFiles = block._pendingFiles || [];
 
     for(const fid of removedIds){
+      try{ await window.amecoAccessApi.deleteWorkerDocument(certDocStoragePath(id, certId, fid)); }catch(e){ /* puede no existir */ }
       try{ await window.storage.delete(certDocKey(id, certId, fid), true); }catch(e){ /* puede no existir */ }
     }
     let finalFiles = existingFiles.filter(f=>!removedIds.has(f.id));
     for(const pf of pendingFiles){
       const key = certDocKey(id, certId, pf.id);
       try{
-        await window.storage.set(key, JSON.stringify({nombre: pf.nombre, mime: pf.mime, data: pf.data}), true);
+        const uploaded = await window.amecoAccessApi.uploadWorkerDocument(
+          certDocStoragePath(id, certId, pf.id),
+          pf.data,
+          pf.mime
+        );
+        await window.storage.set(key, JSON.stringify({
+          nombre: pf.nombre,
+          mime: pf.mime,
+          storagePath: uploaded.storagePath,
+          sizeBytes: uploaded.sizeBytes,
+          uploadedAt: nowIso()
+        }), true);
         finalFiles.push({id: pf.id, nombre: pf.nombre, mime: pf.mime});
       }catch(err){
         console.error('Error guardando archivo de certificación', key, err);
@@ -9457,12 +9501,24 @@ async function saveWorkerFromForm(){
     let archivoTipo = existing.archivoTipo || '';
 
     if(fileInput && fileInput._pendingRemove){
+      try{ await window.amecoAccessApi.deleteWorkerDocument(examExtraDocStoragePath(id, extraId)); }catch(e){ /* puede no existir */ }
       try{ await window.storage.delete(examExtraDocKey(id, extraId), true); }catch(e){ /* puede no existir */ }
       archivoNombre = ''; archivoTipo = '';
     } else if(fileInput && fileInput._pendingFile){
       const key = examExtraDocKey(id, extraId);
       try{
-        await window.storage.set(key, JSON.stringify(fileInput._pendingFile), true);
+        const uploaded = await window.amecoAccessApi.uploadWorkerDocument(
+          examExtraDocStoragePath(id, extraId),
+          fileInput._pendingFile.data,
+          fileInput._pendingFile.mime
+        );
+        await window.storage.set(key, JSON.stringify({
+          nombre: fileInput._pendingFile.nombre,
+          mime: fileInput._pendingFile.mime,
+          storagePath: uploaded.storagePath,
+          sizeBytes: uploaded.sizeBytes,
+          uploadedAt: nowIso()
+        }), true);
         archivoNombre = fileInput._pendingFile.nombre;
         archivoTipo = fileInput._pendingFile.mime;
       }catch(err){
