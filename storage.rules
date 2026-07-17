@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// A diferencia de las reglas de RTDB (database.rules.json), las reglas de
+// Storage NO pueden consultar Realtime Database para verificar el rol de
+// un usuario — solo ven request.auth.token, y el rol hoy vive en RTDB, no
+// en custom claims. Por eso el control aquí es más grueso: cualquier
+// usuario autenticado puede leer/escribir dentro de workerDocuments/.
+// El cliente sigue ocultando el botón de subir según rol (guardAction),
+// y la eliminación de trabajadores completos sigue protegida en RTDB
+// (CHK-01 Fase 1/2). Cerrar esto del todo requiere custom claims —
+// ver "Pendiente, no bloqueante" en CHK-01 de backlog-riesgos.md.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /workerDocuments/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /{allOtherPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
