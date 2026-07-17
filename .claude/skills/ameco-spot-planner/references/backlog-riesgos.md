@@ -4,10 +4,10 @@
 
 | ID | Entregable | Estado actual | Trabajo requerido | Definition of Done | Prioridad |
 |---|---|---|---|---|---|
-| CHK-01 | Roles y reglas | Solo login general | Custom claims, UI y reglas RTDB/Storage | Lector no puede escribir; Admin/Planificador según matriz | Crítica |
+| CHK-01 | Roles y reglas | Implementado desde v3.9.0/v3.9.1 (verificado en código, no solo wiki): 3 roles (admin/planner/viewer) con enforcement doble para el split grueso — RTDB rechaza escritura de Lector a nivel servidor, no solo UI. Panel de gestión de usuarios funcional. **Gap real**: la matriz fina (ej. "Planificador no puede eliminar trabajadores") solo se aplica en el cliente (`ADMIN_ONLY_ACTIONS`/`guardAction`); las reglas RTDB no pueden restringirla porque `legacyStorage` es un blob JSON único — depende de CHK-06. Tampoco hay custom claims (rol se lee de RTDB, no del token) ni desactivación en tiempo real (el usuario desactivado sigue con sesión activa hasta reload/refresh de token) | Enforcement server-side de la matriz fina (post CHK-06); listener en vivo de `active` para forzar logout inmediato; evaluar migración a custom claims | Lector no puede escribir (cumplido, server-side); Admin/Planificador según matriz (cumplido solo en cliente, falta server-side) | Crítica |
 | CHK-02 | Firebase Storage | Adjuntos Base64 | Subir archivos; guardar URL y metadata | Ningún archivo pesado queda en RTDB | Alta |
 | CHK-03 | Centro de operaciones | Dashboard básico | Pendientes diarios y links directos | Alertas de acreditación, examen, cobertura, llamado y pasaje | Alta |
-| CHK-04 | Audit logs | No existe | Registro append-only por escritura | Turnos, servicios y eliminaciones generan evidencia | Alta |
+| CHK-04 | Audit logs | Parcial (verificado en código): existe `auditLogs` append-only y se usa en 9 tipos de acción (backup descargado/restaurado, eliminar trabajador/servicio/cargo/faena, eliminación masiva, importar Excel, altas/ediciones de perfil de acceso). **No cubre** crear/editar trabajadores, servicios, turnos, asignaciones, llamados, pasajes, acreditaciones ni certificaciones — la mayoría de la operación diaria no deja rastro | Extender `recordAudit` a las acciones de escritura no cubiertas | Turnos, servicios y eliminaciones generan evidencia (eliminaciones sí; turnos y servicios en creación/edición, no) | Alta |
 | CHK-05 | Regresión Excel | Manual | Fixtures y pruebas de integración | Plantillas válidas e inválidas no corrompen producción | Alta |
 | CHK-06 | Normalizar RTDB | JSON unificado | Separar workers, services, shifts y settings | Ediciones concurrentes no sobrescriben módulos | Crítica |
 | CHK-07 | Backups y restore | Automatizado (rama `feature/backup-automatizado`): backup diario + restore con Admin SDK, drill de restauración probado en CI. Pendiente: detección de incidentes (depende de CHK-09) y segundo responsable de guardia (R-10) | Cerrar CHK-09 y definir guardia para RTO 24/7 | Restauración probada con RPO/RTO documentado — ver `RPO_RTO_PROPUESTA.md` | Crítica |
@@ -22,11 +22,11 @@
 
 ## Orden de dependencias críticas (respetar al priorizar)
 
-1. **CHK-07 Backups** — bloquea migraciones y cambios destructivos.
-2. **CHK-01 Roles** — bloquea uso seguro por más usuarios.
+1. **CHK-07 Backups** — automatizado (ver `RPO_RTO_PROPUESTA.md`); resta CHK-09 para RTO 24/7.
+2. **CHK-01 Roles** — split grueso (admin/planner/viewer) implementado y server-side; el gap restante (matriz fina) queda bloqueado por CHK-06.
 3. **CHK-02 Storage** — bloquea crecimiento documental.
-4. **CHK-06 Normalización** — bloquea sincronización y escalabilidad.
-5. **CHK-04 Auditoría** — bloquea gobierno y trazabilidad.
+4. **CHK-06 Normalización** — bloquea sincronización, escalabilidad, y el cierre completo de CHK-01.
+5. **CHK-04 Auditoría** — parcial (9 acciones cubiertas); bloquea gobierno y trazabilidad completa.
 6. **CHK-05/10 Pruebas y CI** — bloquean release repetible.
 
 ## Matriz de riesgos
