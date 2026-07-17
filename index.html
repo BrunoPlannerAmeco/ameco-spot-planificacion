@@ -9422,7 +9422,7 @@ async function saveWorkerFromForm(){
           mime: fileInput._pendingFile.mime,
           storagePath: uploaded.storagePath,
           sizeBytes: uploaded.sizeBytes,
-          uploadedAt: nowIso()
+          uploadedAt: new Date().toISOString()
         }), true);
         archivoNombre = fileInput._pendingFile.nombre;
         archivoTipo = fileInput._pendingFile.mime;
@@ -9474,7 +9474,7 @@ async function saveWorkerFromForm(){
           mime: pf.mime,
           storagePath: uploaded.storagePath,
           sizeBytes: uploaded.sizeBytes,
-          uploadedAt: nowIso()
+          uploadedAt: new Date().toISOString()
         }), true);
         finalFiles.push({id: pf.id, nombre: pf.nombre, mime: pf.mime});
       }catch(err){
@@ -9517,7 +9517,7 @@ async function saveWorkerFromForm(){
           mime: fileInput._pendingFile.mime,
           storagePath: uploaded.storagePath,
           sizeBytes: uploaded.sizeBytes,
-          uploadedAt: nowIso()
+          uploadedAt: new Date().toISOString()
         }), true);
         archivoNombre = fileInput._pendingFile.nombre;
         archivoTipo = fileInput._pendingFile.mime;
