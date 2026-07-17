@@ -1,0 +1,32 @@
+name: Inspeccionar audit logs (diagnóstico)
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Cuántos registros recientes mostrar'
+        default: '20'
+        required: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Leer los últimos registros de auditLogs
+        run: node scripts/inspect-audit-logs.mjs --limit="${{ github.event.inputs.limit }}"
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ameco-spot-planificacion
