@@ -9,6 +9,7 @@
         ".validate": "newData.hasChildren(['initialized','initializedAt','initializedBy'])"
       },
       "users": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
         "$uid": {
           ".read": "auth != null && ($uid === auth.uid || (root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'))",
           ".write": "auth != null && ((root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin') || ($uid === auth.uid && !root.child('amecoSpotPlanner/accessMeta/initialized').exists() && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('email').val() === auth.token.email && newData.child('role').val() === 'admin' && newData.child('active').val() === true))",
