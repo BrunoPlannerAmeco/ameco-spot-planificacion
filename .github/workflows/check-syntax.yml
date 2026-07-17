@@ -1,0 +1,23 @@
+name: Validar sintaxis de index.html
+
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+  workflow_dispatch: {}
+
+jobs:
+  check-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validar sintaxis de los <script> inline
+        run: node scripts/check-html-syntax.mjs
