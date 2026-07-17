@@ -2011,6 +2011,19 @@
     font-size:9px;
     text-align:right;
   }
+  .access-audit-list{
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .access-audit-list.expanded{
+    max-height:520px;
+  }
+  .access-audit-details{
+    margin-top:4px;
+    color:var(--sub);
+    font-size:8.5px;
+    overflow-wrap:anywhere;
+  }
   .access-user-modal{
     width:min(620px,94vw);
   }
@@ -2807,7 +2820,7 @@ let state = {
   pasajes: [],
   servicios: [],
   examplesSeeded: false,
-  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended', integrityReport:null, accessUsers:[], accessAuditLogs:[], accessDirectoryLoaded:false },
+  ui:{ tab:'dashboard', search:'', modal:null, calMonth: new Date().getMonth(), calYear: new Date().getFullYear(), docFilter:'all', docTypeFilter:'all', acredFaenaFilter:'all', certEquipoFilter:'all', gridSize:'compact', cargoFilter:'all', turnoFaenaFilter:null, turnoCargoFilter:'all', turnoMonthSpan:2, turnoNameWidth:190, sidebarCollapsed:false, llamadaFilter:'all', llamadaSearch:'', pasajeFilter:'all', pasajeSearch:'', servicioFilter:'all', servicioFaenaFilter:'all', servicioSearch:'', assignmentCandidateSearch:'', assignmentCandidateFilter:'recommended', integrityReport:null, accessUsers:[], accessAuditLogs:[], accessDirectoryLoaded:false, accessAuditExpanded:false },
   saving:false
 };
 let bulkSelected = new Set();
@@ -3100,11 +3113,18 @@ function accessManagementPanelHtml(){
     '</div>'
   ).join('');
 
-  const auditRows = (state.ui.accessAuditLogs||[]).slice(0,15).map(log=>
+  const allAuditLogs = state.ui.accessAuditLogs||[];
+  const auditExpanded = state.ui.accessAuditExpanded === true;
+  const auditVisible = auditExpanded ? allAuditLogs : allAuditLogs.slice(0,5);
+
+  const auditRows = auditVisible.map(log=>
     '<div class="access-audit-row">'+
       '<div>'+
         '<strong>'+escHtml(log.action||'ACCIÓN')+'</strong>'+
         '<span>'+escHtml(log.summary||'Sin resumen')+'</span>'+
+        (auditExpanded && log.details && Object.keys(log.details).length
+          ? '<div class="access-audit-details mono">'+escHtml(JSON.stringify(log.details))+'</div>'
+          : '')+
       '</div>'+
       '<div class="access-audit-meta">'+
         escHtml(log.email||log.uid||'Usuario')+
@@ -3116,6 +3136,12 @@ function accessManagementPanelHtml(){
       '</div>'+
     '</div>'
   ).join('');
+
+  const auditToggleHtml = allAuditLogs.length > 5
+    ? '<button class="btn btn-ghost btn-sm" data-action="toggle-audit-expanded">'+
+        (auditExpanded ? 'Ver menos' : 'Ver todo el detalle ('+allAuditLogs.length+')')+
+      '</button>'
+    : '';
 
   return '<section class="panel access-management-panel" data-admin-only>'+
     '<div class="panel-head">'+
@@ -3137,8 +3163,10 @@ function accessManagementPanelHtml(){
       '<div class="access-user-list">'+
         (rows || '<div class="empty">No se encontraron perfiles de acceso.</div>')+
       '</div>'+
-      '<div class="section-title">Últimas acciones críticas</div>'+
-      '<div class="access-audit-list">'+
+      '<div class="section-title access-audit-title">'+
+        '<span>Últimas acciones críticas</span>'+auditToggleHtml+
+      '</div>'+
+      '<div class="access-audit-list'+(auditExpanded?' expanded':'')+'">'+
         (auditRows || '<div class="empty">Todavía no hay registros de auditoría.</div>')+
       '</div>'+
     '</div>'+
@@ -8179,6 +8207,12 @@ document.addEventListener('click', async (e)=>{
     saveUiPreferences();
     applyLayoutPreferences();
     renderSidebar();
+    return;
+  }
+
+  if(action==='toggle-audit-expanded'){
+    state.ui.accessAuditExpanded = !state.ui.accessAuditExpanded;
+    render();
     return;
   }
 
