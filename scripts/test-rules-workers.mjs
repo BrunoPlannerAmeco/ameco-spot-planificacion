@@ -10,84 +10,19 @@
 //
 // Requiere FIREBASE_DATABASE_EMULATOR_HOST (nunca corre contra producción).
 
-import { readFileSync } from 'node:fs';
-import {
-  initializeTestEnvironment,
-  assertSucceeds,
-  assertFails,
-} from '@firebase/rules-unit-testing';
+import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
+import { setupRulesTestEnv, createSequentialChecker } from './lib/rules-test-env.mjs';
 
-const PROJECT_ID = process.env.GCLOUD_PROJECT || 'demo-ameco-spot-planificacion';
-const ADMIN_UID = 'test-admin-uid';
-const PLANNER_UID = 'test-planner-uid';
-const VIEWER_UID = 'test-viewer-uid';
 const WORKER_ID = 'w-rules-test-1';
 
-function assertEmulator() {
-  if (!process.env.FIREBASE_DATABASE_EMULATOR_HOST) {
-    throw new Error(
-      'FIREBASE_DATABASE_EMULATOR_HOST no está definido. Esta prueba NUNCA debe ' +
-      'correr contra la base de datos real; usa "npm run test:rules".'
-    );
-  }
-}
-
 async function main() {
-  assertEmulator();
-
-  const rules = readFileSync('database.rules.json', 'utf8');
-  const testEnv = await initializeTestEnvironment({
-    projectId: PROJECT_ID,
-    database: {
-      rules,
-      host: process.env.FIREBASE_DATABASE_EMULATOR_HOST.split(':')[0],
-      port: Number(process.env.FIREBASE_DATABASE_EMULATOR_HOST.split(':')[1]),
-    },
-  });
+  const { testEnv, adminDb, plannerDb, viewerDb } = await setupRulesTestEnv();
 
   try {
-    console.log('[test-rules] Sembrando accessMeta y perfiles de usuario (sin reglas)...');
-    await testEnv.withSecurityRulesDisabled(async context => {
-      const db = context.database();
-      await db.ref('amecoSpotPlanner/accessMeta').set({
-        initialized: true,
-        initializedAt: new Date().toISOString(),
-        initializedBy: ADMIN_UID,
-      });
-      await db.ref(`amecoSpotPlanner/users/${ADMIN_UID}`).set({
-        uid: ADMIN_UID, email: 'admin@example.com', role: 'admin', active: true,
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      });
-      await db.ref(`amecoSpotPlanner/users/${PLANNER_UID}`).set({
-        uid: PLANNER_UID, email: 'planner@example.com', role: 'planner', active: true,
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      });
-      await db.ref(`amecoSpotPlanner/users/${VIEWER_UID}`).set({
-        uid: VIEWER_UID, email: 'viewer@example.com', role: 'viewer', active: true,
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      });
-    });
-
-    const plannerDb = testEnv.authenticatedContext(PLANNER_UID, { email: 'planner@example.com' }).database();
-    const viewerDb = testEnv.authenticatedContext(VIEWER_UID, { email: 'viewer@example.com' }).database();
-    const adminDb = testEnv.authenticatedContext(ADMIN_UID, { email: 'admin@example.com' }).database();
-
     const workerRef = (db) => db.ref(`amecoSpotPlanner/workers/${WORKER_ID}`);
     const sampleWorker = { id: WORKER_ID, rut: '11111111-1', nombre: 'Trabajador de Prueba', cargo: 'Guardia' };
 
-    // Cada paso depende del estado que dejó el anterior (crear -> editar ->
-    // intentar borrar -> verificar -> borrar de verdad), así que deben
-    // esperarse en orden estricto — lanzarlas todas juntas sin await hace
-    // que lleguen desordenadas al emulador y el test da falsos negativos.
-    const failures = [];
-
-    async function check(name, promise) {
-      try {
-        await promise;
-      } catch (error) {
-        failures.push({ name, error });
-      }
-    }
+    const { check, failures } = createSequentialChecker();
 
     console.log('[test-rules] 1/6 Viewer intenta crear un trabajador (debe RECHAZAR)...');
     await check('viewer no puede crear', assertFails(workerRef(viewerDb).set(sampleWorker)));
