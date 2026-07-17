@@ -28,7 +28,10 @@
       },
       "workers": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
-        ".write": false
+        "$workerId": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' && newData.exists()))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['id','rut','nombre']) && newData.child('id').val() === $workerId && newData.child('rut').isString() && newData.child('rut').val().matches(/^[0-9]{1,8}-[0-9K]$/) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
+        }
       },
       "sites": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
