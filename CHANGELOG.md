@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [Sin versión] — CHK-01 extendido a cargos/faenas; panel de auditoría plegable
+
+- `cargosCatalog/{key}` y `faenasCatalog/{key}` (nuevos nodos RTDB):
+  configurar cargos/faenas queda exclusivo de Administrador en el
+  servidor, no solo oculto en el cliente — corrige un primer intento que
+  copió el patrón de `workers/{id}` (Planificador crea/edita) sin revisar
+  que la matriz real para cargos/faenas es Admin-exclusivo en todo.
+  Encontrado probando en el navegador: Planificador nunca tuvo la opción
+  de crear un cargo, lo cual era correcto: la regla nueva estaba mal.
+- `scripts/test-rules-catalogs.mjs` + `scripts/lib/rules-test-env.mjs`
+  (setup común extraído de `test-rules-workers.mjs`): prueba real contra
+  el emulador de que Planificador no puede crear, editar ni eliminar.
+- Panel "Usuarios, roles y auditoría": plegable por defecto (5 entradas),
+  botón para expandir hasta 40 con el detalle completo de cada registro.
+
 ## [Sin versión] — CHK-02: adjuntos de trabajadores en Firebase Storage
 
 Los documentos de trabajadores (exámenes, certificaciones) ya no se guardan
