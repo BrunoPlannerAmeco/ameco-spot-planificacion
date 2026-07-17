@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## [Sin versión] — CHK-02: adjuntos de trabajadores en Firebase Storage
+
+Los documentos de trabajadores (exámenes, certificaciones) ya no se guardan
+como Base64 dentro de Realtime Database — pesaban hasta 3.5MB por archivo
+dentro de un blob JSON, con el costo y límite de tamaño que eso implica.
+
+- `storage.rules` (nuevo) + SDK de Storage cargado en `index.html`.
+  Limitación conocida y documentada: las reglas de Storage no pueden
+  consultar el rol en RTDB (a diferencia de `database.rules.json`), así
+  que el control es `auth != null` en vez de por rol — cerrar esto del
+  todo requiere custom claims, mismo pendiente ya anotado en CHK-01.
+- `window.amecoAccessApi.uploadWorkerDocument/getWorkerDocumentUrl/deleteWorkerDocument`:
+  misma capa de API que ya se usa para el resto de operaciones con Firebase.
+- `saveWorkerFromForm`, `viewDocument`, `removeWorkerDocuments`: documentos
+  nuevos van a Storage; documentos existentes (formato Base64 anterior)
+  se siguen leyendo exactamente igual — sin migración forzada de golpe.
+  Probado en producción real: subir, ver y borrar un documento nuevo,
+  confirmado en Firebase Console → Storage.
+- `scripts/migrate-worker-documents-to-storage.mjs`: migra lo que quedó en
+  formato Base64 hacia Storage. Dry-run por defecto, `--limit=N` para
+  probar con pocos documentos antes de migrar todo. Requiere backup previo
+  y un permiso IAM adicional y temporal (ver `CONFIGURAR_SERVICE_ACCOUNT.md`).
+  **No se ejecutó todavía contra producción** — queda como decisión del
+  Product Owner.
+- Bug real encontrado probando en el navegador (no algo que el chequeo de
+  sintaxis en CI pudiera atrapar): `nowIso()` estaba definida en un scope
+  de `<script>` distinto al de `saveWorkerFromForm`, causando un
+  `ReferenceError` en tiempo de ejecución. Corregido.
+
 ## [Sin versión] — CHK-01: enforcement server-side para eliminar trabajadores
 
 Cierra el gap de seguridad real que dejó abierta la auditoría anterior (ver

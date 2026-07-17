@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import admin from 'firebase-admin';
 
 const DEFAULT_PROJECT_ID = 'ameco-spot-planificacion';
+const DEFAULT_STORAGE_BUCKET = 'ameco-spot-planificacion.firebasestorage.app';
 
 function loadCredential() {
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
@@ -29,12 +30,13 @@ export function getAdminApp() {
   const databaseURL =
     process.env.FIREBASE_DATABASE_URL ||
     `https://${projectId}-default-rtdb.firebaseio.com`;
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET || DEFAULT_STORAGE_BUCKET;
 
   // Contra el emulador (FIREBASE_DATABASE_EMULATOR_HOST) el Admin SDK no
   // valida credenciales reales: se omite el campo `credential` a propósito.
   const config = process.env.FIREBASE_DATABASE_EMULATOR_HOST
-    ? { databaseURL, projectId }
-    : { credential: loadCredential(), databaseURL, projectId };
+    ? { databaseURL, projectId, storageBucket }
+    : { credential: loadCredential(), databaseURL, projectId, storageBucket };
 
   appInstance = admin.initializeApp(config);
 
@@ -43,4 +45,8 @@ export function getAdminApp() {
 
 export function getDb() {
   return getAdminApp().database();
+}
+
+export function getBucket() {
+  return getAdminApp().storage().bucket();
 }
