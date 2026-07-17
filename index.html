@@ -8488,6 +8488,15 @@ document.addEventListener('click', async (e)=>{
 
     state.ui.modal = null;
     await persistNow();
+
+    await recordAudit(
+      existing ? 'SERVICE_UPDATED' : 'SERVICE_CREATED',
+      'service',
+      id,
+      (existing ? 'Se editó el servicio ' : 'Se creó el servicio ')+nombre+'.',
+      {faena, fechaInicio, fechaFin}
+    );
+
     render();
   }
   else if(action==='delete-service'){
@@ -8578,6 +8587,14 @@ document.addEventListener('click', async (e)=>{
 
     await persistNow();
 
+    await recordAudit(
+      'ASSIGNMENT_CREATED',
+      'assignment',
+      service.id,
+      'Se asignó a '+(worker.nombre||worker.id)+' al servicio '+(service.nombre||service.id)+'.',
+      {workerId: worker.id, serviceId: service.id, requirementId: requirement.id}
+    );
+
     state.ui.modal = {
       type:'serviceAssignments',
       serviceId:service.id
@@ -8598,6 +8615,15 @@ document.addEventListener('click', async (e)=>{
     service.asignaciones = serviceAssignments(service).filter(item=>item.id!==assignment.id);
     service.updatedAt = Date.now();
     await persistNow();
+
+    await recordAudit(
+      'ASSIGNMENT_REMOVED',
+      'assignment',
+      service.id,
+      'Se quitó a '+(worker?.nombre||assignment.workerId)+' del servicio '+(service.nombre||service.id)+'.',
+      {workerId: worker?.id||assignment.workerId, serviceId: service.id, assignmentId: assignment.id}
+    );
+
     renderModal();
   }
 
@@ -8790,13 +8816,32 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = null;
     render();
     await persist();
+
+    const llamadaWorker = state.workers.find(w=>w.id===workerId);
+    await recordAudit(
+      isNewLlamada ? 'CALL_CREATED' : 'CALL_UPDATED',
+      'call',
+      payload.id,
+      (isNewLlamada ? 'Se registró un llamado a ' : 'Se editó un llamado a ')+(llamadaWorker?.nombre||workerId)+'.',
+      {workerId, fecha: payload.fecha, resultado: payload.resultado}
+    );
   }
   else if(action==='delete-llamada'){
+    const llamada = state.llamados.find(x=>x.id===el.dataset.id);
     if(confirm('¿Eliminar este registro de llamado?')){
       state.llamados = state.llamados.filter(x=>x.id!==el.dataset.id);
       state.ui.modal = null;
       render();
       await persist();
+
+      const llamadaWorker = llamada ? state.workers.find(w=>w.id===llamada.workerId) : null;
+      await recordAudit(
+        'CALL_DELETED',
+        'call',
+        el.dataset.id,
+        'Se eliminó un llamado a '+(llamadaWorker?.nombre||llamada?.workerId||el.dataset.id)+'.',
+        {workerId: llamada?.workerId||'', fecha: llamada?.fecha||''}
+      );
     }
   }
 
@@ -8824,13 +8869,32 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = null;
     render();
     await persist();
+
+    const pasajeWorker = state.workers.find(w=>w.id===workerId);
+    await recordAudit(
+      isNewPasaje ? 'TICKET_CREATED' : 'TICKET_UPDATED',
+      'ticket',
+      payload.id,
+      (isNewPasaje ? 'Se registró un pasaje para ' : 'Se editó un pasaje de ')+(pasajeWorker?.nombre||workerId)+'.',
+      {workerId, fechaViaje: payload.fechaViaje, origen: payload.origen, destino: payload.destino, estado: payload.estado}
+    );
   }
   else if(action==='delete-pasaje'){
+    const pasaje = state.pasajes.find(x=>x.id===el.dataset.id);
     if(confirm('¿Eliminar este registro de pasaje?')){
       state.pasajes = state.pasajes.filter(x=>x.id!==el.dataset.id);
       state.ui.modal = null;
       render();
       await persist();
+
+      const pasajeWorker = pasaje ? state.workers.find(w=>w.id===pasaje.workerId) : null;
+      await recordAudit(
+        'TICKET_DELETED',
+        'ticket',
+        el.dataset.id,
+        'Se eliminó un pasaje de '+(pasajeWorker?.nombre||pasaje?.workerId||el.dataset.id)+'.',
+        {workerId: pasaje?.workerId||'', fechaViaje: pasaje?.fechaViaje||''}
+      );
     }
   }
   else if(action==='import-worker'){ importState = null; state.ui.modal = {type:'import'}; renderModal(); }
@@ -9156,6 +9220,14 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = (cur && cur.returnModal) ? cur.returnModal : null;
     render();
     await persist();
+
+    await recordAudit(
+      'SHIFT_DAY_UPDATED',
+      'shift',
+      el.dataset.id,
+      'Se editó el turno de '+(w?.nombre||el.dataset.id)+' para el '+el.dataset.date+'.',
+      {date: el.dataset.date, tipo, faena, nota}
+    );
   }
   else if(action==='clear-day'){
     const w = state.workers.find(x=>x.id===el.dataset.id);
@@ -9165,6 +9237,14 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = (cur && cur.returnModal) ? cur.returnModal : null;
     render();
     await persist();
+
+    await recordAudit(
+      'SHIFT_DAY_CLEARED',
+      'shift',
+      el.dataset.id,
+      'Se limpió el turno de '+(w?.nombre||el.dataset.id)+' para el '+el.dataset.date+'.',
+      {date: el.dataset.date}
+    );
   }
   else if(action==='cal-prev'){
     const step = state.ui.turnoMonthSpan===1 ? 1 : 2;
@@ -9227,6 +9307,14 @@ document.addEventListener('click', async (e)=>{
     state.ui.modal = null;
     render();
     await persist();
+
+    await recordAudit(
+      'SHIFT_BULK_APPLIED',
+      'shift',
+      ids.join(','),
+      'Se aplicó un cambio de turno masivo a '+ids.length+' trabajador(es) entre '+startVal+' y '+endVal+'.',
+      {tipo, faena, nota, startVal, endVal, workerCount: ids.length}
+    );
   }
 
   else if(action==='add-faena'){ state.ui.modal = {type:'addFaena'}; renderModal(); }
@@ -9556,6 +9644,14 @@ async function saveWorkerFromForm(){
   state.ui.modal = null;
   render();
   await persist();
+
+  await recordAudit(
+    isNew ? 'WORKER_CREATED' : 'WORKER_UPDATED',
+    'worker',
+    id,
+    (isNew ? 'Se creó el trabajador ' : 'Se editó el trabajador ')+(data.nombre||id)+'.',
+    {rut: data.rut||'', cargo: data.cargo||''}
+  );
 
   if(failedFiles.length){
     alert('Se guardó la ficha, pero estos archivos no se pudieron subir (probablemente pesan demasiado): \n\n'+failedFiles.join('\n')+'\n\nVuelve a abrir la ficha e inténtalo de nuevo, idealmente con un archivo más liviano (menos de 3.5 MB).');
