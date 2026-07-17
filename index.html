@@ -2074,6 +2074,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 <script>
 (function(){
   const firebaseConfig = {
@@ -2090,6 +2091,8 @@
 
   const auth = firebase.auth();
   const db = firebase.database();
+  const storage = firebase.storage();
+  const workerDocumentsRoot = "workerDocuments";
 
   const appRoot = "amecoSpotPlanner";
   const storageRoot = appRoot + "/legacyStorage";
@@ -2555,6 +2558,53 @@
 
       await db.ref(appRoot + "/workers/" + id).remove();
       return {id, deleted:true};
+    },
+
+    // CHK-02: los bytes del archivo van a Storage, no a RTDB. storage.rules
+    // solo exige "auth != null" bajo workerDocuments/ (las reglas de
+    // Storage no pueden consultar el rol en RTDB como sí hace database.rules.json),
+    // así que el gate real de quién puede subir sigue siendo el cliente
+    // (guardAction) hasta que exista un mecanismo de custom claims.
+    async uploadWorkerDocument(storagePath, base64Data, mime){
+      await authReady;
+      requireWriterAccess();
+
+      const path = String(storagePath||"").trim();
+      if(!path.startsWith(workerDocumentsRoot + "/")){
+        throw new Error("Ruta de documento inválida.");
+      }
+
+      const snapshot = await storage.ref(path).putString(
+        base64Data,
+        "base64",
+        {contentType: mime || "application/octet-stream"}
+      );
+
+      return {
+        storagePath: path,
+        sizeBytes: snapshot.totalBytes
+      };
+    },
+
+    async getWorkerDocumentUrl(storagePath){
+      await authReady;
+      requireActiveAccess();
+
+      return await storage.ref(String(storagePath||"")).getDownloadURL();
+    },
+
+    async deleteWorkerDocument(storagePath){
+      await authReady;
+      requireWriterAccess();
+
+      try{
+        await storage.ref(String(storagePath||"")).delete();
+      }catch(error){
+        if(error && error.code === "storage/object-not-found") return {deleted:false};
+        throw error;
+      }
+
+      return {deleted:true};
     }
   };
 
@@ -3657,6 +3707,13 @@ function slugify(s){ return (s||'').toString().normalize('NFD').replace(/[\u0300
 function examDocKey(workerId, tipo){ return 'doc__'+workerId+'__exam__'+slugify(tipo); }
 function certDocKey(workerId, certId, fileId){ return fileId ? ('doc__'+workerId+'__cert__'+certId+'__'+fileId) : ('doc__'+workerId+'__cert__'+certId); }
 function examExtraDocKey(workerId, extraId){ return 'doc__'+workerId+'__examextra__'+extraId; }
+
+// CHK-02: mismas claves de arriba, pero como ruta de Storage en vez de
+// clave de RTDB — el nombre del archivo en Storage es el mismo doc__key,
+// así queda 1:1 con lo que ya identifica a cada documento hoy.
+function examDocStoragePath(workerId, tipo){ return 'workerDocuments/'+examDocKey(workerId, tipo); }
+function certDocStoragePath(workerId, certId, fileId){ return 'workerDocuments/'+certDocKey(workerId, certId, fileId); }
+function examExtraDocStoragePath(workerId, extraId){ return 'workerDocuments/'+examExtraDocKey(workerId, extraId); }
 
 function exampleWorkersData(){
   const now = new Date();
