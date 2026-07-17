@@ -2535,6 +2535,26 @@
     async writeAudit(event){
       await authReady;
       return appendAuditDirect(event);
+    },
+
+    // Fase 1 de CHK-01: a diferencia de legacyStorage (un blob JSON opaco
+    // donde las reglas no pueden distinguir un borrado de una edición),
+    // amecoSpotPlanner/workers/{id} es un nodo real con su propia regla de
+    // escritura. Un Planificador puede llamar esto, pero Firebase rechaza
+    // el remove() a nivel de servidor (solo Admin puede borrar ahí) — por
+    // eso este método no hace ninguna verificación de rol en el cliente:
+    // el enforcement real es la regla, esto solo la ejercita.
+    async deleteWorkerNode(workerId){
+      await authReady;
+      requireWriterAccess();
+
+      const id = String(workerId||"").trim();
+      if(!id){
+        throw new Error("Falta el identificador del trabajador.");
+      }
+
+      await db.ref(appRoot + "/workers/" + id).remove();
+      return {id, deleted:true};
     }
   };
 
@@ -5635,6 +5655,14 @@ async function deleteWorkersInBulk(){
     '\n\nTambién se eliminarán sus llamados, pasajes, asignaciones a servicios y archivos asociados. Esta acción no se puede deshacer.'
   );
   if(!accepted) return;
+
+  try{
+    await Promise.all(ids.map(id=>window.amecoAccessApi.deleteWorkerNode(id)));
+  }catch(error){
+    console.warn('No se pudo eliminar uno o más trabajadores en amecoSpotPlanner/workers.',error);
+    alert('No tienes permiso para eliminar trabajadores. Esta acción está reservada al rol Administrador.');
+    return;
+  }
 
   state.workers = state.workers.filter(w=>!workerDeleteSelected.has(w.id));
   state.llamados = (state.llamados||[]).filter(item=>!workerDeleteSelected.has(item.workerId));
@@ -8995,6 +9023,15 @@ document.addEventListener('click', async (e)=>{
   else if(action==='delete-worker'){
     if(confirm('¿Eliminar a este trabajador? También se eliminarán sus llamados, pasajes, asignaciones a servicios y archivos asociados. Esta acción no se puede deshacer.')){
       const workerId = el.dataset.id;
+
+      try{
+        await window.amecoAccessApi.deleteWorkerNode(workerId);
+      }catch(error){
+        console.warn('No se pudo eliminar el trabajador en amecoSpotPlanner/workers.',error);
+        alert('No tienes permiso para eliminar trabajadores. Esta acción está reservada al rol Administrador.');
+        return;
+      }
+
       const deletedWorker = state.workers.find(worker=>worker.id===workerId);
       state.workers = state.workers.filter(w=>w.id!==workerId);
       state.llamados = (state.llamados||[]).filter(item=>item.workerId!==workerId);
