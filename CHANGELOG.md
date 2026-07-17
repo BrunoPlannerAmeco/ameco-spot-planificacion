@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## [Sin versión] — CHK-01: enforcement server-side para eliminar trabajadores
+
+Cierra el gap de seguridad real que dejó abierta la auditoría anterior (ver
+entrada de más abajo): la matriz de permisos ("solo Admin elimina
+trabajadores") pasa de aplicarse solo en el cliente a aplicarse también en
+el servidor.
+
+- `database.rules.json`: `amecoSpotPlanner/workers/{id}` ahora es un nodo
+  real con regla propia — Planificador puede crear/editar, no eliminar;
+  Admin puede todo. No fue necesario esperar a la normalización completa de
+  CHK-06: se resolvió con una migración puntual de una sola entidad.
+- `scripts/test-rules-workers.mjs`: prueba las reglas con usuarios
+  simulados (admin/planner/viewer) contra el emulador — corre en CI en
+  cada PR relevante.
+- `scripts/verify-deployed-rules.mjs`: confirma que lo publicado en
+  Firebase Console coincide con el repo (publicar reglas es un paso manual,
+  no lo hace el push a GitHub).
+- `index.html`: `window.amecoAccessApi.deleteWorkerNode()` + cableado en
+  "eliminar trabajador" (individual y masivo) — intenta el borrado en el
+  nodo real antes de tocar el estado local; si Firebase lo rechaza, no se
+  modifica nada. Probado en producción real: Planificador rechazado
+  (`PERMISSION_DENIED`), Admin permitido.
+- `scripts/check-html-syntax.mjs` + workflow: valida con el parser de V8
+  que los `<script>` inline de `index.html` sigan siendo JS válido en cada
+  PR, como exige la wiki.
+- Bonus: se encontró y corrigió un build roto de GitHub Pages (faltaba
+  `.nojekyll`) descubierto al verificar qué veían los usuarios en vivo.
+
+Pendiente, no bloqueante: el mismo patrón no se replicó para cargos/faenas;
+tampoco hay custom claims ni desactivación de usuario en tiempo real.
+
 ## [Sin versión] — Corrección de estado real: CHK-01 y CHK-04
 
 Auditoría del código real (no solo de la wiki) de roles/permisos y auditoría.
