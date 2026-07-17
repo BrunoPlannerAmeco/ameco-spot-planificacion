@@ -75,38 +75,45 @@ async function main() {
     const workerRef = (db) => db.ref(`amecoSpotPlanner/workers/${WORKER_ID}`);
     const sampleWorker = { id: WORKER_ID, rut: '11111111-1', nombre: 'Trabajador de Prueba', cargo: 'Guardia' };
 
-    const checks = [];
+    // Cada paso depende del estado que dejó el anterior (crear -> editar ->
+    // intentar borrar -> verificar -> borrar de verdad), así que deben
+    // esperarse en orden estricto — lanzarlas todas juntas sin await hace
+    // que lleguen desordenadas al emulador y el test da falsos negativos.
+    const failures = [];
+
+    async function check(name, promise) {
+      try {
+        await promise;
+      } catch (error) {
+        failures.push({ name, error });
+      }
+    }
 
     console.log('[test-rules] 1/6 Viewer intenta crear un trabajador (debe RECHAZAR)...');
-    checks.push(['viewer no puede crear', assertFails(workerRef(viewerDb).set(sampleWorker))]);
+    await check('viewer no puede crear', assertFails(workerRef(viewerDb).set(sampleWorker)));
 
     console.log('[test-rules] 2/6 Planificador crea un trabajador (debe PERMITIR)...');
-    checks.push(['planner puede crear', assertSucceeds(workerRef(plannerDb).set(sampleWorker))]);
+    await check('planner puede crear', assertSucceeds(workerRef(plannerDb).set(sampleWorker)));
 
     console.log('[test-rules] 3/6 Planificador edita ese trabajador (debe PERMITIR)...');
-    checks.push(['planner puede editar', assertSucceeds(workerRef(plannerDb).update({ cargo: 'Supervisor' }))]);
+    await check('planner puede editar', assertSucceeds(workerRef(plannerDb).update({ cargo: 'Supervisor' })));
 
     console.log('[test-rules] 4/6 Planificador intenta ELIMINAR ese trabajador (debe RECHAZAR)...');
-    checks.push(['planner NO puede eliminar', assertFails(workerRef(plannerDb).remove())]);
+    await check('planner NO puede eliminar', assertFails(workerRef(plannerDb).remove()));
 
     console.log('[test-rules] 5/6 Verificando que el trabajador sigue existiendo tras el intento de borrado...');
-    checks.push(['worker sigue existiendo', assertSucceeds(
+    await check('worker sigue existiendo', assertSucceeds(
       workerRef(adminDb).once('value').then(snap => {
         if (!snap.exists()) throw new Error('El trabajador fue borrado; el intento de planner debió fallar.');
       })
-    )]);
+    ));
 
     console.log('[test-rules] 6/6 Administrador elimina ese trabajador (debe PERMITIR)...');
-    checks.push(['admin puede eliminar', assertSucceeds(workerRef(adminDb).remove())]);
-
-    const results = await Promise.allSettled(checks.map(([, promise]) => promise));
-    const failures = results
-      .map((result, index) => ({ name: checks[index][0], result }))
-      .filter(({ result }) => result.status === 'rejected');
+    await check('admin puede eliminar', assertSucceeds(workerRef(adminDb).remove()));
 
     if (failures.length) {
       console.error('[test-rules] FALLO en:', failures.map(f => f.name));
-      failures.forEach(f => console.error(`  - ${f.name}:`, f.result.reason?.message || f.result.reason));
+      failures.forEach(f => console.error(`  - ${f.name}:`, f.error?.message || f.error));
       throw new Error(`${failures.length} verificación(es) de reglas fallaron.`);
     }
 
