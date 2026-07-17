@@ -37,14 +37,14 @@
       "cargosCatalog": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
         "$cargoKey": {
-          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' && newData.exists()))",
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
           ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
         }
       },
       "faenasCatalog": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
         "$faenaKey": {
-          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' && newData.exists()))",
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
           ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
         }
       },

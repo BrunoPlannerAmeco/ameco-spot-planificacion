@@ -2621,9 +2621,13 @@
     },
 
     // Extiende el patrón de deleteWorkerNode (CHK-01) a cargos y faenas:
-    // catalogsCargos/faenas son nodos reales (no el blob legacyStorage), así
-    // que la regla de RTDB puede negarle el borrado a Planificador aunque
-    // siga pudiendo crear/editar.
+    // cargosCatalog/faenasCatalog son nodos reales (no el blob legacyStorage),
+    // así que la regla de RTDB puede exigir Administrador para cualquier
+    // escritura. A diferencia de workers, "Configurar cargos/faenas" es
+    // exclusivo de Admin en la matriz de permisos (ni crear ni editar quedan
+    // abiertos a Planificador) — el cliente ya ocultaba estas acciones para
+    // Planificador antes de este cambio; esto agrega el mismo límite en el
+    // servidor.
     async writeCatalogEntry(catalog, key, nombre){
       await authReady;
       requireWriterAccess();

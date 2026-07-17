@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Prueba REAL de que database.rules.json impide a un Planificador eliminar
-// entradas de cargosCatalog/faenasCatalog (extensión de CHK-01 a cargos y
-// faenas), mientras que sí puede crear/editar, y un Administrador puede
-// todo. Mismo patrón que test-rules-workers.mjs, cubriendo ambos catálogos
-// porque comparten exactamente la misma regla.
+// Prueba REAL de que database.rules.json restringe cargosCatalog/faenasCatalog
+// (extensión de CHK-01 a cargos y faenas) exclusivamente a Administrador —
+// "Configurar cargos/faenas" en la matriz de permisos es Sí/No/No para
+// Admin/Planificador/Lector, a diferencia de workers (donde Planificador sí
+// puede crear/editar). Mismo patrón que test-rules-workers.mjs, cubriendo
+// ambos catálogos porque comparten exactamente la misma regla.
 //
 // Requiere FIREBASE_DATABASE_EMULATOR_HOST (nunca corre contra producción).
 
@@ -20,11 +21,14 @@ async function testCatalog({ label, catalogPath, adminDb, plannerDb, viewerDb })
   console.log(`[test-rules] [${catalogPath}] Viewer intenta crear (debe RECHAZAR)...`);
   await check(`${catalogPath}: viewer no puede crear`, assertFails(ref(viewerDb).set(entry)));
 
-  console.log(`[test-rules] [${catalogPath}] Planificador crea (debe PERMITIR)...`);
-  await check(`${catalogPath}: planner puede crear`, assertSucceeds(ref(plannerDb).set(entry)));
+  console.log(`[test-rules] [${catalogPath}] Planificador intenta crear (debe RECHAZAR)...`);
+  await check(`${catalogPath}: planner no puede crear`, assertFails(ref(plannerDb).set(entry)));
 
-  console.log(`[test-rules] [${catalogPath}] Planificador edita (debe PERMITIR)...`);
-  await check(`${catalogPath}: planner puede editar`, assertSucceeds(ref(plannerDb).update({ nombre: `${label} editado` })));
+  console.log(`[test-rules] [${catalogPath}] Administrador crea (debe PERMITIR)...`);
+  await check(`${catalogPath}: admin puede crear`, assertSucceeds(ref(adminDb).set(entry)));
+
+  console.log(`[test-rules] [${catalogPath}] Planificador intenta editar (debe RECHAZAR)...`);
+  await check(`${catalogPath}: planner no puede editar`, assertFails(ref(plannerDb).update({ nombre: `${label} editado` })));
 
   console.log(`[test-rules] [${catalogPath}] Planificador intenta ELIMINAR (debe RECHAZAR)...`);
   await check(`${catalogPath}: planner NO puede eliminar`, assertFails(ref(plannerDb).remove()));
@@ -32,7 +36,7 @@ async function testCatalog({ label, catalogPath, adminDb, plannerDb, viewerDb })
   console.log(`[test-rules] [${catalogPath}] Verificando que la entrada sigue existiendo...`);
   await check(`${catalogPath}: entrada sigue existiendo`, assertSucceeds(
     ref(adminDb).once('value').then(snap => {
-      if (!snap.exists()) throw new Error('La entrada fue borrada; el intento de planner debió fallar.');
+      if (!snap.exists()) throw new Error('La entrada fue borrada; ningún intento de planner debió tener efecto.');
     })
   ));
 
@@ -60,7 +64,7 @@ async function main() {
       throw new Error(`${allFailures.length} verificación(es) de reglas fallaron.`);
     }
 
-    console.log('[test-rules] ÉXITO: cargosCatalog y faenasCatalog se comportan como exige la matriz de permisos.');
+    console.log('[test-rules] ÉXITO: cargosCatalog y faenasCatalog son exclusivos de Administrador, como exige la matriz de permisos.');
   } finally {
     await testEnv.cleanup();
   }
