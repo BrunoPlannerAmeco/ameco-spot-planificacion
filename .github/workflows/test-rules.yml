@@ -1,0 +1,38 @@
+name: Prueba de reglas RTDB (CHK-01)
+
+on:
+  pull_request:
+    paths:
+      - 'database.rules.json'
+      - 'scripts/test-rules-workers.mjs'
+      - 'scripts/migrate-workers-node.mjs'
+      - 'package.json'
+      - '.github/workflows/test-rules.yml'
+  workflow_dispatch: {}
+
+jobs:
+  test-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configurar Java (requerido por el emulador de RTDB)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Verificar reglas de amecoSpotPlanner/workers contra el emulador
+        run: npm run test:rules:emulator
