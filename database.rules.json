@@ -34,6 +34,20 @@
           ".validate": "!newData.exists() || (newData.hasChildren(['id','rut','nombre']) && newData.child('id').val() === $workerId && newData.child('rut').isString() && newData.child('rut').val().matches(/^[0-9]{1,8}-[0-9K]$/) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
         }
       },
+      "cargosCatalog": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        "$cargoKey": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' && newData.exists()))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
+        }
+      },
+      "faenasCatalog": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        "$faenaKey": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin' || (root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'planner' && newData.exists()))",
+          ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
+        }
+      },
       "sites": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
         ".write": false

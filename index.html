@@ -2618,6 +2618,38 @@
       }
 
       return {deleted:true};
+    },
+
+    // Extiende el patrón de deleteWorkerNode (CHK-01) a cargos y faenas:
+    // catalogsCargos/faenas son nodos reales (no el blob legacyStorage), así
+    // que la regla de RTDB puede negarle el borrado a Planificador aunque
+    // siga pudiendo crear/editar.
+    async writeCatalogEntry(catalog, key, nombre){
+      await authReady;
+      requireWriterAccess();
+
+      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog"){
+        throw new Error("Catálogo inválido.");
+      }
+      const safeKey = String(key||"").trim();
+      if(!safeKey) throw new Error("Falta la clave del catálogo.");
+
+      await db.ref(appRoot + "/" + catalog + "/" + safeKey).set({nombre: String(nombre||"")});
+      return {key: safeKey};
+    },
+
+    async deleteCatalogEntry(catalog, key){
+      await authReady;
+      requireWriterAccess();
+
+      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog"){
+        throw new Error("Catálogo inválido.");
+      }
+      const safeKey = String(key||"").trim();
+      if(!safeKey) throw new Error("Falta la clave del catálogo.");
+
+      await db.ref(appRoot + "/" + catalog + "/" + safeKey).remove();
+      return {key: safeKey, deleted:true};
     }
   };
 
@@ -3742,6 +3774,17 @@ function examExtraDocKey(workerId, extraId){ return 'doc__'+workerId+'__examextr
 function examDocStoragePath(workerId, tipo){ return 'workerDocuments/'+examDocKey(workerId, tipo); }
 function certDocStoragePath(workerId, certId, fileId){ return 'workerDocuments/'+certDocKey(workerId, certId, fileId); }
 function examExtraDocStoragePath(workerId, extraId){ return 'workerDocuments/'+examExtraDocKey(workerId, extraId); }
+
+// CHK-01 extendido a cargos/faenas: mismo esquema de codificación base64
+// URL-safe que encodeKey() del primer <script> (no accesible desde acá por
+// scope), para convertir el nombre libre de un cargo/faena en una clave
+// válida de RTDB (que no admite '.', '#', '$', '[', ']', '/').
+function encodeCatalogKey(value){
+  return btoa(unescape(encodeURIComponent(String(value))))
+    .replaceAll('/', '_')
+    .replaceAll('+', '-')
+    .replaceAll('=', '');
+}
 
 function exampleWorkersData(){
   const now = new Date();
@@ -8779,6 +8822,14 @@ document.addEventListener('click', async (e)=>{
       return;
     }
 
+    try{
+      await window.amecoAccessApi.writeCatalogEntry('cargosCatalog', encodeCatalogKey(name), name);
+    }catch(error){
+      console.warn('No se pudo registrar el cargo en el catálogo protegido.', error);
+      alert('No se pudo guardar el cargo. Intenta de nuevo.');
+      return;
+    }
+
     state.cargos.push(name);
     ensureCargoColor(name);
     state.cargos.sort((a,b)=>a.localeCompare(b,'es'));
@@ -8809,6 +8860,14 @@ document.addEventListener('click', async (e)=>{
     }
 
     if(!confirm('¿Eliminar el cargo "'+cargo+'"?')){
+      return;
+    }
+
+    try{
+      await window.amecoAccessApi.deleteCatalogEntry('cargosCatalog', encodeCatalogKey(cargo));
+    }catch(error){
+      console.warn('No se pudo eliminar el cargo en el catálogo protegido.', error);
+      alert('No tienes permiso para eliminar cargos. Esta acción está reservada al rol Administrador.');
       return;
     }
 
@@ -9367,6 +9426,14 @@ document.addEventListener('click', async (e)=>{
       return;
     }
 
+    try{
+      await window.amecoAccessApi.writeCatalogEntry('faenasCatalog', encodeCatalogKey(name), name);
+    }catch(error){
+      console.warn('No se pudo registrar la faena en el catálogo protegido.', error);
+      alert('No se pudo guardar la faena. Intenta de nuevo.');
+      return;
+    }
+
     state.faenas.push(name);
     state.faenas.sort((a,b)=>a.localeCompare(b,'es'));
     state.ui.modal = null;
@@ -9398,6 +9465,14 @@ document.addEventListener('click', async (e)=>{
     }
 
     if(!confirm('¿Eliminar la faena "'+faena+'"?')){
+      return;
+    }
+
+    try{
+      await window.amecoAccessApi.deleteCatalogEntry('faenasCatalog', encodeCatalogKey(faena));
+    }catch(error){
+      console.warn('No se pudo eliminar la faena en el catálogo protegido.', error);
+      alert('No tienes permiso para eliminar faenas. Esta acción está reservada al rol Administrador.');
       return;
     }
 

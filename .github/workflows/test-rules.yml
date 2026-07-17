@@ -5,6 +5,8 @@ on:
     paths:
       - 'database.rules.json'
       - 'scripts/test-rules-workers.mjs'
+      - 'scripts/test-rules-catalogs.mjs'
+      - 'scripts/lib/rules-test-env.mjs'
       - 'scripts/migrate-workers-node.mjs'
       - 'package.json'
       - '.github/workflows/test-rules.yml'
@@ -34,5 +36,5 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
-      - name: Verificar reglas de amecoSpotPlanner/workers contra el emulador
+      - name: Verificar reglas de workers/cargosCatalog/faenasCatalog contra el emulador
         run: npm run test:rules:emulator
