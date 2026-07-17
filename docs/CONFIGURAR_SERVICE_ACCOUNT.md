@@ -80,12 +80,26 @@ repositorio** (por ejemplo, en una carpeta personal protegida), para que un
 - Lleva un registro de cuándo se rotó por última vez (puede ser una línea en
   `CHANGELOG.md` o en el propio historial de la rama `data-backups`).
 
-## 6. Qué NO requiere esta cuenta de servicio
+## 6. Qué NO requiere esta cuenta de servicio (uso diario)
 
-- No necesita acceso a Firebase Storage (todavía no se usa, ver CHK-02).
 - No necesita rol de administración de usuarios de Auth.
 - No necesita acceso de Hosting/GitHub Pages.
+- No necesita acceso a Storage para el uso diario (backup/restore de RTDB).
 
-Si en el futuro se automatiza también el respaldo de Storage, se debe
-evaluar si conviene una cuenta de servicio separada o ampliar el rol de esta,
-documentando el cambio aquí.
+## 7. Permiso adicional para migrar documentos a Storage (CHK-02, uso puntual)
+
+`scripts/migrate-worker-documents-to-storage.mjs --confirm` sube archivos a
+Firebase Storage, algo que el rol `Firebase Realtime Database Admin` no
+cubre. Como es una migración de **una sola vez** (no un proceso recurrente
+como el backup diario), la recomendación es no ampliar el rol permanente de
+`ameco-backup-automation`, sino agregar el permiso solo mientras se corre la
+migración y quitarlo después:
+
+1. En IAM (Google Cloud Console), edita los roles de `ameco-backup-automation`
+   y agrega temporalmente `Storage Object Admin` (`roles/storage.objectAdmin`).
+2. Corre la migración (primero en dry-run, sin este permiso ya alcanza para
+   ver qué se migraría; recién con `--confirm` hace falta el rol).
+3. Terminada la migración, **quita el rol `Storage Object Admin`** de la
+   cuenta de servicio, dejándola otra vez acotada solo a RTDB.
+
+El modo dry-run (por defecto) nunca necesita este permiso — solo lee RTDB.
