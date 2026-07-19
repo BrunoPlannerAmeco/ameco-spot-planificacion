@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Prueba REAL de que database.rules.json restringe cargosCatalog/faenasCatalog
-// (extensión de CHK-01 a cargos y faenas) exclusivamente a Administrador —
+// (extensión de CHK-01 a cargos y faenas) y equiposCatalog (CHK-06 fase 1,
+// primer nodo con lectura en vivo real) exclusivamente a Administrador —
 // "Configurar cargos/faenas" en la matriz de permisos es Sí/No/No para
 // Admin/Planificador/Lector, a diferencia de workers (donde Planificador sí
-// puede crear/editar). Mismo patrón que test-rules-workers.mjs, cubriendo
-// ambos catálogos porque comparten exactamente la misma regla.
+// puede crear/editar); equipos sigue el mismo patrón. Mismo esqueleto que
+// test-rules-workers.mjs, cubriendo los tres catálogos porque comparten
+// exactamente la misma regla.
 //
 // Requiere FIREBASE_DATABASE_EMULATOR_HOST (nunca corre contra producción).
 
@@ -56,15 +58,18 @@ async function main() {
     const faenaFailures = await testCatalog({
       label: 'Faena', catalogPath: 'faenasCatalog', adminDb, plannerDb, viewerDb,
     });
+    const equipoFailures = await testCatalog({
+      label: 'Equipo', catalogPath: 'equiposCatalog', adminDb, plannerDb, viewerDb,
+    });
 
-    const allFailures = [...cargoFailures, ...faenaFailures];
+    const allFailures = [...cargoFailures, ...faenaFailures, ...equipoFailures];
     if (allFailures.length) {
       console.error('[test-rules] FALLO en:', allFailures.map(f => f.name));
       allFailures.forEach(f => console.error(`  - ${f.name}:`, f.error?.message || f.error));
       throw new Error(`${allFailures.length} verificación(es) de reglas fallaron.`);
     }
 
-    console.log('[test-rules] ÉXITO: cargosCatalog y faenasCatalog son exclusivos de Administrador, como exige la matriz de permisos.');
+    console.log('[test-rules] ÉXITO: cargosCatalog, faenasCatalog y equiposCatalog son exclusivos de Administrador, como exige la matriz de permisos.');
   } finally {
     await testEnv.cleanup();
   }

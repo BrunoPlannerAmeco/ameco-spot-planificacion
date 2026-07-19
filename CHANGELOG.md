@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## [Sin versión] — CHK-06 fase 1: normalización real de `equipos`
+
+- `amecoSpotPlanner/equiposCatalog/{key}` (nodo RTDB nuevo): primera entidad
+  con normalización real, a diferencia de `workers/{id}`/`cargosCatalog`/
+  `faenasCatalog` (CHK-01), que resultaron ser espejos de solo escritura que
+  la UI nunca vuelve a leer. `equiposCatalog` sí es la fuente de lectura en
+  vivo (`amecoAccessApi.subscribeEquiposCatalog`, listener `.on('value')`) y
+  de escritura granular por clave (`writeCatalogEntry`/`deleteCatalogEntry`,
+  reutilizadas de CHK-01) — ya no se reescribe el blob completo
+  (`legacyStorage`) para agregar un tipo de equipo.
+- Regla de escritura exclusiva de Administrador en `equiposCatalog` (mismo
+  patrón que `cargosCatalog`/`faenasCatalog`). Cierra un gap real: antes
+  `equipos` solo estaba oculto a Planificador en el cliente
+  (`ADMIN_ONLY_ACTIONS`), pero `legacyStorage` permite escritura a
+  Planificador, así que un Planificador podía escribir `equipos`
+  server-side saltándose la UI.
+- `applyPersistentPayload()` ya no hidrata `state.equipos` desde el blob
+  (única fuente pasa a ser el listener); `buildPersistentPayload()` sigue
+  incluyendo `equipos` como espejo redundante para no romper el formato de
+  respaldo descargable.
+- `restoreBackupFile()`: nueva sincronización (`syncEquiposCatalogFromRestore`)
+  que compara el `equiposCatalog` en vivo contra el contenido del respaldo y
+  aplica la diferencia — sin esto, restaurar un respaldo viejo no tocaría el
+  nodo real y la lista de equipos quedaría desincronizada.
+- `scripts/migrate-equipos-node.mjs` + workflow `migrate-equipos-node.yml`
+  (`workflow_dispatch`, dry-run por defecto): migración inicial desde
+  `legacyStorage.equipos` hacia `equiposCatalog`.
+- `scripts/test-rules-catalogs.mjs` extendido: la prueba genérica
+  `testCatalog()` ahora también cubre `equiposCatalog` (viewer/planner no
+  pueden escribir ni eliminar, admin sí).
+- CHK-06 pasa de "JSON unificado" a "Fase 1 en marcha": establece el patrón
+  completo (nodo + regla + listener en vivo + escritura granular + respaldo
+  sincronizado + migración + pruebas) que las próximas entidades
+  (`llamados`, `pasajes`, el flip de lectura de `cargosCatalog`/
+  `faenasCatalog`, `servicios`, overrides de turnos) van a replicar.
+
 ## [Sin versión] — Monitoreo de errores de cliente (CHK-09)
 
 - `amecoSpotPlanner/errorLogs` (nodo RTDB nuevo, append-only): `index.html`

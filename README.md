@@ -345,6 +345,15 @@ La regla de Firebase bloquea completamente la escritura del rol Lector y de cuen
 
 Como la información operacional todavía está guardada dentro de un único JSON, las reglas de Firebase no pueden distinguir en el servidor una edición normal de una eliminación realizada por un Planificador. La interfaz reserva las acciones destructivas al Administrador, pero la protección fina entre Administrador y Planificador requiere la futura normalización de la base por módulos.
 
+### Normalización de datos (CHK-06, en marcha)
+
+Los tipos de equipo (`amecoSpotPlanner/equiposCatalog`) ya no viven dentro
+del JSON único: es la primera entidad con nodo propio, lectura en vivo y
+escritura exclusiva de Administrador en el servidor. Agregar un equipo ya
+no reescribe toda la base — solo esa clave. El resto de las entidades
+(trabajadores, servicios, turnos, llamados, pasajes, cargos, faenas) sigue
+en el JSON único por ahora.
+
 ### Monitoreo de errores
 
 La app captura automáticamente errores no controlados y promesas
