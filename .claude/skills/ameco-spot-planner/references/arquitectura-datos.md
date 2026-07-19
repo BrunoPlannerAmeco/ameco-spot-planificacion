@@ -55,6 +55,7 @@ amecoSpotPlanner/
 ├── settings/{cargos, sites, equipment}
 ├── users/{uid}/{role, active}
 ├── auditLogs/{logId}
+├── errorLogs/{logId}
 └── backups/{backupId}
 ```
 
@@ -101,6 +102,11 @@ amecoSpotPlanner/
 - Reglas de RTDB que validen rol en servidor; ocultar botones NO es suficiente.
 - Reglas de Storage alineadas con tipo de documento y rol.
 - Audit log append-only con uid, correo, fecha, operación, entidad y resumen.
+- `errorLogs` (CHK-09) es append-only y de lectura exclusiva de Administrador,
+  igual que `auditLogs`. **Única excepción documentada** a "Lector no puede
+  escribir nada" (CHK-01): el Lector puede hacer `push` de sus propios
+  errores de cliente (sin poder leer ni editar el nodo), para que la
+  telemetría cubra los 3 roles.
 - Cierre de sesión y revocación de usuarios inactivos.
 - Sin secretos privados en el cliente; la API key pública de Firebase no reemplaza las reglas.
 - Principio de mínimo privilegio y revisión mensual de usuarios y accesos.

@@ -2111,6 +2111,7 @@
   const storageRoot = appRoot + "/legacyStorage";
   const usersRoot = appRoot + "/users";
   const auditRoot = appRoot + "/auditLogs";
+  const errorRoot = appRoot + "/errorLogs";
   const accessMetaRoot = appRoot + "/accessMeta";
 
   const VALID_ROLES = ["admin","planner","viewer"];
@@ -2297,6 +2298,71 @@
     await ref.set(payload);
     return payload;
   }
+
+  // CHK-09: captura errores de cliente para los 3 roles, incluido Lector.
+  // Es la única escritura que se le permite al Lector (ver database.rules.json,
+  // nodo errorLogs): solo push append-only de su propio uid, sin poder leer
+  // nada. Un tope por sesión evita inundar RTDB si un error entra en loop
+  // (ej. un render que falla en cada frame).
+  let errorLogCount = 0;
+  const MAX_ERROR_LOGS_PER_SESSION = 20;
+
+  function truncateForLog(value, maxLength){
+    const str = String(value == null ? "" : value);
+    return str.length > maxLength ? str.slice(0, maxLength) + "…" : str;
+  }
+
+  async function appendErrorLogDirect(severity, message, stack, source){
+    try{
+      const user = auth.currentUser;
+      const profile = currentAccessProfile || window.amecoAccessProfile;
+
+      if(!user || !isActiveRole(profile)) return null;
+      if(errorLogCount >= MAX_ERROR_LOGS_PER_SESSION) return null;
+      errorLogCount++;
+
+      const ref = db.ref(errorRoot).push();
+      const payload = {
+        id:ref.key,
+        uid:user.uid,
+        email:user.email||"",
+        role:profile.role,
+        severity,
+        message:truncateForLog(message,1000),
+        stack:truncateForLog(stack,1500),
+        source:truncateForLog(source,200),
+        url:location.pathname,
+        userAgent:truncateForLog(navigator.userAgent,300),
+        appVersion:typeof APP_VERSION !== "undefined" ? APP_VERSION : "",
+        createdAt:nowIso()
+      };
+
+      await ref.set(payload);
+      return payload;
+    }catch(error){
+      console.warn("No fue posible registrar el error de cliente.",error);
+      return null;
+    }
+  }
+
+  window.addEventListener("error", function(event){
+    appendErrorLogDirect(
+      "critical",
+      event.message || "Error no controlado",
+      (event.error && event.error.stack) || "",
+      (event.filename||"")+":"+(event.lineno||"")+":"+(event.colno||"")
+    );
+  });
+
+  window.addEventListener("unhandledrejection", function(event){
+    const reason = event.reason;
+    appendErrorLogDirect(
+      "error",
+      (reason && (reason.message||String(reason))) || "Promesa rechazada sin controlar",
+      (reason && reason.stack) || "",
+      "promise"
+    );
+  });
 
   async function initializeAccessProfile(user){
     const initializedSnapshot = await db
