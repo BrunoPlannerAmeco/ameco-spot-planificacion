@@ -55,6 +55,13 @@
           ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
         }
       },
+      "equiposCatalog": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
+        "$equipoKey": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
+          ".validate": "!newData.exists() || (newData.hasChildren(['nombre']) && newData.child('nombre').isString() && newData.child('nombre').val().length > 0)"
+        }
+      },
       "sites": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
         ".write": false

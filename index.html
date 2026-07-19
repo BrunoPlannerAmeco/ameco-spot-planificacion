@@ -2698,7 +2698,7 @@
       await authReady;
       requireWriterAccess();
 
-      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog"){
+      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog" && catalog !== "equiposCatalog"){
         throw new Error("Catálogo inválido.");
       }
       const safeKey = String(key||"").trim();
@@ -2712,7 +2712,7 @@
       await authReady;
       requireWriterAccess();
 
-      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog"){
+      if(catalog !== "cargosCatalog" && catalog !== "faenasCatalog" && catalog !== "equiposCatalog"){
         throw new Error("Catálogo inválido.");
       }
       const safeKey = String(key||"").trim();
@@ -2720,6 +2720,25 @@
 
       await db.ref(appRoot + "/" + catalog + "/" + safeKey).remove();
       return {key: safeKey, deleted:true};
+    },
+
+    // CHK-06 (fase 1): primer nodo con lectura en vivo real, a diferencia de
+    // los espejos de solo escritura (workers/{id}, cargosCatalog,
+    // faenasCatalog) que la UI nunca vuelve a leer. El callback recibe la
+    // lista de nombres cada vez que equiposCatalog cambia en el servidor,
+    // para cualquier usuario activo (no solo quien escribió el cambio).
+    async subscribeEquiposCatalog(callback){
+      await authReady;
+
+      db.ref(appRoot + "/equiposCatalog").on("value", snapshot => {
+        const raw = snapshot.val() || {};
+        const names = Object.values(raw)
+          .map(entry => entry && entry.nombre)
+          .filter(nombre => typeof nombre === "string" && nombre.trim().length > 0);
+        callback(names);
+      }, error => {
+        console.warn("No fue posible suscribirse a equiposCatalog.", error);
+      });
     }
   };
 
@@ -4055,9 +4074,11 @@ function applyPersistentPayload(payload){
   state.cargoColores = parsed.cargoColores && typeof parsed.cargoColores==='object'
     ? parsed.cargoColores
     : {};
-  state.equipos = Array.isArray(parsed.equipos) && parsed.equipos.length
-    ? parsed.equipos
-    : [...DEFAULT_EQUIPOS];
+  // CHK-06 (fase 1): equipos ya no se hidrata acá — es la primera entidad
+  // con fuente de verdad real en amecoSpotPlanner/equiposCatalog, mantenida
+  // por el listener de subscribeEquiposCatalog (ver loadData). Dejarlo acá
+  // permitiría que un blob viejo/manipulado pise state.equipos hasta el
+  // próximo cambio remoto real.
   state.llamados = Array.isArray(parsed.llamados) ? parsed.llamados : [];
   state.pasajes = Array.isArray(parsed.pasajes) ? parsed.pasajes : [];
   state.servicios = Array.isArray(parsed.servicios) ? parsed.servicios : [];
@@ -4542,6 +4563,28 @@ async function writeStorageEntries(entries,replaceAll){
   }
 }
 
+// CHK-06 (fase 1): equiposCatalog ya no se restaura solo por escribir el
+// blob legacyStorage (writeStorageEntries no lo toca, es un nodo aparte).
+// Compara el estado en vivo previo a la restauración contra lo que trae el
+// respaldo y aplica la diferencia con las mismas funciones ya probadas por
+// reglas (writeCatalogEntry/deleteCatalogEntry), sin escribir el nodo
+// completo de una sola vez.
+async function syncEquiposCatalogFromRestore(previousNames, restoredNames){
+  const previous = new Set(previousNames||[]);
+  const restored = new Set((restoredNames||[]).filter(name=>typeof name==='string' && name.trim()));
+
+  for(const name of restored){
+    if(!previous.has(name)){
+      await window.amecoAccessApi.writeCatalogEntry('equiposCatalog', encodeCatalogKey(name), name);
+    }
+  }
+  for(const name of previous){
+    if(!restored.has(name)){
+      await window.amecoAccessApi.deleteCatalogEntry('equiposCatalog', encodeCatalogKey(name));
+    }
+  }
+}
+
 async function restoreBackupFile(file){
   const text = await file.text();
   const raw = JSON.parse(text);
@@ -4571,11 +4614,18 @@ async function restoreBackupFile(file){
 
   const rollback = await buildBackupEnvelope('pre-restauracion');
   downloadBackupEnvelope(rollback);
+  const previousEquipos = [...state.equipos];
 
   try{
     await writeStorageEntries(parsed.entries,parsed.isFull);
     applyPersistentPayload(parsed.data);
     state.ui.integrityReport = audit;
+
+    try{
+      await syncEquiposCatalogFromRestore(previousEquipos, parsed.data.equipos);
+    }catch(error){
+      console.error('No se pudo sincronizar equiposCatalog tras la restauración.',error);
+    }
 
     await recordAudit(
       'BACKUP_RESTORED',
@@ -4769,6 +4819,14 @@ async function loadData(){
     state.examplesSeeded = true;
     try{ await persistNow(); }catch(error){ console.error(error); }
   }
+
+  // CHK-06 (fase 1): suscripción única, para toda la sesión, a la fuente
+  // real de equipos. No llama render() por sí sola (ver amecoAccessApi.
+  // subscribeEquiposCatalog) para no interrumpir formularios abiertos ante
+  // un cambio remoto de otro usuario.
+  window.amecoAccessApi.subscribeEquiposCatalog(names=>{
+    state.equipos = names.length ? names : [...DEFAULT_EQUIPOS];
+  });
 
   await refreshAccessDirectory();
   render();
@@ -9564,7 +9622,14 @@ document.addEventListener('click', async (e)=>{
   else if(action==='add-equipo'){ state.ui.modal = {type:'addEquipo'}; renderModal(); }
   else if(action==='save-equipo'){
     const name = document.getElementById('new-equipo-name').value.trim();
-    if(name && !state.equipos.includes(name)){ state.equipos.push(name); await persist(); }
+    if(name && !state.equipos.includes(name)){
+      try{
+        await window.amecoAccessApi.writeCatalogEntry('equiposCatalog', encodeCatalogKey(name), name);
+      }catch(error){
+        alert('No se pudo guardar el equipo: '+error.message);
+        return;
+      }
+    }
     state.ui.modal=null; render();
   }
 });

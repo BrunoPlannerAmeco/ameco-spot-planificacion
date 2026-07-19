@@ -26,16 +26,33 @@
 ## Modelo de datos actual
 
 ```
-legacyStorage/
-└── <clave codificada de faena_personal_db_v1>
-    ├── workers[]
-    ├── servicios[]
-    ├── llamados[]
-    ├── pasajes[]
-    ├── cargos[] / cargoColores{}
-    ├── faenas[] / equipos[]
-    └── examplesSeeded
+amecoSpotPlanner/
+├── legacyStorage/
+│   └── <clave codificada de faena_personal_db_v1>
+│       ├── workers[]
+│       ├── servicios[]
+│       ├── llamados[]
+│       ├── pasajes[]
+│       ├── cargos[] / cargoColores{}
+│       ├── faenas[] / equipos[]  (equipos: espejo redundante, ya no es la fuente real — ver equiposCatalog)
+│       └── examplesSeeded
+├── workers/{workerId}         (espejo de solo escritura: solo gate de borrado server-side, CHK-01; la UI nunca lo lee)
+├── cargosCatalog/{key}        (espejo de solo escritura: doble escritura real, pero la UI sigue leyendo cargos desde legacyStorage)
+├── faenasCatalog/{key}        (mismo patrón que cargosCatalog)
+├── equiposCatalog/{key}       (CHK-06 fase 1: PRIMER nodo con lectura en vivo real — la UI lee de acá, no de legacyStorage)
+├── users/{uid}
+├── auditLogs/{logId}
+└── errorLogs/{logId}
 ```
+
+`equiposCatalog` es el primer caso donde el nodo normalizado es la fuente de
+verdad real (listener `.on('value')` + escritura granular por clave), a
+diferencia de `workers`/`cargosCatalog`/`faenasCatalog`, que siguen siendo
+espejos de solo escritura usados únicamente para que la regla de RTDB pueda
+exigir un rol en servidor (la UI jamás los vuelve a leer). Las próximas
+fases de CHK-06 deben aplicar el mismo patrón de `equiposCatalog` a
+`llamados`, `pasajes`, y voltear la lectura de `cargosCatalog`/`faenasCatalog`
+hacia el nodo real en vez de `legacyStorage`.
 
 ## Modelo objetivo normalizado
 

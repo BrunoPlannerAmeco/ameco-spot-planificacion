@@ -1,0 +1,37 @@
+name: Migrar equipos a equiposCatalog (CHK-06 fase 1)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Escribir de verdad (true) o solo dry-run (false, default)'
+        default: 'false'
+        required: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Migrar equipos (dry-run salvo confirm=true)
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" = "true" ]; then
+            node scripts/migrate-equipos-node.mjs --confirm
+          else
+            node scripts/migrate-equipos-node.mjs
+          fi
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ameco-spot-planificacion
