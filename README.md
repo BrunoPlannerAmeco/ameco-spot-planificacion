@@ -314,7 +314,8 @@ Los respaldos pueden contener datos personales, exámenes y documentos. Deben gu
   - Sin administración de accesos ni restauración.
 - Lector:
   - Consulta de todos los módulos.
-  - Sin escritura, importación, exportación ni respaldos.
+  - Sin escritura, importación, exportación ni respaldos — única excepción:
+    reporta sus propios errores de cliente (ver "Monitoreo de errores").
 
 ### Primer Administrador
 
@@ -340,10 +341,20 @@ Se registran acciones críticas como:
 
 ### Limitación de la arquitectura actual
 
-La regla de Firebase bloquea completamente la escritura del rol Lector y de cuentas desactivadas. Administrador y Planificador pueden escribir en `legacyStorage`.
+La regla de Firebase bloquea completamente la escritura del rol Lector y de cuentas desactivadas, salvo la excepción descrita en "Monitoreo de errores". Administrador y Planificador pueden escribir en `legacyStorage`.
 
 Como la información operacional todavía está guardada dentro de un único JSON, las reglas de Firebase no pueden distinguir en el servidor una edición normal de una eliminación realizada por un Planificador. La interfaz reserva las acciones destructivas al Administrador, pero la protección fina entre Administrador y Planificador requiere la futura normalización de la base por módulos.
 
+### Monitoreo de errores
+
+La app captura automáticamente errores no controlados y promesas
+rechazadas sin manejar (`amecoSpotPlanner/errorLogs`), incluidos los del rol
+Lector — es la única escritura que tiene ese rol, y es de solo anexado
+(no puede leer ni editar el nodo). Un workflow programado
+(`check-error-logs.yml`) revisa cada 6 horas si hubo errores críticos
+recientes y falla el job cuando corresponde, lo que dispara la notificación
+por correo estándar de GitHub Actions. Solo Administrador puede leer los
+registros (Firebase Console o `npm run check:error-logs`).
 
 ## v3.9.1 — Hotfix de publicación
 

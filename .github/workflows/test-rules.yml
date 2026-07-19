@@ -6,6 +6,7 @@ on:
       - 'database.rules.json'
       - 'scripts/test-rules-workers.mjs'
       - 'scripts/test-rules-catalogs.mjs'
+      - 'scripts/test-rules-errorlogs.mjs'
       - 'scripts/lib/rules-test-env.mjs'
       - 'scripts/migrate-workers-node.mjs'
       - 'package.json'

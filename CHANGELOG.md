@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## [Sin versión] — Monitoreo de errores de cliente (CHK-09)
+
+- `amecoSpotPlanner/errorLogs` (nodo RTDB nuevo, append-only): `index.html`
+  captura excepciones no controladas (`window.onerror`, severidad
+  `critical`) y promesas rechazadas sin manejar (`unhandledrejection`,
+  severidad `error`), con uid, rol, mensaje, stack truncado, URL y versión
+  de la app. Tope de 20 registros por sesión para no inundar RTDB si un
+  error entra en loop.
+- **Excepción puntual y documentada a CHK-01**: el rol Lector puede escribir
+  en `errorLogs` (solo `push` append-only de su propio uid, sin poder leer
+  ni editar nada) — es la única escritura que tiene ese rol, para que sus
+  errores de cliente también queden registrados. Lectura sigue exclusiva de
+  Administrador.
+- `scripts/check-error-logs.mjs` + workflow `check-error-logs.yml`: corre
+  cada 6 h vía Admin SDK, revisa la ventana reciente y falla el job si hay
+  errores `critical` — dispara la notificación por correo que GitHub ya
+  manda por defecto ante un workflow programado fallido, sin integrar un
+  servicio de alertas nuevo.
+- `scripts/test-rules-errorlogs.mjs`: prueba real contra el emulador de que
+  Lector puede escribir/no puede leer, nadie puede sobrescribir un registro
+  existente y solo Administrador puede leer.
+- CHK-09 pasa de "Sin telemetría" a "Captura de errores automatizada, con
+  alerta por CI". CHK-07 ya no depende de CHK-09 para la detección de
+  incidentes; para RTO 24/7 fuera de horario hábil solo resta definir una
+  guardia humana (R-10), que es una decisión organizacional, no técnica.
+- Pendiente (fuera de esta fase): panel visual de errores dentro del Admin
+  panel; hoy la inspección bajo demanda se hace con
+  `workflow_dispatch` o `npm run check:error-logs`.
+
 ## [Sin versión] — CHK-01 extendido a cargos/faenas; panel de auditoría plegable
 
 - `cargosCatalog/{key}` y `faenasCatalog/{key}` (nuevos nodos RTDB):

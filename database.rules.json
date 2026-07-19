@@ -27,6 +27,13 @@
           ".validate": "newData.hasChildren(['id','uid','email','role','action','entity','summary','createdAt']) && newData.child('id').val() === $logId && newData.child('action').isString() && newData.child('createdAt').isString()"
         }
       },
+      "errorLogs": {
+        ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && root.child('amecoSpotPlanner/users').child(auth.uid).child('role').val() === 'admin'",
+        "$logId": {
+          ".write": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true && !data.exists() && newData.child('uid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['id','uid','severity','message','createdAt']) && newData.child('id').val() === $logId && newData.child('severity').isString() && newData.child('severity').val().matches(/^(critical|error)$/) && newData.child('message').isString() && newData.child('message').val().length <= 2000 && newData.child('createdAt').isString()"
+        }
+      },
       "workers": {
         ".read": "auth != null && root.child('amecoSpotPlanner/users').child(auth.uid).child('active').val() === true",
         "$workerId": {

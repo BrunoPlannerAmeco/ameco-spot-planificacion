@@ -1,0 +1,35 @@
+name: Monitoreo de errores de cliente (CHK-09)
+
+on:
+  schedule:
+    # Cada 6 horas; la ventana consultada por el script coincide con este intervalo.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Ventana en horas hacia atrás a revisar'
+        default: '6'
+        required: false
+
+jobs:
+  check-error-logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Revisar errores críticos recientes
+        run: node scripts/check-error-logs.mjs --hours="${{ github.event.inputs.hours || '6' }}"
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_PROJECT_ID: ameco-spot-planificacion

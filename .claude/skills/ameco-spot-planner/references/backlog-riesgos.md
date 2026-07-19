@@ -10,9 +10,9 @@
 | CHK-04 | Audit logs | **Extendido a la operación diaria** (probado en producción): además de los 9 tipos originales (backups, eliminaciones, importar Excel, gestión de usuarios), ahora audita crear/editar trabajadores, servicios, turnos (individual y masivo), asignaciones, llamados y pasajes (11 acciones nuevas). Acreditaciones/certificaciones quedan cubiertas indirectamente vía `WORKER_UPDATED` (son parte del mismo formulario), sin acción dedicada propia. Panel "Usuarios, roles y auditoría" ahora plegable con detalle expandido | Evaluar si acreditaciones/certificaciones necesitan su propia acción de auditoría (hoy indirecta vía WORKER_UPDATED) | Turnos, servicios y eliminaciones generan evidencia — cumplido | Alta |
 | CHK-05 | Regresión Excel | Manual | Fixtures y pruebas de integración | Plantillas válidas e inválidas no corrompen producción | Alta |
 | CHK-06 | Normalizar RTDB | JSON unificado | Separar workers, services, shifts y settings | Ediciones concurrentes no sobrescriben módulos | Crítica |
-| CHK-07 | Backups y restore | Automatizado (rama `feature/backup-automatizado`): backup diario + restore con Admin SDK, drill de restauración probado en CI. Pendiente: detección de incidentes (depende de CHK-09) y segundo responsable de guardia (R-10) | Cerrar CHK-09 y definir guardia para RTO 24/7 | Restauración probada con RPO/RTO documentado — ver `RPO_RTO_PROPUESTA.md` | Crítica |
+| CHK-07 | Backups y restore | Automatizado (rama `feature/backup-automatizado`): backup diario + restore con Admin SDK, drill de restauración probado en CI. **Detección de incidentes ya no bloquea** (CHK-09 monitorea cada 6 h); pendiente: segundo responsable de guardia fuera de horario hábil (R-10, decisión organizacional, no técnica) | Definir guardia humana para RTO 24/7 fuera de horario | Restauración probada con RPO/RTO documentado — ver `RPO_RTO_PROPUESTA.md` | Crítica |
 | CHK-08 | Ambientes | Producción directa | Dev, test y prod separados | Pruebas no usan datos reales | Alta |
-| CHK-09 | Monitoreo | Sin telemetría | Captura de errores y métricas | Errores críticos generan alerta y contexto | Media |
+| CHK-09 | Monitoreo | **Captura de errores de cliente automatizada** (en producción): `window.onerror`/`unhandledrejection` escriben a `amecoSpotPlanner/errorLogs` (append-only, con uid, rol, mensaje, stack truncado, URL, versión de app). **Excepción puntual a CHK-01**: el Lector puede escribir en este nodo (solo push de su propio uid, sin poder leer nada) para que sus errores también queden registrados — es la única escritura que tiene ese rol. Lectura exclusiva de Administrador. Workflow `check-error-logs.yml` corre cada 6 h (Admin SDK, sin secretos en el cliente) y falla el job si hay errores `critical` en la ventana, lo que dispara la notificación por correo que GitHub ya manda por defecto al fallar un workflow programado — no se agregó un servicio de alertas nuevo | No hay métricas de rendimiento ni dashboard visual (fuera de alcance de esta fase); evaluar panel de solo lectura en el Admin panel si el volumen de errores lo justifica | Errores críticos generan alerta (cumplido, vía CI) y contexto (cumplido: stack, rol, versión, URL) | Media |
 | CHK-10 | CI de release | ZIP y carga manual | Validar sintaxis, pruebas y artefactos | No se publica si falla el pipeline | Media |
 | CHK-11 | Privacidad | Sin política técnica | Clasificación, retención y baja lógica | Acceso y eliminación quedan auditados | Alta |
 | CHK-12 | Llamados por servicio | Solo trabajador | Relacionar servicio/asignación | Historial visible desde el servicio | Media |
@@ -22,7 +22,7 @@
 
 ## Orden de dependencias críticas (respetar al priorizar)
 
-1. **CHK-07 Backups** — automatizado (ver `RPO_RTO_PROPUESTA.md`); resta CHK-09 para RTO 24/7.
+1. **CHK-07 Backups** — automatizado (ver `RPO_RTO_PROPUESTA.md`); CHK-09 ya cubre la detección automática, resta solo definir guardia humana fuera de horario (R-10) para RTO 24/7.
 2. **CHK-01 Roles** — gap de seguridad real cerrado (eliminar trabajadores ya es server-side); no bloquea nada más. Extender el mismo patrón a cargos/faenas es opcional, no depende de CHK-06.
 3. **CHK-02 Storage** — bloquea crecimiento documental.
 4. **CHK-06 Normalización** — bloquea sincronización y escalabilidad general (ya no bloquea CHK-01: se resolvió con una cuña puntual en `workers/{id}` sin esperar la normalización completa).
@@ -51,7 +51,7 @@
 | Objetivo | Meta |
 |---|---|
 | RPO | Máximo 24 horas de pérdida aceptable — **cumplido** con el backup diario automatizado (`backup-rtdb.yml`) |
-| RTO | 4 horas hábiles (horario de oficina). Fuera de horario, meta interina: antes del siguiente día hábil, hasta cerrar CHK-09 y definir guardia — ver `RPO_RTO_PROPUESTA.md` |
+| RTO | 4 horas hábiles (horario de oficina). Fuera de horario, meta interina: antes del siguiente día hábil, hasta definir guardia humana (CHK-09 ya detecta automáticamente cada 6 h) — ver `RPO_RTO_PROPUESTA.md` |
 | Backups | Diarios automáticos, 30 diarios y 12 mensuales — implementado |
 | Prueba de restauración | Trimestral y antes de migraciones mayores — automatizada mensualmente vía `restore-drill.yml` (excede el mínimo) |
 | Rollback release | Volver a la versión anterior en menos de 30 minutos |
