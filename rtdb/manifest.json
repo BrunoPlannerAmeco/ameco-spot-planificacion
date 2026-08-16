@@ -1,5 +1,24 @@
 [
   {
+    "file": "amecoSpotPlanner_2026-08-16T09-25-06-735Z.json",
+    "exportedAt": "2026-08-16T09:25:06.735Z",
+    "reason": "scheduled",
+    "root": "amecoSpotPlanner",
+    "sizeBytes": 663151,
+    "counts": {
+      "accessMeta": 3,
+      "accreditations": 1,
+      "auditLogs": 303,
+      "cargosCatalog": 2,
+      "errorLogs": 4,
+      "legacyStorage": 24,
+      "sites": 1,
+      "storage": 1,
+      "users": 3,
+      "workers": 36
+    }
+  },
+  {
     "file": "amecoSpotPlanner_2026-08-15T09-23-02-830Z.json",
     "exportedAt": "2026-08-15T09:23:02.830Z",
     "reason": "scheduled",
@@ -538,23 +557,6 @@
       "accessMeta": 3,
       "accreditations": 1,
       "auditLogs": 48,
-      "legacyStorage": 2,
-      "sites": 1,
-      "storage": 1,
-      "users": 3,
-      "workers": 36
-    }
-  },
-  {
-    "file": "amecoSpotPlanner_2026-07-16T22-33-11-138Z.json",
-    "exportedAt": "2026-07-16T22:33:11.138Z",
-    "reason": "scheduled",
-    "root": "amecoSpotPlanner",
-    "sizeBytes": 419100,
-    "counts": {
-      "accessMeta": 3,
-      "accreditations": 1,
-      "auditLogs": 5,
       "legacyStorage": 2,
       "sites": 1,
       "storage": 1,
