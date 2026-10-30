@@ -1,5 +1,24 @@
 [
   {
+    "file": "amecoSpotPlanner_2026-10-30T15-31-30-008Z.json",
+    "exportedAt": "2026-10-30T15:31:30.008Z",
+    "reason": "scheduled",
+    "root": "amecoSpotPlanner",
+    "sizeBytes": 676402,
+    "counts": {
+      "accessMeta": 3,
+      "accreditations": 1,
+      "auditLogs": 367,
+      "cargosCatalog": 2,
+      "errorLogs": 4,
+      "legacyStorage": 24,
+      "sites": 1,
+      "storage": 1,
+      "users": 3,
+      "workers": 36
+    }
+  },
+  {
     "file": "amecoSpotPlanner_2026-10-29T15-50-41-157Z.json",
     "exportedAt": "2026-10-29T15:50:41.157Z",
     "reason": "scheduled",
