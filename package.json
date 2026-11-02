@@ -15,7 +15,8 @@
     "test:rules:emulator": "firebase emulators:exec --project demo-ameco-spot-planificacion --only database --non-interactive \"node scripts/test-rules-workers.mjs && node scripts/test-rules-catalogs.mjs && node scripts/test-rules-errorlogs.mjs\"",
     "verify:deployed-rules": "node scripts/verify-deployed-rules.mjs",
     "check:syntax": "node scripts/check-html-syntax.mjs",
-    "check:error-logs": "node scripts/check-error-logs.mjs"
+    "check:error-logs": "node scripts/check-error-logs.mjs",
+    "test:turnos": "node scripts/test-turnos-query.mjs"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"

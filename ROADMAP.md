@@ -37,3 +37,5 @@ Roles, perfiles de acceso, cuentas activas/inactivas, reglas de Realtime Databas
 
 ## Próxima prioridad
 v4.0.0 — Normalización de Realtime Database por módulos para aplicar permisos finos y sincronización concurrente.
+
+- En revisión: consulta de turnos por nombre/RUT, fecha y estado; resumen operacional. Rama `feature/turnos-consulta-disponibilidad`.

@@ -363,3 +363,19 @@ registros (Firebase Console o `npm run check:error-logs`).
 - Se agregó una etiqueta visible `v3.9.1` en la barra superior.
 - Se agregó una guía de recuperación.
 - Se agregó un archivo de reglas temporales para recuperar el guardado cuando las reglas nuevas fueron publicadas antes del frontend.
+
+## Consulta de turnos y disponibilidad (rama de revisión)
+
+En Turnos, busca por nombre o RUT y selecciona **Estado al día** para consultar trabajo/HE,
+descanso, permiso, trabajo sin faena o personal sin ciclo registrado. Combina estos filtros
+con cargo y faena; el filtro de faena sigue refiriéndose al período del calendario visible.
+Los contadores respetan nombre, cargo y faena, antes del filtro de estado. La fecha consultada
+puede ser distinta al mes visible. **Ir al mes actual** devuelve el calendario y la consulta a hoy.
+
+Trabajo sin faena significa trabajo/HE sin faena registrada ese día en el calendario.
+Revisa servicios, acreditaciones y confirma con el trabajador antes de asignar.
+Descanso y ausencia de ciclo no equivalen a disponibilidad.
+
+No requiere instalar Node en el equipo de uso: la página sigue siendo HTML estático.
+Validación de desarrollo: `npm run check:syntax` y `npm run test:turnos`.
+Evidencia y reversión: [release-evidence/turnos-consulta.md](release-evidence/turnos-consulta.md).
