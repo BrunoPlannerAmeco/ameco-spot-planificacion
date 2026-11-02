@@ -39,3 +39,5 @@ Roles, perfiles de acceso, cuentas activas/inactivas, reglas de Realtime Databas
 v4.0.0 — Normalización de Realtime Database por módulos para aplicar permisos finos y sincronización concurrente.
 
 - En revisión: consulta de turnos por nombre/RUT, fecha y estado; resumen operacional. Rama `feature/turnos-consulta-disponibilidad`.
+
+- En revisión: importación de calendario Personal Spot con RUT, vista previa, códigos configurables, respaldo y transacción contra cambios concurrentes. Rama `feature/importar-turnos-personal-spot`.

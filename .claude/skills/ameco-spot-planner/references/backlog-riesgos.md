@@ -103,3 +103,13 @@ reglas o escrituras. Riesgo: confundir un día sin faena con disponibilidad conf
 Mitigación: etiquetas explícitas, advertencia sobre servicios/acreditaciones y estado
 "Sin ciclo registrado" excluido de trabajo sin faena. CHK-01/02/07 no empeoran.
 Evidencia: `release-evidence/turnos-consulta.md`. Sin nueva versión productiva.
+
+## Importación de turnos — cambio en revisión 02-11-2026
+
+Nueva importación de excepciones diarias del calendario Personal Spot, exclusivamente por RUT.
+Sin nuevas rutas/reglas/migraciones. Riesgos: identidad incompleta, códigos ambiguos y sobrescritura.
+Mitigaciones: omitir RUT faltantes/duplicados/no encontrados, correspondencia editable con omisión
+por defecto, vista previa invalidada al editar, preservar excepciones, confirmación explícita para
+reemplazo, respaldo completo previo y transacción compare-and-set con bloqueo ante concurrencia.
+El Excel del usuario no se incorpora al repositorio público. Validación real de producción pendiente.
+Evidencia: `release-evidence/importar-turnos-spot.md`.
