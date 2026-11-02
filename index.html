@@ -2650,6 +2650,15 @@
     // el remove() a nivel de servidor (solo Admin puede borrar ahí) — por
     // eso este método no hace ninguna verificación de rol en el cliente:
     // el enforcement real es la regla, esto solo la ejercita.
+    async compareAndSavePlannerState(expectedValue,nextValue){
+      await authReady;
+      requireWriterAccess();
+      if(typeof expectedValue!=="string"||typeof nextValue!=="string") throw new Error("Estado inválido para importar turnos.");
+      const result=await keyRef("faena_personal_db_v1").transaction(current=>current===expectedValue?nextValue:undefined,undefined,false);
+      if(!result.committed) throw new Error("Otro usuario actualizó la información. Recarga y genera una nueva vista previa; no se aplicó la importación.");
+      return {committed:true};
+    },
+
     async deleteWorkerNode(workerId){
       await authReady;
       requireWriterAccess();
@@ -2917,6 +2926,7 @@
 </div>
 <div id="modalRoot"></div>
 
+<script src="spot-shift-import.js"></script>
 <script>
 /* ============================= DATA LAYER ============================= */
 const STORAGE_KEY = 'faena_personal_db_v1';
@@ -3018,6 +3028,9 @@ const WRITE_ACTIONS = new Set([
   'save-worker',
   'import-worker',
   'import-confirm',
+  'spot-shift-open',
+  'spot-shift-preview',
+  'spot-shift-apply',
   'new-llamada',
   'save-llamada',
   'delete-llamada',
@@ -3051,7 +3064,8 @@ const INTEGRITY_ACTIONS = new Set([
 ]);
 
 const EXPORT_ACTIONS = new Set([
-  'export-excel'
+  'export-excel',
+  'spot-shift-report'
 ]);
 
 function currentAccessProfile(){
@@ -7633,6 +7647,7 @@ function viewTurnos(){
         '<button type="button" class="'+(size==='comfortable'?'active-size':'')+'" data-action="grid-size" data-size="comfortable">Cómoda</button>'+
         '<button type="button" class="'+(size==='large'?'active-size':'')+'" data-action="grid-size" data-size="large">Grande</button>'+
       '</div>'+
+      '<button class="btn btn-accent btn-sm" data-action="spot-shift-open">↑ Importar turnos Excel</button>'+
       '<button class="btn btn-accent btn-sm" data-action="open-bulk">+ Editar varios días</button>'+
       '<button class="btn btn-ghost btn-sm" data-action="undo-last">↺ Deshacer (Ctrl+Z)</button>'+
     '</div>'+
@@ -7682,6 +7697,7 @@ function renderModal(){
   else if(state.ui.modal.type==='workerMonth') root.innerHTML = workerMonthModalHtml();
   else if(state.ui.modal.type==='llamada') root.innerHTML = llamadaModalHtml(state.ui.modal.llamadaId);
   else if(state.ui.modal.type==='pasaje') root.innerHTML = pasajeModalHtml(state.ui.modal.pasajeId);
+  else if(state.ui.modal.type==='spotShiftImport') root.innerHTML = spotImportModalHtml();
   else if(state.ui.modal.type==='import') root.innerHTML = importModalHtml();
   else if(state.ui.modal.type==='service') root.innerHTML = serviceModalHtml(state.ui.modal.serviceId);
   else if(state.ui.modal.type==='serviceAssignments') root.innerHTML = serviceAssignmentsModalHtml(state.ui.modal.serviceId);
@@ -7746,6 +7762,106 @@ function analyzeImportRows(){
   });
 
   return result;
+}
+
+/* Importación de calendario Personal Spot: lectura local, vista previa y escritura CAS. */
+let spotShiftImportState=null;
+function spotImportEscape(value){return escHtml(String(value==null?'':value)).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function spotStableJson(value){
+  if(Array.isArray(value))return '['+value.map(spotStableJson).join(',')+']';
+  if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+spotStableJson(value[k])).join(',')+'}';
+  return JSON.stringify(value);
+}
+function spotImportAnalysis(){
+  const data=spotShiftImportState;
+  return SpotShiftImport.buildPlan(data.matrix,state.workers,{from:data.from,to:data.to,mapping:data.mapping,replaceExisting:data.replaceExisting,sites:state.faenas});
+}
+function spotImportOptions(selected){
+  const options=[['skip','Omitir'],['trabajo|','Trabajo sin faena'],['descanso|','Descanso'],['extra|','Hora extra'],['permiso|','Permiso / ausencia']];
+  state.faenas.forEach(site=>options.push(['trabajo|'+site,'Trabajo · '+site]));
+  return options.map(([value,label])=>'<option value="'+spotImportEscape(value)+'" '+(value===selected?'selected':'')+'>'+spotImportEscape(label)+'</option>').join('');
+}
+function spotImportModalHtml(){
+  const data=spotShiftImportState;
+  let body='<p>Selecciona tu Excel (.xlsx o .xlsm). Solo se lee la hoja Personal Spot; las macros no se ejecutan. No se envía el archivo al repositorio.</p>'+
+    '<div class="field"><label for="spotShiftFile">Archivo de turnos</label><input id="spotShiftFile" type="file" accept=".xlsx,.xlsm" '+(data?.busy?'disabled':'')+'></div>';
+  if(data){
+    body+='<p><strong>'+spotImportEscape(data.fileName)+'</strong> · '+data.matrix.records.length+' filas · '+data.matrix.firstDate+' a '+data.matrix.lastDate+'</p>'+
+      '<div class="form-grid"><div class="field"><label for="spotShiftFrom">Desde</label><input id="spotShiftFrom" type="date" min="'+data.matrix.firstDate+'" max="'+data.matrix.lastDate+'" value="'+data.from+'"></div>'+
+      '<div class="field"><label for="spotShiftTo">Hasta</label><input id="spotShiftTo" type="date" min="'+data.matrix.firstDate+'" max="'+data.matrix.lastDate+'" value="'+data.to+'"></div></div>'+
+      '<p class="helptext">Por defecto se consulta el mes actual hasta hoy. Cambia las fechas para importar otros períodos. Las celdas vacías y los códigos omitidos conservan los datos de la página.</p>';
+    const codes=SpotShiftImport.codesFor(data.matrix,data.from,data.to);
+    body+='<details open><summary><strong>Correspondencia de códigos ('+codes.length+')</strong></summary><p class="helptext">LM y V se conservan como ausencia, con el código original en la nota. Los códigos sin correspondencia se omiten. Si una faena no existe, créala en Configuración y vuelve a abrir la importación.</p><div class="table-wrap" style="max-height:260px"><table class="data-table"><thead><tr><th>Código Excel</th><th>Celdas</th><th>Importar como</th></tr></thead><tbody>'+codes.map(code=>{
+      const entry=data.mapping[code.key];const value=entry?entry.tipo+'|'+(entry.faena||''):'skip';
+      return '<tr><td>'+spotImportEscape(code.label)+'</td><td>'+code.count+'</td><td><select aria-label="Correspondencia '+spotImportEscape(code.label)+'" data-spot-code="'+spotImportEscape(code.key)+'">'+spotImportOptions(value)+'</select></td></tr>';
+    }).join('')+'</tbody></table></div></details>'+
+      '<p><label><input type="checkbox" id="spotShiftReplace" '+(data.replaceExisting?'checked':'')+'> Reemplazar también días que ya tienen una excepción registrada (ver conflictos)</label></p>'+
+      '<p class="helptext">La importación no cambia ciclos 14×14, fichas, servicios ni acreditaciones. Agrega excepciones diarias. Conserva las existentes salvo que marques reemplazar.</p>'+
+      '<button type="button" class="btn btn-ghost" data-action="spot-shift-preview">Generar vista previa</button>';
+    if(data.error)body+='<p role="alert" class="helptext" style="color:var(--bad)">'+spotImportEscape(data.error)+'</p>';
+    if(data.plan){
+      const plan=data.plan;
+      body+='<section class="settings-note" style="margin-top:16px"><h3>Vista previa · '+plan.from+' a '+plan.to+'</h3><p><strong>'+plan.changes.length+' día(s) a actualizar en '+new Set(plan.changes.map(c=>c.workerId)).size+' trabajador(es)</strong></p>'+
+        '<p>'+plan.issues.length+' fila(s) omitidas · '+plan.unknown+' celdas con código omitido · '+plan.blanks+' vacías conservadas · '+plan.unchanged+' ya importadas · '+plan.conflicts.length+' conflictos '+(plan.replaceExisting?'a reemplazar':'conservados')+'.</p>'+
+        '<div class="table-wrap" style="max-height:220px"><table class="data-table"><thead><tr><th>Trabajador</th><th>RUT</th><th>Días a actualizar</th><th>Omitidos</th></tr></thead><tbody>'+plan.summaries.map(row=>'<tr><td>'+spotImportEscape(row.name)+'</td><td>'+spotImportEscape(row.rut)+'</td><td>'+row.changed+'</td><td>'+row.skipped+'</td></tr>').join('')+'</tbody></table></div>';
+      if(plan.issues.length)body+='<details><summary>Filas que requieren revisión ('+plan.issues.length+')</summary><ul>'+plan.issues.map(row=>'<li>Fila '+row.row+' · '+spotImportEscape(row.name)+' · '+spotImportEscape(row.rut)+' · '+spotImportEscape(row.reason)+'</li>').join('')+'</ul></details>';
+      if(plan.conflicts.length)body+='<details><summary>Conflictos ('+plan.conflicts.length+')</summary><p>Se muestran los primeros 20. El informe descargable incluye todos.</p><ul>'+plan.conflicts.slice(0,20).map(c=>'<li>'+spotImportEscape(c.name)+' · '+c.date+' · Actual: '+spotImportEscape(c.previous.tipo)+' '+spotImportEscape(c.previous.faena||'')+' '+spotImportEscape(c.previous.nota||'')+' → Excel: '+spotImportEscape(c.code)+'</li>').join('')+'</ul></details>';
+      body+='<p class="helptext">Revisa la correspondencia y los conflictos. Al aplicar se descargará primero un respaldo completo. No se asignan personas por nombre: solo se usan RUT únicos existentes.</p></section>';
+    }
+  }
+  const busy=data?.busy;
+  body='<fieldset style="border:0;padding:0;margin:0;min-width:0" '+(busy?'disabled':'')+'>'+body+'</fieldset>';
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal" style="max-width:1000px"><div class="modal-head"><h2>Importar turnos · Personal Spot</h2><button class="modal-close" data-action="close-modal" '+(busy?'disabled':'')+'>✕</button></div><div class="modal-body">'+body+'</div><div class="modal-foot"><button class="btn btn-ghost" data-action="close-modal" '+(busy?'disabled':'')+'>Cancelar</button><div>'+
+    (data?.plan?'<button class="btn btn-ghost" data-action="spot-shift-report" '+(busy?'disabled':'')+'>Descargar informe</button> ':'')+
+    '<button class="btn btn-accent" data-action="spot-shift-apply" '+(!data?.plan?.changes.length||busy?'disabled':'')+'>'+(busy?'Guardando…':'Respaldar y aplicar')+'</button></div></div></div></div>';
+}
+async function spotReadShiftFile(file){
+  if(!guardPermission('write'))return;
+  if(typeof XLSX==='undefined'||typeof SpotShiftImport==='undefined'){alert('No cargó el lector de Excel. Recarga la página.');return;}
+  if(file.size>20*1024*1024){alert('El archivo supera 20 MB. Usa una copia más pequeña.');return;}
+  try{
+    const workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false});
+    const sheetName=workbook.SheetNames.find(name=>String(name).trim().toLowerCase()==='personal spot');
+    if(!sheetName)throw Error('No se encontró la hoja Personal Spot.');
+    const rows=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{header:1,defval:'',raw:true});
+    const matrix=SpotShiftImport.parseMatrix(rows,{date1904:!!workbook.Workbook?.WBProps?.date1904});
+    const now=new Date(),first=turnoLocalDate(new Date(now.getFullYear(),now.getMonth(),1));
+    const from=first<matrix.firstDate?matrix.firstDate:first>matrix.lastDate?matrix.firstDate:first;
+    const today=turnoLocalDate(now),to=today<matrix.firstDate||today>matrix.lastDate?matrix.lastDate:today;
+    const mapping={};SpotShiftImport.codesFor(matrix,matrix.firstDate,matrix.lastDate).forEach(code=>{mapping[code.key]=SpotShiftImport.defaultMapping(code.key,state.faenas);});
+    spotShiftImportState={fileName:file.name,matrix,from,to,mapping,replaceExisting:false,plan:null,busy:false};
+    renderModal();
+  }catch(error){alert(error.message||'No se pudo leer la planilla.');}
+}
+async function spotApplyShiftImport(){
+  const data=spotShiftImportState;
+  if(!data?.plan?.changes.length||data.busy||!guardPermission('write'))return;
+  if(!window.amecoAccessApi?.compareAndSavePlannerState){alert('Recarga la página para habilitar el guardado seguro.');return;}
+  if(state.saving){alert('Espera a que terminen los cambios pendientes antes de importar.');return;}
+  if(spotStableJson(state.workers)!==data.workersSnapshot){data.plan=null;data.error='Cambió el personal desde la vista previa. Genérala nuevamente.';renderModal();return;}
+  if(!confirm('¿Aplicar '+data.plan.changes.length+' día(s) entre '+data.from+' y '+data.to+'? '+(data.replaceExisting?'Se reemplazarán '+data.plan.conflicts.length+' excepciones existentes. ':'Las excepciones existentes se conservarán. ')+'Se descargará un respaldo antes de guardar.'))return;
+  data.busy=true;renderModal();
+  try{
+    const envelope=await buildBackupEnvelope('pre-importacion-turnos-spot');
+    if(envelope.failedKeys.length)throw Error('El respaldo está incompleto. No se aplicó la importación. Revisa tu conexión.');
+    const expected=envelope.storageEntries[STORAGE_KEY];
+    if(!expected)throw Error('No se encontró un estado guardado para respaldar. Guarda la página antes de importar.');
+    const remote=JSON.parse(expected);
+    if(!Array.isArray(remote.workers))throw Error('El respaldo no contiene una nómina válida.');
+    if(spotStableJson(remote.workers)!==data.workersSnapshot||spotStableJson(state.workers)!==data.workersSnapshot)throw Error('La nómina o sus turnos cambiaron. Cierra la importación, recarga y genera una nueva vista previa.');
+    const localPayload=buildPersistentPayload();
+    if(Object.keys(localPayload).some(key=>spotStableJson(localPayload[key])!==spotStableJson(remote[key])))throw Error('Hay cambios locales pendientes o información distinta en el servidor. Guarda tus cambios, recarga y vuelve a importar.');
+    const workers=SpotShiftImport.applyPlan(remote.workers,data.plan);
+    const changedIds=new Set(data.plan.changes.map(c=>c.workerId));
+    // La copia descargada contiene el estado remoto exacto usado en el compare-and-set.
+    downloadBackupEnvelope(envelope);
+    await window.amecoAccessApi.compareAndSavePlannerState(expected,JSON.stringify({...remote,workers}));
+    state.workers=workers;lastAction=null;
+    const count=data.plan.changes.length;
+    spotShiftImportState=null;state.ui.modal=null;render();
+    await recordAudit('SHIFTS_IMPORTED','workers','', 'Se importaron '+count+' días desde Personal Spot.',{from:data.from,to:data.to,days:count,workers:changedIds.size,replaced:data.replaceExisting});
+    alert('Importación guardada: '+count+' día(s) en '+changedIds.size+' trabajador(es). Conserva el respaldo descargado.');
+  }catch(error){data.error=error.message||'No se pudo guardar. Revisa la conexión y recarga antes de reintentar.';data.busy=false;renderModal();}
 }
 
 function importModalHtml(){
@@ -8149,6 +8265,20 @@ document.addEventListener('change', async (e)=>{
     return;
   }
 
+  if(input.id==='spotShiftFile'){
+    const file=input.files&&input.files[0];
+    if(file && !spotShiftImportState?.busy) await spotReadShiftFile(file);
+    return;
+  }
+  if(['spotShiftFrom','spotShiftTo','spotShiftReplace'].includes(input.id)||input.hasAttribute('data-spot-code')){
+    const data=spotShiftImportState;
+    if(!data||data.busy)return;
+    if(input.id==='spotShiftFrom') data.from=input.value;
+    else if(input.id==='spotShiftTo') data.to=input.value;
+    else if(input.id==='spotShiftReplace') data.replaceExisting=input.checked;
+    else {const [tipo,...parts]=input.value.split('|');data.mapping[input.dataset.spotCode]=tipo==='skip'?null:{tipo,faena:parts.join('|')};}
+    data.plan=null;data.error='';renderModal();return;
+  }
   if(input.id === 'importFileInput'){
     if(!guardPermission('write')){
       input.value = '';
@@ -8383,6 +8513,7 @@ document.addEventListener('click', async (e)=>{
   }
   const action = el.dataset.action;
 
+  if(spotShiftImportState?.busy)return;
   if(!guardAction(action)) return;
 
   if(action==='logout'){ await window.amecoLogout(); return; }
@@ -9146,12 +9277,24 @@ document.addEventListener('click', async (e)=>{
       );
     }
   }
+  else if(action==='spot-shift-open'){spotShiftImportState=null;state.ui.modal={type:'spotShiftImport'};renderModal();}
+  else if(action==='spot-shift-preview'){
+    if(!spotShiftImportState)return;
+    try{spotShiftImportState.plan=spotImportAnalysis();spotShiftImportState.workersSnapshot=spotStableJson(state.workers);spotShiftImportState.error='';}
+    catch(error){spotShiftImportState.plan=null;spotShiftImportState.error=error.message;}
+    renderModal();
+  }
+  else if(action==='spot-shift-report'){
+    if(spotShiftImportState?.plan)downloadJsonFile('Revision_Turnos_Personal_Spot.json',spotShiftImportState.plan);
+  }
+  else if(action==='spot-shift-apply'){await spotApplyShiftImport();}
   else if(action==='import-worker'){ importState = null; state.ui.modal = {type:'import'}; renderModal(); }
   else if(action==='import-back'){ importState = null; renderModal(); }
   else if(action==='close-modal' || action==='close-modal-overlay'){
     if(action==='close-modal-overlay' && e.target!==el) return;
     const cur = state.ui.modal;
     if(cur && cur.type==='import') importState = null;
+    if(cur && cur.type==='spotShiftImport')spotShiftImportState=null;
     state.ui.modal = (cur && cur.type==='day' && cur.returnModal) ? cur.returnModal : null;
     renderModal();
   }

@@ -379,3 +379,30 @@ Descanso y ausencia de ciclo no equivalen a disponibilidad.
 No requiere instalar Node en el equipo de uso: la página sigue siendo HTML estático.
 Validación de desarrollo: `npm run check:syntax` y `npm run test:turnos`.
 Evidencia y reversión: [release-evidence/turnos-consulta.md](release-evidence/turnos-consulta.md).
+
+## Importar calendario desde Personal Spot (en revisión)
+
+1. En Turnos pulsa **Importar turnos Excel** y elige tu .xlsx o .xlsm.
+2. Selecciona el período. Por defecto abarca el mes actual hasta hoy.
+3. Revisa qué estado/faena corresponde a cada código. Se usan las faenas ya existentes;
+   no se crean nuevos catálogos. Los códigos desconocidos se omiten hasta que elijas su correspondencia.
+4. Genera la vista previa y revisa los RUT omitidos y los conflictos. Cambiar período,
+   correspondencias o reemplazo invalida la vista previa y requiere generarla otra vez.
+5. Por defecto se conservan las excepciones ya registradas. Para reemplazarlas debes marcar
+   la casilla, revisar los conflictos y confirmar la aplicación.
+6. **Respaldar y aplicar** descarga un respaldo completo antes de guardar. Si está incompleto
+   o alguien modificó el servidor, se detiene el proceso. Conserva el JSON descargado.
+
+La hoja debe llamarse Personal Spot (se ignoran mayúsculas y espacios exteriores), tener
+una fila de fechas completas y encabezados Nombre y RUT. Los trabajadores deben existir
+con RUT único en la página y la planilla. Las filas sin RUT se omiten; corrige el Excel y vuelve
+a cargarlo. No se infieren identidades a partir del nombre.
+
+Los turnos se guardan como excepciones diarias con el código original en la nota. D → descanso,
+T → trabajo, HE → extra, LM/V/P → permiso o ausencia. Las variantes conocidas de faena se
+asocian únicamente si existe la faena correspondiente. Las celdas vacías no borran nada.
+Se mantienen las fichas, los ciclos, acreditaciones, documentos y servicios. Si existen cambios
+locales pendientes, guarda y recarga antes de importar. No se ejecutan macros.
+
+Disponible para Administrador/Planificador. El rol Lector no puede importar.
+Pruebas: `npm run test:spot-import`. Evidencia: `release-evidence/importar-turnos-spot.md`.

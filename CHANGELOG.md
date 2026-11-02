@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [Sin versión] — Importación de turnos Personal Spot (02-11-2026)
+
+- Botón Importar turnos Excel en Turnos: .xlsx/.xlsm, hoja Personal Spot, fechas de calendario reales y RUT como identidad.
+- Selección de período, códigos ajustables, vista previa, informes de filas omitidas y conflictos. Celdas vacías/códigos omitidos conservan los datos existentes.
+- Sin creación de personas ni emparejamiento por nombre; RUT faltantes, duplicados o no encontrados se omiten.
+- LM y V se representan como permiso/ausencia con código original en la nota, sin modificar el catálogo global de estados.
+- Respaldo completo obligatorio antes de escribir. Excepciones existentes conservadas por defecto; reemplazo requiere casilla y confirmación.
+- Guardado mediante transacción compare-and-set en el nodo existente: aborta si otra sesión modifica el estado. No cambia reglas, rutas ni esquema.
+- Pruebas unitarias de lector, conflictos, preservación y concurrencia, y pruebas de interfaz con datos ficticios. Se amplía CI para ejecutarlas.
+- Ver `release-evidence/importar-turnos-spot.md` para alcance, validación y reversión.
+
 ## [Sin versión] — Consulta de turnos y disponibilidad (02-11-2026)
 
 - Rediseño del encabezado, filtros y resumen de Turnos conservando la identidad AMECO.

@@ -16,7 +16,8 @@
     "verify:deployed-rules": "node scripts/verify-deployed-rules.mjs",
     "check:syntax": "node scripts/check-html-syntax.mjs",
     "check:error-logs": "node scripts/check-error-logs.mjs",
-    "test:turnos": "node scripts/test-turnos-query.mjs"
+    "test:turnos": "node scripts/test-turnos-query.mjs",
+    "test:spot-import": "node scripts/test-spot-shift-import.mjs"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"

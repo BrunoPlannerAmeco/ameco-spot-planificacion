@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'spot-shift-import.js'
+      - 'scripts/check-html-syntax.mjs'
+      - 'scripts/test-spot-shift-import.mjs'
+      - 'scripts/test-turnos-query.mjs'
+      - '.github/workflows/check-syntax.yml'
   workflow_dispatch: {}
 
 jobs:
@@ -21,3 +26,9 @@ jobs:
 
       - name: Validar sintaxis de los <script> inline
         run: node scripts/check-html-syntax.mjs
+
+      - name: Validar lector de calendario y regresiones de turnos
+        run: |
+          node --check spot-shift-import.js
+          node scripts/test-spot-shift-import.mjs
+          node scripts/test-turnos-query.mjs
