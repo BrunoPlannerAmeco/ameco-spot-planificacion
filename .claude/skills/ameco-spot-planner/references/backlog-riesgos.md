@@ -95,3 +95,11 @@
 ## KPIs de proyecto
 
 Lead time (solicitud → release), cumplimiento de sprint (terminado/comprometido), defectos escapados, edad del backlog, valor entregado (horas manuales o riesgos reducidos), deuda técnica (CHK pendientes acumulados).
+
+## Consulta de turnos — cambio en revisión 02-11-2026
+
+Mejora de usabilidad operacional: filtros y resumen de consulta, sin cambios de modelo,
+reglas o escrituras. Riesgo: confundir un día sin faena con disponibilidad confirmada.
+Mitigación: etiquetas explícitas, advertencia sobre servicios/acreditaciones y estado
+"Sin ciclo registrado" excluido de trabajo sin faena. CHK-01/02/07 no empeoran.
+Evidencia: `release-evidence/turnos-consulta.md`. Sin nueva versión productiva.

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [Sin versión] — Consulta de turnos y disponibilidad (02-11-2026)
+
+- Rediseño del encabezado, filtros y resumen de Turnos conservando la identidad AMECO.
+- Búsqueda por nombre (sin depender de tildes) y RUT con o sin formato.
+- Consulta del estado en una fecha, filtros combinables y tarjetas con contadores.
+- Trabajo sin faena solo incluye trabajo/HE sin faena en calendario; no promete disponibilidad ni valida servicios o acreditaciones.
+- Trabajadores sin inicio de ciclo se muestran como desconocidos (`?`), salvo excepción diaria explícita.
+- Día actual destacado según fecha local; acceso al mes actual y limpieza de filtros.
+- Vista de consulta para Lector: las celdas conservan su información sin ofrecer edición.
+- Sin migración, escrituras de datos ni cambios de reglas Firebase.
+- Pruebas: `npm run check:syntax`, `npm run test:turnos` y navegador con datos ficticios. Ver `release-evidence/turnos-consulta.md`.
+
 ## [Sin versión] — Monitoreo de errores de cliente (CHK-09)
 
 - `amecoSpotPlanner/errorLogs` (nodo RTDB nuevo, append-only): `index.html`

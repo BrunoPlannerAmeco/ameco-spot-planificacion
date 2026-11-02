@@ -2082,6 +2082,30 @@
     font-weight:800;
     white-space:nowrap;
   }
+
+  /* Consulta operativa de turnos: controles locales, sin escrituras. */
+  .turno-overview{background:linear-gradient(120deg,#232c35,#384955);color:#fff;border-radius:14px;padding:22px;margin-bottom:18px;display:flex;justify-content:space-between;gap:20px;align-items:center;}
+  .turno-overview h2{font-size:28px;margin:4px 0 8px;}
+  .turno-overview p{margin:0;color:#d7dfe2;max-width:660px;line-height:1.6;font-size:13px;}
+  .turno-eyebrow{color:#ffb38e;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+  .turno-query{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .turno-query .turno-filter-row{margin:0;align-items:end;gap:12px;}
+  .turno-query input,.turno-query select{min-height:38px;width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);}
+  .turno-query .turno-cargo-filter{flex:1;min-width:160px;}
+  .turno-query .turno-search-field{flex:2;min-width:220px;}
+  .turno-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px;}
+  .turno-stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:left;color:var(--ink);}
+  .turno-stat strong{display:block;font-family:'Barlow Condensed',sans-serif;font-size:29px;margin-bottom:4px;}
+  .turno-stat span{font-size:12px;color:var(--sub);}
+  .turno-stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px rgba(226,87,31,.16);}
+  .turno-stat:hover{border-color:var(--accent);}
+  .turno-two-month-grid .turno-today{box-shadow:inset 2px 0 #e2571f,inset -2px 0 #e2571f;}
+  .turno-two-month-grid th.turno-today{background:#fce9dc;color:#7a2c0d;}
+  .turno-query-note{font-size:12px;color:var(--sub);line-height:1.6;margin:12px 0 0;}
+  .turno-state-tag{display:inline-block;margin-top:5px;padding:3px 6px;border-radius:4px;background:var(--grey-bg);font-size:10px;color:var(--steel);font-weight:600;}
+  .turno-two-month-wrap{border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow);}
+  @media(max-width:850px){.turno-summary{grid-template-columns:repeat(2,minmax(0,1fr));}.turno-overview{align-items:start;flex-direction:column;}.turno-query .turno-cargo-filter{min-width:140px;}}
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -7364,6 +7388,29 @@ function viewConfiguracion(){
 }
 
 /* ============================= VIEW: TURNOS ============================= */
+function turnoLocalDate(date=new Date()){
+  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
+function turnoQueryStatus(worker,date){
+  // Sin inicio de ciclo no se infiere disponibilidad a partir del fallback diario.
+  const override=(worker.overrides||{})[date];
+  if(!(override && override.tipo) && !(worker.turno && worker.turno.fechaInicioCiclo)) return {tipo:'sin-ciclo',faena:''};
+  return dayStatus(worker,date);
+}
+function turnoMatchesStatus(info,status){
+  if(status==='all') return true;
+  if(status==='sin-faena') return (info.tipo==='trabajo'||info.tipo==='extra')&&!info.faena;
+  if(status==='trabajo') return info.tipo==='trabajo'||info.tipo==='extra';
+  return info.tipo===status;
+}
+function turnoSearchMatches(worker,query){
+  const text=normalizeImportText(query);
+  const rut=String(worker.rut||'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+  const queryRut=String(query||'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+  return !text || normalizeImportText(worker.nombre).includes(text) || (!!queryRut && rut.includes(queryRut));
+}
+const TURNO_QUERY_LABELS={all:'Todos',trabajo:'Trabajo / HE',descanso:'Descanso',permiso:'Permiso','sin-faena':'Trabajo sin faena','sin-ciclo':'Sin ciclo registrado'};
+
 function viewTurnos(){
   const y = state.ui.calYear;
   const m = state.ui.calMonth;
@@ -7372,6 +7419,10 @@ function viewTurnos(){
   const nameWidth = clampTurnoNameWidth(state.ui.turnoNameWidth);
   const faenaFilter = state.ui.turnoFaenaFilter || null;
   const cargoFilter = state.ui.turnoCargoFilter || 'all';
+  const queryDate = state.ui.turnoQueryDate || turnoLocalDate();
+  const queryStatus = state.ui.turnoQueryStatus || 'all';
+  const querySearch = state.ui.turnoQuerySearch || '';
+  const today = turnoLocalDate();
 
   const months = [];
   const dates = [];
@@ -7395,7 +7446,7 @@ function viewTurnos(){
         year:monthYear,
         month:monthIndex,
         day,
-        dateStr:fmt(new Date(monthYear,monthIndex,day)),
+        dateStr:turnoLocalDate(new Date(monthYear,monthIndex,day)),
         weekday:new Date(monthYear,monthIndex,day).getDay(),
         firstDay:day===1
       });
@@ -7416,6 +7467,7 @@ function viewTurnos(){
 
   const dayHeaderCells = dates.map(dateInfo=>
     '<th class="'+
+      (dateInfo.dateStr===today?'turno-today ':'')+
       (dateInfo.weekday===0||dateInfo.weekday===6?'weekend-col ':'')+
       (dateInfo.firstDay && dateInfo.month!==months[0].month?'turno-month-separator':'')+
     '">'+
@@ -7438,12 +7490,27 @@ function viewTurnos(){
     );
   }
 
+  workersToShow = workersToShow.filter(worker=>turnoSearchMatches(worker,querySearch));
+  const queryWorkers = workersToShow;
+  const queryCounts = Object.fromEntries(['all','trabajo','descanso','permiso','sin-faena','sin-ciclo'].map(status=>[
+    status,queryWorkers.filter(worker=>turnoMatchesStatus(turnoQueryStatus(worker,queryDate),status)).length
+  ]));
+  workersToShow = queryWorkers.filter(worker=>turnoMatchesStatus(turnoQueryStatus(worker,queryDate),queryStatus));
+  const queryControls = '<section class="turno-overview"><div><span class="turno-eyebrow">Planificación de personal</span><h2>Turnos y disponibilidad</h2><p>Consulta el estado registrado de tu equipo y encuentra personal por cargo, faena y fecha.</p></div><button type="button" class="btn btn-accent" data-action="turno-go-today">Ir al mes actual</button></section>'+
+    '<section class="turno-query" aria-label="Consulta de turnos"><div class="turno-filter-row">'+
+    '<div class="turno-cargo-filter turno-search-field"><label for="turnoQuerySearch">Buscar trabajador</label><input id="turnoQuerySearch" type="search" placeholder="Nombre o RUT" value="'+escAttr(escHtml(querySearch))+'"></div>'+
+    '<div class="turno-cargo-filter"><label for="turnoQueryDate">Estado al día</label><input id="turnoQueryDate" type="date" value="'+escAttr(queryDate)+'"></div>'+
+    '<div class="turno-cargo-filter"><label for="turnoQueryStatus">Estado registrado</label><select id="turnoQueryStatus">'+Object.entries(TURNO_QUERY_LABELS).map(([value,label])=>'<option value="'+value+'" '+(queryStatus===value?'selected':'')+'>'+label+'</option>').join('')+'</select></div>'+
+    '<button type="button" class="btn btn-ghost" data-action="turno-clear-query">Limpiar filtros</button></div><p class="turno-query-note">El estado se consulta al '+escHtml(queryDate)+'. Los contadores respetan la búsqueda, el cargo y la faena del período visible. Trabajo sin faena indica ausencia de asignación en el calendario; confirma servicios, acreditación y disponibilidad con el trabajador antes de asignarlo. Descanso no significa disponible.</p></section>'+
+    '<div class="turno-summary" aria-label="Resumen de estados">'+['all','trabajo','descanso','permiso','sin-faena'].map(status=>'<button type="button" class="turno-stat" data-action="turno-query-status" data-status="'+status+'" aria-pressed="'+(queryStatus===status)+'"><strong>'+queryCounts[status]+'</strong><span>'+TURNO_QUERY_LABELS[status]+'</span></button>').join('')+'</div>'+
+    '<p class="helptext" role="status">'+workersToShow.length+' de '+queryWorkers.length+' trabajador(es) coinciden · '+queryCounts['sin-ciclo']+' sin ciclo registrado al día consultado.</p>';
+
   const rows = workersToShow.map(worker=>{
     const workerCargoColor = cargoColor(worker.cargo);
 
     const cells = dates.map(dateInfo=>{
-      const info = dayStatus(worker,dateInfo.dateStr);
-      let cls = 'daycell';
+      const info = turnoQueryStatus(worker,dateInfo.dateStr);
+      let cls = 'daycell'+(dateInfo.dateStr===today?' turno-today':'');
       let style = '';
 
       if(dateInfo.firstDay && dateInfo.month!==months[0].month){
@@ -7482,6 +7549,9 @@ function viewTurnos(){
         labelStyle = 'color:#5b5f57;text-shadow:none;';
       }else if(info.tipo==='extra'){
         label = 'HE';
+      }else if(info.tipo==='sin-ciclo'){
+        label = '?';
+        labelStyle = 'color:#6b7178;text-shadow:none;';
       }else if(info.tipo==='permiso'){
         label = 'P';
         labelStyle = 'color:#7a1f1f;text-shadow:none;';
@@ -7491,13 +7561,14 @@ function viewTurnos(){
         ? '<span class="daycell-label" style="'+labelStyle+'">'+label+'</span>'
         : '';
 
-      return '<td class="'+cls+'" style="'+style+'" title="'+escAttr(title)+'" data-action="edit-day" data-id="'+worker.id+'" data-date="'+dateInfo.dateStr+'">'+labelHtml+'</td>';
+      return '<td class="'+cls+'" style="'+style+'" title="'+escAttr(title)+'" '+(hasPermission('write')?'data-action="edit-day" ':'')+'data-id="'+worker.id+'" data-date="'+dateInfo.dateStr+'">'+labelHtml+'</td>';
     }).join('');
 
     return '<tr>'+
       '<td class="namecell" style="border-left:5px solid '+workerCargoColor+';">'+
         escHtml(worker.nombre)+
         '<div style="font-weight:400;font-size:11px;color:var(--sub);">'+escHtml(worker.cargo||'')+'</div>'+
+        '<div class="turno-state-tag">'+escHtml(TURNO_QUERY_LABELS[turnoQueryStatus(worker,queryDate).tipo]||(turnoQueryStatus(worker,queryDate).tipo==='extra'?'Hora extra':turnoQueryStatus(worker,queryDate).tipo))+'</div><br>'+
         '<button type="button" class="link-btn worker-link-btn" data-action="view-worker-month" data-id="'+worker.id+'">Ver mes ampliado →</button>'+
       '</td>'+
       cells+
@@ -7511,7 +7582,7 @@ function viewTurnos(){
       '<span class="fl-sw" style="background:'+faenaColor(faena)+'"></span>'+
       escHtml(faena)+
     '</button>';
-  }).join()+
+  }).join('')+
   (faenaFilter
     ? '<button type="button" class="fl-item fl-clear" data-action="clear-turno-faena-filter">✕ Quitar filtro</button>'
     : '');
@@ -7537,7 +7608,7 @@ function viewTurnos(){
 
   const navigationStepLabel = monthSpan===2 ? '2 meses' : 'mes';
 
-  return '<div class="turno-filter-row">'+
+  return queryControls+'<div class="turno-filter-row">'+
       cargoSelector+
       (cargoFilter!=='all'
         ? '<button class="btn btn-ghost btn-sm" data-action="clear-turno-cargo-filter">✕ Quitar filtro de cargo</button>'
@@ -7570,6 +7641,7 @@ function viewTurnos(){
       '<span><span class="sw" style="background:#e7e8e3;border:1px solid #ccc"></span>D = Descanso</span>'+
       '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px #999"></span>HE = hora extra</span>'+
       '<span><span class="sw" style="background:#fff;box-shadow:inset 0 0 0 2px var(--bad)"></span>P = permiso</span>'+
+      '<span>? = Sin ciclo registrado</span>'+
     '</div>'+
     '<div class="faena-legend">'+faenaLegend+'</div>'+
     filterNotice+
@@ -8806,6 +8878,20 @@ document.addEventListener('click', async (e)=>{
   }
   else if(action==='goto-worker-from-doc'){ state.ui.tab='trabajadores'; render(); }
   else if(action==='grid-size'){ state.ui.gridSize = el.dataset.size; render(); }
+  else if(action==='turno-query-status'){
+    state.ui.turnoQueryStatus = el.dataset.status;
+    render();
+  }
+  else if(action==='turno-clear-query'){
+    state.ui.turnoQuerySearch=''; state.ui.turnoQueryDate=turnoLocalDate(); state.ui.turnoQueryStatus='all';
+    state.ui.turnoCargoFilter='all'; state.ui.turnoFaenaFilter=null;
+    render();
+  }
+  else if(action==='turno-go-today'){
+    const now=new Date(); state.ui.calYear=now.getFullYear(); state.ui.calMonth=now.getMonth();
+    state.ui.turnoQueryDate=turnoLocalDate(now);
+    render();
+  }
   else if(action==='turno-month-span'){
     state.ui.turnoMonthSpan = Number(el.dataset.span)===1 ? 1 : 2;
     render();
@@ -9589,6 +9675,20 @@ function attachDynamicListeners(){
   }
   const cargoFilterEl = document.getElementById('cargoFilter');
   if(cargoFilterEl){ cargoFilterEl.onchange = (e)=>{ state.ui.cargoFilter = e.target.value; renderContentOnly(); }; }
+  const turnoQuerySearchEl=document.getElementById('turnoQuerySearch');
+  if(turnoQuerySearchEl) turnoQuerySearchEl.oninput=(e)=>{
+    const value=e.target.value, position=e.target.selectionStart;
+    state.ui.turnoQuerySearch=value; render();
+    const input=document.getElementById('turnoQuerySearch');
+    if(input){input.focus({preventScroll:true}); try{input.setSelectionRange(position,position);}catch(error){}}
+  };
+  const turnoQueryDateEl=document.getElementById('turnoQueryDate');
+  if(turnoQueryDateEl) turnoQueryDateEl.onchange=(e)=>{
+    if(!e.target.value || !e.target.validity.valid) return;
+    state.ui.turnoQueryDate=e.target.value; render();
+  };
+  const turnoQueryStatusEl=document.getElementById('turnoQueryStatus');
+  if(turnoQueryStatusEl) turnoQueryStatusEl.onchange=(e)=>{state.ui.turnoQueryStatus=e.target.value; render();};
   const turnoCargoFilterEl = document.getElementById('turnoCargoFilter');
   if(turnoCargoFilterEl){
     turnoCargoFilterEl.onchange = (e)=>{
