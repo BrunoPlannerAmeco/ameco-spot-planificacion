@@ -17,7 +17,9 @@
     "check:syntax": "node scripts/check-html-syntax.mjs",
     "check:error-logs": "node scripts/check-error-logs.mjs",
     "test:turnos": "node scripts/test-turnos-query.mjs",
-    "test:spot-import": "node scripts/test-spot-shift-import.mjs"
+    "test:spot-import": "node scripts/test-spot-shift-import.mjs",
+    "test:pasajes": "node scripts/test-pasajes-panel.mjs",
+    "test:ui-position": "node scripts/test-ui-position.mjs"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"

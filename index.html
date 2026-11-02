@@ -2106,6 +2106,17 @@
   .turno-two-month-wrap{border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow);}
   @media(max-width:850px){.turno-summary{grid-template-columns:repeat(2,minmax(0,1fr));}.turno-overview{align-items:start;flex-direction:column;}.turno-query .turno-cargo-filter{min-width:140px;}}
 
+
+  #content{overflow-anchor:none;}
+  .ticket-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:12px;}
+  .ticket-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:16px 0;}
+  .ticket-filters .field{margin:0;flex:1;min-width:160px;}
+  .ticket-filters .field:first-child{flex:2;min-width:220px;}
+  #ticketTable td:first-child{white-space:nowrap;}
+  .ticket-actions{min-width:145px;}
+  .ticket-actions .link-btn{display:block;margin:5px 0;}
+  @media(max-width:900px){.ticket-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3036,6 +3047,7 @@ const WRITE_ACTIONS = new Set([
   'delete-llamada',
   'new-pasaje',
   'save-pasaje',
+  'ticket-mark-sent',
   'delete-pasaje',
   'add-acred-row',
   'remove-acred',
@@ -3065,7 +3077,9 @@ const INTEGRITY_ACTIONS = new Set([
 
 const EXPORT_ACTIONS = new Set([
   'export-excel',
-  'spot-shift-report'
+  'spot-shift-report',
+  'ticket-email',
+  'copy-ticket-draft'
 ]);
 
 function currentAccessProfile(){
@@ -5487,7 +5501,7 @@ const TAB_TITLES = {dashboard:'Resumen general', servicios:'Servicios y requisic
 function renderSidebar(){
   const alertCount = state.workers.filter(w=>{const s=workerWorstExam(w); return s==='bad'||s==='warn';}).length;
   const pendingCalls = (state.llamados||[]).filter(l=>l.resultado==='pendiente'||l.resultado==='no_contesta').length;
-  const pendingTickets = (state.pasajes||[]).filter(p=>p.estado==='pendiente'||p.estado==='solicitado').length;
+  const pendingTickets = (state.pasajes||[]).filter(ticketPending).length;
   const openServices = (state.servicios||[]).filter(s=>!['finalizado','cancelado'].includes(s.estado)).length;
   document.getElementById('navList').innerHTML = NAV.map(n=>{
     let count = '';
@@ -5597,7 +5611,43 @@ function renderSavePill(){
   el.innerHTML = state.saving ? '<span class="dot-live" style="background:var(--amber)"></span> Guardando...' : '<span class="dot-live"></span> Guardado';
 }
 
+/* Mantener el contexto visual cuando se reconstruye el HTML del mismo módulo. */
+let lastRenderedTab=null;
+let uiPositionEpoch=0;
+function captureUiPosition(scope=document.getElementById('content'),includePage=true){
+  const active=document.activeElement;
+  const focus=active&&active.id&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName)
+    ? {id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
+  return {tab:lastRenderedTab,scopeId:scope?.id,page:includePage,x:window.scrollX,y:window.scrollY,
+    top:scope?.scrollTop||0,left:scope?.scrollLeft||0,focus,
+    nested:scope?[...scope.querySelectorAll('.table-wrap,.modal-overlay,.modal,.modal-body,[data-preserve-scroll]')].map((el,index)=>({id:el.id,index,top:el.scrollTop,left:el.scrollLeft})):[]};
+}
+function restoreUiPosition(snapshot,options={}){
+  if(!snapshot)return;
+  const epoch=++uiPositionEpoch;
+  const sameTab=snapshot.tab===state.ui.tab;
+  const apply=()=>{
+    if(epoch!==uiPositionEpoch)return;
+    if(snapshot.page&&!sameTab){const scope=document.getElementById(snapshot.scopeId);if(scope){scope.scrollTop=0;scope.scrollLeft=0;}window.scrollTo(0,0);return;}
+    const scope=document.getElementById(snapshot.scopeId);
+    const nested=scope?[...scope.querySelectorAll('.table-wrap,.modal-overlay,.modal,.modal-body,[data-preserve-scroll]')]:[];
+    if(scope){scope.scrollTop=snapshot.top;scope.scrollLeft=snapshot.left;}
+    snapshot.nested.forEach(item=>{
+      const el=item.id?document.getElementById(item.id):nested[item.index];
+      if(el){el.scrollTop=item.top;el.scrollLeft=item.left;}
+    });
+    if(snapshot.focus){
+      const input=document.getElementById(snapshot.focus.id);
+      if(input&&!input.disabled){input.focus({preventScroll:true});if(snapshot.focus.start!=null)try{input.setSelectionRange(snapshot.focus.start,snapshot.focus.end);}catch(error){}}
+    }
+    if(snapshot.page)window.scrollTo(snapshot.x,snapshot.y);
+  };
+  apply();
+  if(!options.immediateOnly)requestAnimationFrame(apply);
+}
+
 function render(){
+  const position=captureUiPosition();
   applyLayoutPreferences();
   renderSidebar();
   renderTopbar();
@@ -5615,6 +5665,8 @@ function render(){
   renderModal();
   attachDynamicListeners();
   applyRoleUi();
+  restoreUiPosition(position);
+  lastRenderedTab=state.ui.tab;
 }
 
 function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
@@ -7192,46 +7244,63 @@ const PASAJE_STATUS = {
   cancelado: {label:'Cancelado', cls:'bad'}
 };
 
+function logisticaEscape(value){return escHtml(String(value==null?'':value)).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function ticketDayOffset(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return turnoLocalDate(d);}
+function ticketNeedsSending(ticket){return ticket.estado==='emitido'&&ticket.envioTrabajador!=='enviado';}
+function ticketPending(ticket){return ticket.estado==='pendiente'||ticket.estado==='solicitado'||ticketNeedsSending(ticket);}
+function ticketEmailText(ticket,worker){
+  const issued=ticket.estado==='emitido';
+  return 'Asunto: '+(issued?'Información de viaje':'Solicitud de pasaje')+' · '+(worker?.nombre||'Trabajador no disponible')+' · '+(ticket.fechaViaje||'Fecha por definir')+'\n\n'+
+    (issued?'Estimado/a, comparto los datos registrados del viaje:':'Estimada, favor apoyar con la gestión del siguiente pasaje:')+'\n\n'+
+    'Trabajador: '+(worker?.nombre||'Sin trabajador')+'\nRUT: '+(worker?.rut||'Sin registro')+'\nCargo: '+(worker?.cargo||'Sin registro')+'\nTeléfono: '+(worker?.telefono||'Sin registro')+'\nCorreo: '+(worker?.correo||'Sin registro')+'\n'+
+    'Fecha de salida: '+(ticket.fechaViaje||'Por definir')+'\nHora: '+(ticket.horaViaje||'Por confirmar')+'\nTramo: '+(ticket.origen||'Por definir')+' → '+(ticket.destino||'Por definir')+'\nFaena: '+(ticket.faena||'Por definir')+'\nMovimiento: '+({subida:'Subida',bajada:'Bajada',otro:'Otro'}[ticket.movimiento]||'Sin especificar')+'\n'+
+    (ticket.nota?'Observaciones: '+ticket.nota+'\n':'')+'\n'+(issued?'Favor confirmar recepción.':'Quedo atento a la confirmación de la compra.')+'\n\nSaludos,\nBruno Vargas';
+}
+function ticketEmailModalHtml(id){
+  const ticket=state.pasajes.find(p=>p.id===id);
+  if(!ticket)return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm"><p>El pasaje ya no está disponible.</p><button class="btn btn-ghost" data-action="close-modal">Cerrar</button></div></div>';
+  const worker=state.workers.find(w=>w.id===ticket.workerId);
+  return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm"><div class="modal-head"><h2>Texto de coordinación</h2><button class="modal-close" data-action="close-modal">✕</button></div><div class="modal-body"><p>Revisa los datos antes de copiar y enviar por tu correo o WhatsApp. Copiar no marca el pasaje como enviado.</p><label for="ticketEmailDraft">Borrador editable</label><textarea id="ticketEmailDraft" rows="17" style="width:100%;margin-top:10px">'+logisticaEscape(ticketEmailText(ticket,worker))+'</textarea><p id="ticketCopyStatus" role="status"></p></div><div class="modal-foot"><button class="btn btn-ghost" data-action="close-modal">Cerrar</button><button class="btn btn-accent" data-action="copy-ticket-draft">Copiar texto</button></div></div></div>';
+}
+function ticketPanelData(today=turnoLocalDate()){
+  const query=normalizeImportText(state.ui.pasajeSearch||'');
+  const site=state.ui.pasajeFaenaFilter||'all';
+  const rawQuery=String(state.ui.pasajeSearch||'').trim();
+  const rutQuery=/^[0-9.kK\s-]+$/.test(rawQuery)?rawQuery.replace(/[^0-9k]/gi,'').toUpperCase():'';
+  const base=(state.pasajes||[]).map(ticket=>{
+    const worker=state.workers.find(w=>w.id===ticket.workerId);
+    return {...ticket,workerNombre:worker?.nombre||'(trabajador eliminado)',workerCargo:worker?.cargo||'',workerRut:worker?.rut||''};
+  }).filter(p=>(site==='all'||p.faena===site)&&(!query||normalizeImportText([p.workerNombre,p.workerRut,p.origen,p.destino,p.faena,p.nota].join(' ')).includes(query)||(rutQuery&&String(p.workerRut).replace(/[^0-9k]/gi,'').toUpperCase().includes(rutQuery))));
+  const end=ticketDayOffset(today,6);
+  const counts={pendiente:base.filter(p=>p.estado==='pendiente').length,solicitado:base.filter(p=>p.estado==='solicitado').length,enviar:base.filter(ticketNeedsSending).length,proximos:base.filter(p=>p.estado!=='cancelado'&&p.fechaViaje>=today&&p.fechaViaje<=end).length,atrasados:base.filter(p=>['pendiente','solicitado'].includes(p.estado)&&p.fechaViaje&&p.fechaViaje<today).length};
+  let list=base;
+  const view=state.ui.pasajeVista||'pendientes',status=state.ui.pasajeFilter||'all';
+  if(view==='pendientes')list=list.filter(ticketPending);
+  else if(view==='proximos')list=list.filter(p=>p.estado!=='cancelado'&&p.fechaViaje>=today&&p.fechaViaje<=end);
+  else if(view==='atrasados')list=list.filter(p=>['pendiente','solicitado'].includes(p.estado)&&p.fechaViaje&&p.fechaViaje<today);
+  else if(view==='enviar')list=list.filter(ticketNeedsSending);
+  if(status!=='all')list=list.filter(p=>p.estado===status);
+  list.sort((a,b)=>(a.fechaViaje||'9999').localeCompare(b.fechaViaje||'9999')||(a.horaViaje||'99:99').localeCompare(b.horaViaje||'99:99')||a.workerNombre.localeCompare(b.workerNombre,'es'));
+  return {list,base,counts,view,status,today,end};
+}
 function viewPasajes(){
-  const q = (state.ui.pasajeSearch||'').toLowerCase();
-  const filter = state.ui.pasajeFilter || 'all';
-
-  let list = (state.pasajes||[]).map(p=>{
-    const w = state.workers.find(x=>x.id===p.workerId);
-    return Object.assign({}, p, {workerNombre: w ? w.nombre : '(trabajador eliminado)', workerCargo: w ? w.cargo : ''});
-  });
-  if(q) list = list.filter(p=>p.workerNombre.toLowerCase().includes(q));
-  if(filter!=='all') list = list.filter(p=>p.estado===filter);
-  list.sort((a,b)=> (a.fechaViaje||'').localeCompare(b.fechaViaje||''));
-
-  const filterBar = '<div class="filter-bar">'+
-      '<input type="text" id="pasajeSearchInput" placeholder="Buscar trabajador..." value="'+escAttr(state.ui.pasajeSearch)+'" style="max-width:220px;">'+
-      '<select id="pasajeFilterSelect">'+
-        '<option value="all" '+(filter==='all'?'selected':'')+'>Todos los estados</option>'+
-        Object.keys(PASAJE_STATUS).map(k=>'<option value="'+k+'" '+(filter===k?'selected':'')+'>'+PASAJE_STATUS[k].label+'</option>').join('')+
-      '</select>'+
-    '</div>';
-
-  if(!list.length) return filterBar + '<div class="empty panel" style="padding:40px;">No hay pasajes que coincidan. <button class="btn btn-accent" style="margin-top:10px" data-action="new-pasaje">+ Registrar pasaje</button></div>';
-
-  return filterBar + '<div class="table-wrap"><table>'+
-    '<thead><tr><th>Fecha viaje</th><th>Trabajador</th><th>Cargo</th><th>Tramo</th><th>Faena</th><th>Estado</th><th>Nota</th><th></th></tr></thead>'+
-    '<tbody>'+list.map(p=>{
-      const st = PASAJE_STATUS[p.estado] || PASAJE_STATUS.pendiente;
-      const tramo = (p.origen||'—')+' → '+(p.destino||'—');
-      return '<tr>'+
-        '<td class="mono">'+(p.fechaViaje||'—')+'</td>'+
-        '<td><b>'+escHtml(p.workerNombre)+'</b></td>'+
-        '<td>'+escHtml(p.workerCargo||'—')+'</td>'+
-        '<td>'+escHtml(tramo)+'</td>'+
-        '<td>'+escHtml(p.faena||'—')+'</td>'+
-        '<td><span class="chip '+st.cls+'">'+st.label+'</span></td>'+
-        '<td style="max-width:220px;">'+escHtml(p.nota||'')+'</td>'+
-        '<td style="white-space:nowrap;"><button class="link-btn" data-action="open-pasaje" data-id="'+p.id+'">Editar</button> '+
-        '<button class="icon-btn" data-action="delete-pasaje" data-id="'+p.id+'" title="Eliminar">✕</button></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table></div>';
+  const {list,counts,view,status,today,end}=ticketPanelData();
+  const tiles=[['pendiente','Por solicitar',counts.pendiente],['solicitado','Compra por confirmar',counts.solicitado],['enviar','Envío por gestionar / verificar',counts.enviar],['proximos','Viajes en los próximos 7 días',counts.proximos],['atrasados','Fecha pasada sin emitir',counts.atrasados]];
+  const options=[['pendientes','Gestiones pendientes'],['proximos','Próximos 7 días'],['enviar','Envíos por gestionar / verificar'],['atrasados','Fecha pasada sin emitir'],['todos','Todos / historial']];
+  const site=state.ui.pasajeFaenaFilter||'all';
+  const availableSites=[...new Set([...state.faenas,...state.pasajes.map(p=>p.faena).filter(Boolean)])];
+  const heading='<section class="turno-overview"><div><span class="turno-eyebrow">Coordinación de traslados</span><h2>Pasajes y próximos movimientos</h2><p>Revisa qué falta solicitar, confirmar o enviar y anticipa los viajes de tu equipo.</p></div><button class="btn btn-accent" data-action="new-pasaje">+ Registrar pasaje</button></section>';
+  const cards='<div class="ticket-kpis">'+tiles.map(([key,label,count])=>'<button class="turno-stat" data-action="ticket-panel-filter" data-filter="'+key+'"><strong>'+count+'</strong><span>'+label+'</span></button>').join('')+'</div><p class="helptext">Los contadores respetan la búsqueda y faena. Próximos 7 días: '+today+' a '+end+'. Emitido significa comprado; el envío al trabajador se registra por separado.</p>';
+  const filters='<section class="ticket-filters"><div class="field"><label for="pasajeSearchInput">Buscar</label><input type="search" id="pasajeSearchInput" placeholder="Nombre, RUT, tramo o faena" value="'+logisticaEscape(state.ui.pasajeSearch||'')+'"></div><div class="field"><label for="pasajeVistaSelect">Vista</label><select id="pasajeVistaSelect">'+options.map(([key,label])=>'<option value="'+key+'" '+(view===key?'selected':'')+'>'+label+'</option>').join('')+'</select></div><div class="field"><label for="pasajeFilterSelect">Estado del pasaje</label><select id="pasajeFilterSelect"><option value="all">Todos los estados</option>'+Object.entries(PASAJE_STATUS).map(([key,info])=>'<option value="'+key+'" '+(status===key?'selected':'')+'>'+info.label+'</option>').join('')+'</select></div><div class="field"><label for="pasajeFaenaSelect">Faena</label><select id="pasajeFaenaSelect"><option value="all">Todas las faenas</option>'+availableSites.map(f=>'<option value="'+logisticaEscape(f)+'" '+(site===f?'selected':'')+'>'+logisticaEscape(f)+'</option>').join('')+'</select></div><button class="btn btn-ghost" data-action="ticket-clear-filters">Limpiar filtros</button></section>';
+  if(!list.length)return heading+cards+filters+'<div class="empty panel" role="status" style="padding:32px">No hay pasajes en esta vista. Prueba Todos / historial o limpia los filtros.</div>';
+  const table='<p class="helptext" role="status">'+list.length+' pasaje(s) en esta vista · Ordenados por fecha y hora de salida.</p><div class="table-wrap" id="ticketTable"><table><thead><tr><th>Salida</th><th>Trabajador</th><th>Tramo / movimiento</th><th>Faena</th><th>Estado</th><th>Envío al trabajador</th><th>Observaciones</th><th>Acciones</th></tr></thead><tbody>'+list.map(p=>{
+    const st=PASAJE_STATUS[p.estado]||PASAJE_STATUS.pendiente;
+    const overdue=['pendiente','solicitado'].includes(p.estado)&&p.fechaViaje&&p.fechaViaje<today;
+    const sent=p.envioTrabajador==='enviado';
+    const sending=sent?'Enviado':p.envioTrabajador==='pendiente'?'Pendiente de envío':'Sin registro de envío';
+    return '<tr><td class="mono">'+logisticaEscape(p.fechaViaje||'Sin fecha')+'<div>'+logisticaEscape(p.horaViaje||'Hora por confirmar')+'</div>'+(overdue?'<span class="chip bad">Revisar fecha pasada</span>':'')+'</td><td><strong>'+logisticaEscape(p.workerNombre)+'</strong><div class="helptext">'+logisticaEscape(p.workerCargo)+'</div></td><td>'+logisticaEscape((p.origen||'Por definir')+' → '+(p.destino||'Por definir'))+'<div class="helptext">'+({subida:'Subida',bajada:'Bajada',otro:'Otro'}[p.movimiento]||'Movimiento sin especificar')+'</div></td><td>'+logisticaEscape(p.faena||'Sin faena')+'</td><td><span class="chip '+st.cls+'">'+st.label+'</span></td><td>'+logisticaEscape(sending)+(ticketNeedsSending(p)?'<br><button class="link-btn" data-action="ticket-mark-sent" data-id="'+logisticaEscape(p.id)+'">Marcar enviado</button>':'')+'</td><td style="max-width:220px">'+logisticaEscape(p.nota||'')+'</td><td class="ticket-actions"><button class="link-btn" data-action="open-pasaje" data-id="'+logisticaEscape(p.id)+'">Editar</button><button class="link-btn" data-action="ticket-email" data-id="'+logisticaEscape(p.id)+'">Preparar texto</button><button class="icon-btn" data-action="delete-pasaje" data-id="'+logisticaEscape(p.id)+'" title="Eliminar">✕</button></td></tr>';
+  }).join('')+'</tbody></table></div>';
+  return heading+cards+filters+table;
 }
 
 function pasajeModalHtml(pasajeId){
@@ -7240,8 +7309,9 @@ function pasajeModalHtml(pasajeId){
     ? {id: uid('p'), workerId: (state.workers[0] && state.workers[0].id) || '', faena:'', fechaViaje: todayStr(), origen:'', destino:'', estado:'pendiente', nota:''}
     : state.pasajes.find(x=>x.id===pasajeId);
 
+  if(!p)return '<div class="empty">El pasaje ya no existe. <button data-action="close-modal">Cerrar</button></div>';
   const workerOptions = state.workers.length
-    ? state.workers.map(w=>'<option value="'+w.id+'" '+(p.workerId===w.id?'selected':'')+'>'+escHtml(w.nombre)+'</option>').join('')
+    ? state.workers.map(w=>'<option value="'+w.id+'" '+(p.workerId===w.id?'selected':'')+'>'+logisticaEscape(w.nombre)+'</option>').join('')
     : '<option value="">No hay trabajadores cargados</option>';
 
   return '<div class="modal-overlay" data-action="close-modal-overlay"><div class="modal modal-sm">'+
@@ -7253,13 +7323,15 @@ function pasajeModalHtml(pasajeId){
         '<div class="field"><label>Faena (opcional)</label><select id="pj-faena"><option value="">—</option>'+state.faenas.map(f=>'<option value="'+f+'" '+(p.faena===f?'selected':'')+'>'+f+'</option>').join('')+'</select></div>'+
       '</div>'+
       '<div class="field-row">'+
-        '<div class="field"><label>Origen</label><input id="pj-origen" value="'+escAttr(p.origen||'')+'" placeholder="Ej: Antofagasta"></div>'+
-        '<div class="field"><label>Destino</label><input id="pj-destino" value="'+escAttr(p.destino||'')+'" placeholder="Ej: Calama"></div>'+
+        '<div class="field"><label>Origen</label><input id="pj-origen" value="'+logisticaEscape(p.origen||'')+'" placeholder="Ej: Antofagasta"></div>'+
+        '<div class="field"><label>Destino</label><input id="pj-destino" value="'+logisticaEscape(p.destino||'')+'" placeholder="Ej: Calama"></div>'+
       '</div>'+
       '<div class="field"><label>Estado</label><select id="pj-estado">'+
         Object.keys(PASAJE_STATUS).map(k=>'<option value="'+k+'" '+(p.estado===k?'selected':'')+'>'+PASAJE_STATUS[k].label+'</option>').join('')+
       '</select></div>'+
-      '<div class="field"><label>Nota</label><input id="pj-nota" value="'+escAttr(p.nota||'')+'" placeholder="Ej: vuelo confirmado 08:40"></div>'+
+      '<div class="field-row"><div class="field"><label for="pj-hora">Hora de salida (opcional)</label><input id="pj-hora" type="time" value="'+logisticaEscape(p.horaViaje||'')+'"></div><div class="field"><label for="pj-movimiento">Movimiento</label><select id="pj-movimiento"><option value="">Sin especificar</option>'+[['subida','Subida'],['bajada','Bajada'],['otro','Otro']].map(([key,label])=>'<option value="'+key+'" '+(p.movimiento===key?'selected':'')+'>'+label+'</option>').join('')+'</select></div></div>'+
+      '<div class="field"><label for="pj-envio">Envío al trabajador</label><select id="pj-envio"><option value="sin_registro">Sin registro</option><option value="pendiente" '+(p.envioTrabajador==='pendiente'?'selected':'')+'>Pendiente de envío</option><option value="enviado" '+(p.envioTrabajador==='enviado'?'selected':'')+'>Enviado</option></select></div>'+
+      '<div class="field"><label>Nota</label><input id="pj-nota" value="'+logisticaEscape(p.nota||'')+'" placeholder="Ej: vuelo confirmado 08:40"></div>'+
     '</div>'+
     '<div class="modal-foot">'+
       '<div>'+(isNew?'':'<button class="btn btn-danger" data-action="delete-pasaje" data-id="'+p.id+'">Eliminar</button>')+'</div>'+
@@ -7688,6 +7760,11 @@ function viewTurnos(){
 /* ============================= MODALS ============================= */
 function renderModal(){
   const root = document.getElementById('modalRoot');
+  const position=captureUiPosition(root,false);
+  ++uiPositionEpoch;
+  const previousKey=root.dataset.viewKey;
+  const nextKey=JSON.stringify(state.ui.modal);
+  root.dataset.viewKey=nextKey;
   if(!state.ui.modal){ root.innerHTML=''; return; }
   if(state.ui.modal.type==='worker') root.innerHTML = workerModalHtml(state.ui.modal.workerId);
   else if(state.ui.modal.type==='day') root.innerHTML = dayModalHtml(state.ui.modal.workerId, state.ui.modal.date);
@@ -7697,6 +7774,7 @@ function renderModal(){
   else if(state.ui.modal.type==='workerMonth') root.innerHTML = workerMonthModalHtml();
   else if(state.ui.modal.type==='llamada') root.innerHTML = llamadaModalHtml(state.ui.modal.llamadaId);
   else if(state.ui.modal.type==='pasaje') root.innerHTML = pasajeModalHtml(state.ui.modal.pasajeId);
+  else if(state.ui.modal.type==='ticketEmail') root.innerHTML = ticketEmailModalHtml(state.ui.modal.pasajeId);
   else if(state.ui.modal.type==='spotShiftImport') root.innerHTML = spotImportModalHtml();
   else if(state.ui.modal.type==='import') root.innerHTML = importModalHtml();
   else if(state.ui.modal.type==='service') root.innerHTML = serviceModalHtml(state.ui.modal.serviceId);
@@ -7705,6 +7783,7 @@ function renderModal(){
   else if(state.ui.modal.type==='addCargo') root.innerHTML = addSimpleListModalHtml('Agregar cargo','new-cargo-name','save-cargo');
   else if(state.ui.modal.type==='accessUser') root.innerHTML = accessUserModalHtml(state.ui.modal.uid);
   applyRoleUi();
+  if(previousKey===nextKey)restoreUiPosition(position);
 }
 
 function analyzeImportRows(){
@@ -9225,15 +9304,45 @@ document.addEventListener('click', async (e)=>{
     }
   }
 
+  else if(action==='ticket-panel-filter'){
+    const filter=el.dataset.filter;
+    state.ui.pasajeFilter=['pendiente','solicitado'].includes(filter)?filter:'all';
+    state.ui.pasajeVista=['pendiente','solicitado'].includes(filter)?'pendientes':filter;
+    render();
+  }
+  else if(action==='ticket-clear-filters'){
+    state.ui.pasajeSearch='';state.ui.pasajeFilter='all';state.ui.pasajeFaenaFilter='all';state.ui.pasajeVista='todos';render();
+  }
+  else if(action==='ticket-email'){state.ui.modal={type:'ticketEmail',pasajeId:el.dataset.id};renderModal();}
+  else if(action==='copy-ticket-draft'){
+    const input=document.getElementById('ticketEmailDraft');
+    if(!input)return;
+    try{await navigator.clipboard.writeText(input.value);document.getElementById('ticketCopyStatus').textContent='Texto copiado. Revísalo antes de enviarlo.';}
+    catch(error){input.focus({preventScroll:true});input.select();document.getElementById('ticketCopyStatus').textContent='Selecciona y copia el texto con Ctrl+C.';}
+  }
+  else if(action==='ticket-mark-sent'){
+    const ticket=state.pasajes.find(p=>p.id===el.dataset.id);
+    if(!ticket||ticket.estado!=='emitido'||ticket.envioTrabajador==='enviado')return;
+    const previous={...ticket};el.disabled=true;
+    ticket.envioTrabajador='enviado';
+    if(!await persistNow()){Object.assign(ticket,previous);if(!Object.hasOwn(previous,'envioTrabajador'))delete ticket.envioTrabajador;el.disabled=false;return;}
+    render();await recordAudit('TICKET_SENT','ticket',ticket.id,'Se registró el envío del pasaje al trabajador.',{workerId:ticket.workerId});
+  }
   else if(action==='new-pasaje'){ state.ui.modal = {type:'pasaje', pasajeId:null}; renderModal(); }
   else if(action==='open-pasaje'){ state.ui.modal = {type:'pasaje', pasajeId: el.dataset.id}; renderModal(); }
   else if(action==='save-pasaje'){
     const isNewPasaje = el.dataset.isNew === 'true';
     const workerId = document.getElementById('pj-worker').value;
     if(!workerId){ alert('Selecciona un trabajador.'); return; }
+    const existingTicket=state.pasajes.find(p=>p.id===el.dataset.id);
+    if(!isNewPasaje&&!existingTicket){alert('El pasaje ya no existe. Cierra y vuelve a abrir la lista.');return;}
     const payload = {
+      ...existingTicket,
       id: el.dataset.id,
       workerId,
+      horaViaje:document.getElementById('pj-hora').value,
+      movimiento:document.getElementById('pj-movimiento').value,
+      envioTrabajador:document.getElementById('pj-envio').value,
       faena: document.getElementById('pj-faena').value,
       fechaViaje: document.getElementById('pj-fecha').value || todayStr(),
       origen: document.getElementById('pj-origen').value.trim(),
@@ -9241,14 +9350,18 @@ document.addEventListener('click', async (e)=>{
       estado: document.getElementById('pj-estado').value,
       nota: document.getElementById('pj-nota').value.trim()
     };
+    if(!state.workers.some(w=>w.id===workerId)){alert('El trabajador seleccionado ya no existe.');return;}
+    if(!PASAJE_STATUS[payload.estado]||!['','subida','bajada','otro'].includes(payload.movimiento)||!['sin_registro','pendiente','enviado'].includes(payload.envioTrabajador)||!isValidIsoDate(payload.fechaViaje)){alert('Revisa la fecha y los estados del pasaje.');return;}
+    if(payload.envioTrabajador==='enviado'&&!['emitido','cancelado'].includes(payload.estado)){alert('Para registrar el envío, el pasaje debe estar emitido.');return;}
+    const previousTickets=state.pasajes.slice();el.disabled=true;
     if(isNewPasaje){ state.pasajes.push(payload); }
     else {
       const idx = state.pasajes.findIndex(x=>x.id===el.dataset.id);
       if(idx>=0) state.pasajes[idx] = payload;
     }
+    if(!await persistNow()){state.pasajes=previousTickets;el.disabled=false;return;}
     state.ui.modal = null;
     render();
-    await persist();
 
     const pasajeWorker = state.workers.find(w=>w.id===workerId);
     await recordAudit(
@@ -9256,7 +9369,7 @@ document.addEventListener('click', async (e)=>{
       'ticket',
       payload.id,
       (isNewPasaje ? 'Se registró un pasaje para ' : 'Se editó un pasaje de ')+(pasajeWorker?.nombre||workerId)+'.',
-      {workerId, fechaViaje: payload.fechaViaje, origen: payload.origen, destino: payload.destino, estado: payload.estado}
+      {workerId, fechaViaje: payload.fechaViaje, horaViaje:payload.horaViaje, origen: payload.origen, destino: payload.destino, estado: payload.estado, movimiento:payload.movimiento, envioTrabajador:payload.envioTrabajador}
     );
   }
   else if(action==='delete-pasaje'){
@@ -9876,16 +9989,24 @@ function attachDynamicListeners(){
   if(llamadaFilterSelect){ llamadaFilterSelect.onchange = (e)=>{ state.ui.llamadaFilter = e.target.value; render(); }; }
   const pasajeSearchInput = document.getElementById('pasajeSearchInput');
   if(pasajeSearchInput){ pasajeSearchInput.oninput = (e)=>{ state.ui.pasajeSearch = e.target.value; renderContentOnly(); }; }
+  const pasajeVistaSelect=document.getElementById('pasajeVistaSelect');
+  if(pasajeVistaSelect)pasajeVistaSelect.onchange=e=>{state.ui.pasajeVista=e.target.value;render();};
+  const pasajeFaenaSelect=document.getElementById('pasajeFaenaSelect');
+  if(pasajeFaenaSelect)pasajeFaenaSelect.onchange=e=>{state.ui.pasajeFaenaFilter=e.target.value;render();};
   const pasajeFilterSelect = document.getElementById('pasajeFilterSelect');
   if(pasajeFilterSelect){ pasajeFilterSelect.onchange = (e)=>{ state.ui.pasajeFilter = e.target.value; render(); }; }
 }
 function renderContentOnly(){
+  const position=captureUiPosition();
   const c = document.getElementById('content');
   if(state.ui.tab==='servicios') c.innerHTML = viewServicios();
   else if(state.ui.tab==='trabajadores') c.innerHTML = viewTrabajadores();
   else if(state.ui.tab==='llamados') c.innerHTML = viewLlamados();
   else if(state.ui.tab==='pasajes') c.innerHTML = viewPasajes();
+  attachDynamicListeners();
   applyRoleUi();
+  restoreUiPosition(position);
+  lastRenderedTab=state.ui.tab;
 }
 
 async function saveWorkerFromForm(){

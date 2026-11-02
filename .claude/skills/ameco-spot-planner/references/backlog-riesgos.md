@@ -113,3 +113,12 @@ por defecto, vista previa invalidada al editar, preservar excepciones, confirmac
 reemplazo, respaldo completo previo y transacción compare-and-set con bloqueo ante concurrencia.
 El Excel del usuario no se incorpora al repositorio público. Validación real de producción pendiente.
 Evidencia: `release-evidence/importar-turnos-spot.md`.
+
+## Pasajes y contexto visual — revisión 02-11-2026
+
+Mejora operacional incremental: panel de pasajes y conservación de posición de la interfaz.
+Campos opcionales en pasajes: horaViaje, movimiento, envioTrabajador. Sin migraciones,
+nuevas rutas ni cambios de reglas. Sin inferir envío en registros anteriores. Nuevas acciones
+respetan write/export existentes. Guardado antes de cerrar, preservación de metadatos no
+editados, borradores manuales sin transmisión. Riesgo de confundir emisión/envío mitigado
+con etiquetas separadas. Evidencia: release-evidence/pasajes-posicion.md.
