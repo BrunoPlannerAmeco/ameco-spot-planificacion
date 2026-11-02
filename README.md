@@ -406,3 +406,22 @@ locales pendientes, guarda y recarga antes de importar. No se ejecutan macros.
 
 Disponible para Administrador/Planificador. El rol Lector no puede importar.
 Pruebas: `npm run test:spot-import`. Evidencia: `release-evidence/importar-turnos-spot.md`.
+
+## Panel de pasajes (rama de revisión)
+
+Pasajes abre en Gestiones pendientes. Los contadores distinguen por solicitar, compra por
+confirmar, envío por gestionar/verificar, viajes desde hoy hasta hoy + 6 días y fecha pasada
+sin emitir. Contadores sujetos a búsqueda/faena; vista y estado filtran la tabla. Todos / historial
+permite consultar también pasajes cancelados y enviados. La búsqueda admite nombre sin tildes,
+RUT con/sin formato, tramo, faena y nota.
+
+Al editar se puede indicar hora de salida, movimiento (subida/bajada/otro) y registro de envío.
+Los registros antiguos muestran Sin registro de envío. Marcar enviado registra una gestión
+realizada por el usuario, no transmite el pasaje. Solo se ofrece para pasajes emitidos.
+Preparar texto genera un borrador editable para copiar; no envía mensajes ni cambia estados.
+
+El HTML conserva posición, desplazamiento de tablas y foco al guardar o filtrar en el mismo
+módulo. Si la lista resultante es más corta, el navegador limita la posición a su altura válida.
+Al cambiar de módulo comienza arriba. No se guardan preferencias de scroll en Firebase.
+
+Validación: npm run test:pasajes y npm run test:ui-position.

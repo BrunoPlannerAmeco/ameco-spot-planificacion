@@ -8,6 +8,8 @@ on:
       - 'scripts/check-html-syntax.mjs'
       - 'scripts/test-spot-shift-import.mjs'
       - 'scripts/test-turnos-query.mjs'
+      - 'scripts/test-pasajes-panel.mjs'
+      - 'scripts/test-ui-position.mjs'
       - '.github/workflows/check-syntax.yml'
   workflow_dispatch: {}
 
@@ -32,3 +34,5 @@ jobs:
           node --check spot-shift-import.js
           node scripts/test-spot-shift-import.mjs
           node scripts/test-turnos-query.mjs
+          node scripts/test-pasajes-panel.mjs
+          node scripts/test-ui-position.mjs

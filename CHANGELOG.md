@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## [Sin versión] — Panel de pasajes y conservación de posición (02-11-2026)
+
+- Panel de gestión: por solicitar, compra por confirmar, envío por gestionar/verificar,
+  próximos 7 días y fechas pasadas sin emitir; filtros por vista, estado, faena y búsqueda.
+- Hora de salida, movimiento y registro de envío opcionales. Los registros anteriores
+  conservan la condición Sin registro; no se infiere que fueron enviados.
+- Borrador editable de coordinación para copiar manualmente; no envía correos ni marca envío.
+- Guardado de pasajes confirma persistencia antes de cerrar; conserva campos adicionales
+  de registros existentes y mantiene el formulario abierto ante fallos.
+- Renderizaciones del mismo módulo conservan scroll vertical/horizontal, foco y selección;
+  las búsquedas vuelven a enlazar sus eventos tras reconstruirse. Navegación entre módulos inicia arriba.
+- Pruebas de panel/posición y CI ampliados. Ver release-evidence/pasajes-posicion.md.
+
 ## [Sin versión] — Importación de turnos Personal Spot (02-11-2026)
 
 - Botón Importar turnos Excel en Turnos: .xlsx/.xlsm, hoja Personal Spot, fechas de calendario reales y RUT como identidad.
